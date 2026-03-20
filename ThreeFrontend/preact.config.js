@@ -8,3 +8,15 @@
 //     });
 //     return config;
 //   };
+
+export default (config) => {
+    config.resolve.alias = {
+        ...(config.resolve.alias || {}),
+        react: 'preact/compat',
+        'react-dom': 'preact/compat',
+        // 'react-dom/client': 'preact/compat'
+        'react-dom/client': require.resolve('./src/react-dom-client-shim')
+    };
+
+    return config;
+};
