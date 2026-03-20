@@ -8,3 +8,12 @@
 //     });
 //     return config;
 //   };
+
+export default (config, env, helpers) => {
+  config.resolve.alias = {
+    ...config.resolve.alias,
+    react: 'preact/compat',
+    'react-dom': 'preact/compat',
+    'react/jsx-runtime': 'preact/jsx-runtime',
+  };
+};

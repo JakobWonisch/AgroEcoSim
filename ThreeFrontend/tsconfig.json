@@ -7,6 +7,8 @@
 		"jsx": "react",
 		"jsxFactory": "h",
 		"jsxFragmentFactory": "Fragment",
+		"jsxImportSource": "preact",
+		"types": ["preact"],
 		"noEmit": true,
 		"allowJs": true,
 		"checkJs": true,
