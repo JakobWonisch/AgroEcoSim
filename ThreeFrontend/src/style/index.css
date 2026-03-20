@@ -31,13 +31,22 @@ body {
 }
 
 #hud {
-	margin-left: 20px;
-	margin-top: 20px;
+	padding: 20px;
+	padding-right: 0;
 	max-width: 25vw;
+	box-sizing: border-box;
+	height: 100%;
 	z-index: 10;
 	position: absolute;
 	left: 0;
 	top: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+#hud.expanded {
+	max-width: 50vw;
+	width: 100%;
 }
 
 #hud label {
@@ -132,6 +141,10 @@ ul.scrollable-listing {
 .speciesDetails {
 	margin-top: 1em;
 	overflow-y: auto!important;
-	height: 83vh;
-	padding-right: 1em;
+}
+
+.stack {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
 }

@@ -3,7 +3,7 @@ nav ul[role="tablist"] {
     list-style: none;
     display: flex;
     margin-top: 0px;
-
+    padding-left: 0;
 }
 
 nav ul[role="tablist"] li{
