@@ -5,7 +5,7 @@ import {
 import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
 import { ReactPlugin, Presets, ReactArea2D, useRete } from 'rete-react-plugin';
-import { SwitchControl, SwitchControlComponent } from './controls';
+import { SwitchControl, SwitchControlComponent, CustomInputComponent } from './controls';
 import { NumberInputNode } from './input/NumberInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { GreaterThanNode } from './util/logic/GreaterThanNode';
@@ -37,7 +37,7 @@ export async function createEditor(container: HTMLElement) {
                     return SwitchControlComponent as any;
                 }
                 if (data.payload instanceof ClassicPreset.InputControl) {
-                    return Presets.classic.Control;
+                    return CustomInputComponent as any;
                 }
                 return null;
             }
