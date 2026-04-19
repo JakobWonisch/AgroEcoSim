@@ -62,3 +62,23 @@ export function CustomInputComponent(props: { data: ClassicPreset.InputControl<"
         />
     );
 }
+
+export function CustomSocketComponent(props: { data: ClassicPreset.Socket }) {
+    const color = props.data.name === 'Number' ? '#3498db' : '#e67e22'; // blue for Number, orange for Boolean
+    return (
+        <div 
+            title={props.data.name} 
+            style={{ 
+                width: '18px', 
+                height: '18px', 
+                background: color,
+                borderRadius: '50%',
+                border: '2px solid rgba(255, 255, 255, 0.8)',
+                display: 'inline-block',
+                verticalAlign: 'middle',
+                boxSizing: 'border-box',
+                cursor: 'pointer'
+            }} 
+        />
+    );
+}

@@ -5,7 +5,7 @@ import {
 import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
 import { ReactPlugin, Presets, ReactArea2D, useRete } from 'rete-react-plugin';
-import { SwitchControl, SwitchControlComponent, CustomInputComponent } from './controls';
+import { SwitchControl, SwitchControlComponent, CustomInputComponent, CustomSocketComponent } from './controls';
 import { NumberInputNode } from './input/NumberInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { GreaterThanNode } from './util/logic/GreaterThanNode';
@@ -40,10 +40,31 @@ export async function createEditor(container: HTMLElement) {
                     return CustomInputComponent as any;
                 }
                 return null;
+            },
+            socket(data) {
+                return CustomSocketComponent as any;
             }
         }
     }));
     connection.addPreset(ConnectionPresets.classic.setup());
+
+    editor.addPipe(context => {
+        if (context.type === 'connectioncreate') {
+            const { source, target, sourceOutput, targetInput } = context.data;
+            const sourceNode = editor.getNode(source);
+            const targetNode = editor.getNode(target);
+            
+            // Get the socket definitions to check compatibility
+            const outSocket = sourceNode?.outputs[sourceOutput]?.socket;
+            const inSocket = targetNode?.inputs[targetInput]?.socket;
+
+            if (outSocket && inSocket && outSocket.name !== inSocket.name) {
+                // Prevent the connection if sockets mismatch
+                return;
+            }
+        }
+        return context;
+    });
 
     editor.use(area);
     area.use(connection);
