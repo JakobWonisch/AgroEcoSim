@@ -17,6 +17,64 @@ type Conn = ClassicPreset.Connection<Node, Node>;
 type Schemes = GetSchemes<Node, Conn>;
 type AreaExtra = ReactArea2D<Schemes>;
 
+export const DEBUG_SHOW_VALUES = true;
+
+async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
+    const cache = new Map<string, any>();
+
+    async function evaluateNode(nodeId: string): Promise<any> {
+        if (cache.has(nodeId)) return cache.get(nodeId);
+        
+        const node = editor.getNode(nodeId);
+        const inputsData: Record<string, any[]> = {};
+        
+        const cons = editor.getConnections().filter(c => c.target === nodeId);
+        for (const c of cons) {
+            const outData = await evaluateNode(c.source);
+            if (!inputsData[c.targetInput]) inputsData[c.targetInput] = [];
+            if (outData && outData[c.sourceOutput] !== undefined) {
+                inputsData[c.targetInput].push(outData[c.sourceOutput]);
+            }
+        }
+        
+        const data = ('data' in node && typeof (node as any).data === 'function') 
+            ? (node as any).data(inputsData) 
+            : {};
+            
+        // Debug labeling
+        let updated = false;
+        if (node.inputs) {
+            for (const [key, input] of Object.entries(node.inputs)) {
+                if (!input) continue;
+                const baseLabel = input.label.split(' [')[0];
+                let newLabel = baseLabel;
+                
+                if (DEBUG_SHOW_VALUES && inputsData[key] && inputsData[key].length > 0) {
+                    const val = inputsData[key][0];
+                    const valStr = typeof val === 'boolean' ? (val ? 'True' : 'False') : (typeof val === 'number' ? Number(val).toFixed(2) : String(val));
+                    newLabel = `${baseLabel} [${valStr}]`;
+                }
+                
+                if (input.label !== newLabel) {
+                    input.label = newLabel;
+                    updated = true;
+                }
+            }
+        }
+        
+        cache.set(nodeId, data);
+        if (updated) {
+            area.update('node', nodeId);
+        }
+        return data;
+    }
+    
+    // Evaluate all nodes
+    for (const node of editor.getNodes()) {
+        await evaluateNode(node.id);
+    }
+}
+
 export async function createEditor(container: HTMLElement) {
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
@@ -63,7 +121,18 @@ export async function createEditor(container: HTMLElement) {
                 return;
             }
         }
+
+        if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
+            setTimeout(() => processGraph(editor, area), 0);
+        }
+
         return context;
+    });
+
+    import('./controls').then(m => {
+        m.graphUpdateTrigger.addEventListener('update', () => {
+            setTimeout(() => processGraph(editor, area), 0);
+        });
     });
 
     editor.use(area);
@@ -110,6 +179,7 @@ export async function createEditor(container: HTMLElement) {
 
     setTimeout(() => {
         AreaExtensions.zoomAt(area, editor.getNodes());
+        processGraph(editor, area);
     }, 10);
 
     return {

@@ -2,6 +2,8 @@ import { ClassicPreset } from 'rete';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 
+export const graphUpdateTrigger = new EventTarget();
+
 export class SwitchControl extends ClassicPreset.Control {
     constructor(public value: boolean, public onChange: (val: boolean) => void) {
         super();
@@ -24,6 +26,7 @@ export function SwitchControlComponent(props: { data: SwitchControl }) {
                     setVal(checked);
                     props.data.value = checked;
                     props.data.onChange(checked);
+                    graphUpdateTrigger.dispatchEvent(new Event('update'));
                 }}
                 style={{ cursor: 'pointer' }}
             />
@@ -48,6 +51,7 @@ export function CustomInputComponent(props: { data: ClassicPreset.InputControl<"
                 if (props.data.options && props.data.options.change) {
                     props.data.options.change(newVal as any);
                 }
+                graphUpdateTrigger.dispatchEvent(new Event('update'));
             }}
             style={{
                 width: '100%',
