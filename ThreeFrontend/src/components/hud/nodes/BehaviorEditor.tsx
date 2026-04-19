@@ -1,7 +1,7 @@
 // ─── src/components/app.tsx ───────────────────────────────────────────────────
 import { h } from 'preact';
 import { useCallback } from 'preact/hooks';
-import ReactFlow, {
+import {
   addEdge,
   MiniMap,
   Controls,
@@ -12,12 +12,13 @@ import ReactFlow, {
   Node,
   Edge,
   Background,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+  ReactFlow,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 const initialNodes: Node[] = [
-  { id: '1', type: 'input', data: { label: 'Input' },   position: { x: 100, y: 100 } },
-  { id: '2',                data: { label: 'Process' },  position: { x: 300, y: 200 } },
+  { id: '1', type: 'input', data: { label: 'Input' }, position: { x: 100, y: 100 } },
+  { id: '2', data: { label: 'Process' }, position: { x: 300, y: 200 } },
   { id: '3', type: 'output', data: { label: 'Output' }, position: { x: 500, y: 100 } },
 ];
 
