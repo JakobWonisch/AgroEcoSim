@@ -1,10 +1,16 @@
 import { h, render } from 'preact';
 import {
-  NodeEditor, GetSchemes, ClassicPreset
+    NodeEditor, GetSchemes, ClassicPreset
 } from 'rete';
 import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
 import { ReactPlugin, Presets, ReactArea2D, useRete } from 'rete-react-plugin';
+import { SwitchControl, SwitchControlComponent } from './controls';
+import { NumberInputNode } from './input/NumberInputNode';
+import { BooleanInputNode } from './input/BooleanInputNode';
+import { GreaterThanNode } from './util/logic/GreaterThanNode';
+import { AndNode } from './util/boolean/AndNode';
+import { BooleanOutputNode } from './output/BooleanOutputNode';
 
 type Node = ClassicPreset.Node;
 type Conn = ClassicPreset.Connection<Node, Node>;
@@ -12,12 +18,10 @@ type Schemes = GetSchemes<Node, Conn>;
 type AreaExtra = ReactArea2D<Schemes>;
 
 export async function createEditor(container: HTMLElement) {
-    const socket = new ClassicPreset.Socket('socket');
-
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
     const connection = new ConnectionPlugin<Schemes, AreaExtra>();
-    
+
     // Custom createRoot wrapper for Preact
     const createRoot = (container: HTMLElement) => ({
         render: (element: any) => render(element as any, container),
@@ -26,7 +30,19 @@ export async function createEditor(container: HTMLElement) {
 
     const renderPlugin = new ReactPlugin<Schemes, AreaExtra>({ createRoot });
 
-    renderPlugin.addPreset(Presets.classic.setup());
+    renderPlugin.addPreset(Presets.classic.setup({
+        customize: {
+            control(data) {
+                if (data.payload instanceof SwitchControl) {
+                    return SwitchControlComponent as any;
+                }
+                if (data.payload instanceof ClassicPreset.InputControl) {
+                    return Presets.classic.Control;
+                }
+                return null;
+            }
+        }
+    }));
     connection.addPreset(ConnectionPresets.classic.setup());
 
     editor.use(area);
@@ -35,25 +51,41 @@ export async function createEditor(container: HTMLElement) {
 
     AreaExtensions.simpleNodesOrder(area);
 
-    const a = new ClassicPreset.Node('Input');
-    a.addOutput('a', new ClassicPreset.Output(socket));
-    await editor.addNode(a);
+    const valInput = new NumberInputNode(10);
+    valInput.label = 'Value';
+    await editor.addNode(valInput);
 
-    const b = new ClassicPreset.Node('Process');
-    b.addInput('a', new ClassicPreset.Input(socket));
-    b.addOutput('b', new ClassicPreset.Output(socket));
-    await editor.addNode(b);
+    const threshInput = new NumberInputNode(5);
+    threshInput.label = 'Threshold';
+    await editor.addNode(threshInput);
 
-    const c = new ClassicPreset.Node('Output');
-    c.addInput('b', new ClassicPreset.Input(socket));
-    await editor.addNode(c);
+    const activeSwitch = new BooleanInputNode(true);
+    await editor.addNode(activeSwitch);
 
-    await editor.addConnection(new ClassicPreset.Connection(a, 'a', b, 'a'));
-    await editor.addConnection(new ClassicPreset.Connection(b, 'b', c, 'b'));
+    const gtNode = new GreaterThanNode();
+    await editor.addNode(gtNode);
 
-    await area.translate(a.id, { x: 100, y: 100 });
-    await area.translate(b.id, { x: 300, y: 200 });
-    await area.translate(c.id, { x: 500, y: 100 });
+    const andNode = new AndNode();
+    await editor.addNode(andNode);
+
+    const outNode = new BooleanOutputNode();
+    await editor.addNode(outNode);
+
+    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(valInput, 'num', gtNode, 'a'));
+    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(threshInput, 'num', gtNode, 'b'));
+    
+    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(gtNode, 'out', andNode, 'a'));
+    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(activeSwitch, 'bool', andNode, 'b'));
+
+    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(andNode, 'out', outNode, 'bool'));
+
+    await area.translate(valInput.id, { x: 50, y: 50 });
+    await area.translate(threshInput.id, { x: 50, y: 250 });
+    await area.translate(activeSwitch.id, { x: 50, y: 450 });
+
+    await area.translate(gtNode.id, { x: 350, y: 150 });
+    await area.translate(andNode.id, { x: 650, y: 300 });
+    await area.translate(outNode.id, { x: 950, y: 300 });
 
     setTimeout(() => {
         AreaExtensions.zoomAt(area, editor.getNodes());
@@ -66,7 +98,7 @@ export async function createEditor(container: HTMLElement) {
 
 export default function BehaviorEditor() {
     const [ref] = useRete(createEditor);
-    
+
     return (
         <div style={{ width: '100%', height: '100%', background: 'rgba(0,0,0,0.1)' }}>
             <div ref={ref} style={{ width: '100%', height: '100%' }} />
