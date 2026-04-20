@@ -1,5 +1,5 @@
 import { ClassicPreset } from 'rete';
-import { numSocket } from '../../sockets';
+import { numSocket } from '../../Sockets';
 
 export class MultiplyNode extends ClassicPreset.Node {
     constructor() {

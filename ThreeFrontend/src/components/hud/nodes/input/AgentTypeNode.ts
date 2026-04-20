@@ -1,10 +1,10 @@
 import { ClassicPreset } from 'rete';
-import { boolSocket } from '../sockets';
+import { boolSocket } from '../Sockets';
 
 export class AgentTypeNode extends ClassicPreset.Node {
     constructor() {
         super('Agent Type');
-        
+
         // 5 different boolean output values
         this.addOutput('type1', new ClassicPreset.Output(boolSocket, 'Type 1'));
         this.addOutput('type2', new ClassicPreset.Output(boolSocket, 'Type 2'));

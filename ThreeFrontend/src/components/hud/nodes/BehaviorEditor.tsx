@@ -1,34 +1,31 @@
 import { h, render } from 'preact';
 import {
-    NodeEditor, GetSchemes, ClassicPreset
+    ClassicPreset,
+    NodeEditor
 } from 'rete';
-import { AreaPlugin, AreaExtensions } from 'rete-area-plugin';
+import { AreaExtensions, AreaPlugin } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
-import { ReactPlugin, Presets, ReactArea2D, useRete } from 'rete-react-plugin';
-import { SwitchControl, SwitchControlComponent, CustomInputComponent, CustomSocketComponent } from './controls';
-import { NumberInputNode } from './input/NumberInputNode';
-import { BooleanInputNode } from './input/BooleanInputNode';
-import { GreaterThanNode } from './util/logic/GreaterThanNode';
-import { AndNode } from './util/boolean/AndNode';
-import { BooleanOutputNode } from './output/BooleanOutputNode';
+import { ContextMenuPlugin, Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
+import { Presets, ReactPlugin, useRete } from 'rete-react-plugin';
+import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
 import { AgentTypeNode } from './input/AgentTypeNode';
+import { BooleanInputNode } from './input/BooleanInputNode';
+import { NumberInputNode } from './input/NumberInputNode';
+import { AreaExtra, Node, Schemes } from './NodeTypes';
+import { BooleanOutputNode } from './output/BooleanOutputNode';
 import { NumberOutputNode } from './output/NumberOutputNode';
+import { AndNode } from './util/boolean/AndNode';
+import { NotNode } from './util/boolean/NotNode';
 import { OrNode } from './util/boolean/OrNode';
 import { XorNode } from './util/boolean/XorNode';
-import { NotNode } from './util/boolean/NotNode';
-import { AddNode } from './util/numeric/AddNode';
-import { SubtractNode } from './util/numeric/SubtractNode';
-import { MultiplyNode } from './util/numeric/MultiplyNode';
-import { DivideNode } from './util/numeric/DivideNode';
-import { LessThanNode } from './util/logic/LessThanNode';
 import { EqualToNode } from './util/logic/EqualToNode';
+import { GreaterThanNode } from './util/logic/GreaterThanNode';
 import { IfElseNode } from './util/logic/IfElseNode';
-import { ContextMenuPlugin, Presets as ContextMenuPresets, ContextMenuExtra } from 'rete-context-menu-plugin';
-
-type Node = ClassicPreset.Node;
-type Conn = ClassicPreset.Connection<Node, Node>;
-type Schemes = GetSchemes<Node, Conn>;
-type AreaExtra = ReactArea2D<Schemes> | ContextMenuExtra;
+import { LessThanNode } from './util/logic/LessThanNode';
+import { AddNode } from './util/numeric/AddNode';
+import { DivideNode } from './util/numeric/DivideNode';
+import { MultiplyNode } from './util/numeric/MultiplyNode';
+import { SubtractNode } from './util/numeric/SubtractNode';
 
 export const DEBUG_SHOW_VALUES = true;
 
@@ -266,7 +263,7 @@ export async function createEditor(container: HTMLElement) {
         return context;
     });
 
-    import('./controls').then(m => {
+    import('./Controls').then(m => {
         m.graphUpdateTrigger.addEventListener('update', () => {
             setTimeout(() => processGraph(editor, area), 0);
         });

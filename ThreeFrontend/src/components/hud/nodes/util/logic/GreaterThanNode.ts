@@ -1,5 +1,5 @@
 import { ClassicPreset } from 'rete';
-import { numSocket, boolSocket } from '../../sockets';
+import { numSocket, boolSocket } from '../../Sockets';
 
 export class GreaterThanNode extends ClassicPreset.Node {
     constructor() {

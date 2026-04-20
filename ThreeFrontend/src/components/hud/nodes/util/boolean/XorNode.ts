@@ -1,5 +1,5 @@
 import { ClassicPreset } from 'rete';
-import { boolSocket } from '../../sockets';
+import { boolSocket } from '../../Sockets';
 
 export class XorNode extends ClassicPreset.Node {
     constructor() {
