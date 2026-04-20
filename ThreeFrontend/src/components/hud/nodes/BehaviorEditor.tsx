@@ -106,7 +106,18 @@ export async function createEditor(container: HTMLElement) {
     }));
     connection.addPreset(ConnectionPresets.classic.setup());
 
+    let recentlyRemovedConnection: any = null;
+    let removeTimeout: any = null;
+
     editor.addPipe(context => {
+        if (context.type === 'connectionremove') {
+            recentlyRemovedConnection = context.data;
+            clearTimeout(removeTimeout);
+            removeTimeout = setTimeout(() => {
+                recentlyRemovedConnection = null;
+            }, 50);
+        }
+
         if (context.type === 'connectioncreate') {
             const { source, target, sourceOutput, targetInput } = context.data;
             const sourceNode = editor.getNode(source);
@@ -118,6 +129,12 @@ export async function createEditor(container: HTMLElement) {
 
             if (outSocket && inSocket && outSocket.name !== inSocket.name) {
                 // Prevent the connection if sockets mismatch
+                if (recentlyRemovedConnection && recentlyRemovedConnection.target === target && recentlyRemovedConnection.targetInput === targetInput) {
+                    const toRestore = recentlyRemovedConnection;
+                    setTimeout(() => {
+                        editor.addConnection(toRestore).catch(() => {});
+                    }, 10);
+                }
                 return;
             }
         }
