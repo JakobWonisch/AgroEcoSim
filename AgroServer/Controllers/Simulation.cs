@@ -55,6 +55,12 @@ public class SimulationController// : ControllerBase
         //Returns a listing of all predefined species
         api.MapGet("/species", () => SpeciesSettings.Predefined);
 
+        //Updates a species
+        api.MapPost("/species", (ExportedGraph data) =>
+        {
+            // TODO: implement species update
+        });
+
         //Returns a listing of all predefined behaviors
         api.MapGet("/behaviors", () => Enum.GetNames<Behavior>());
     }
