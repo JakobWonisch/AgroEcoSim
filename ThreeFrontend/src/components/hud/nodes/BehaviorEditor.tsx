@@ -11,11 +11,24 @@ import { BooleanInputNode } from './input/BooleanInputNode';
 import { GreaterThanNode } from './util/logic/GreaterThanNode';
 import { AndNode } from './util/boolean/AndNode';
 import { BooleanOutputNode } from './output/BooleanOutputNode';
+import { AgentTypeNode } from './input/AgentTypeNode';
+import { NumberOutputNode } from './output/NumberOutputNode';
+import { OrNode } from './util/boolean/OrNode';
+import { XorNode } from './util/boolean/XorNode';
+import { NotNode } from './util/boolean/NotNode';
+import { AddNode } from './util/numeric/AddNode';
+import { SubtractNode } from './util/numeric/SubtractNode';
+import { MultiplyNode } from './util/numeric/MultiplyNode';
+import { DivideNode } from './util/numeric/DivideNode';
+import { LessThanNode } from './util/logic/LessThanNode';
+import { EqualToNode } from './util/logic/EqualToNode';
+import { IfElseNode } from './util/logic/IfElseNode';
+import { ContextMenuPlugin, Presets as ContextMenuPresets, ContextMenuExtra } from 'rete-context-menu-plugin';
 
 type Node = ClassicPreset.Node;
 type Conn = ClassicPreset.Connection<Node, Node>;
 type Schemes = GetSchemes<Node, Conn>;
-type AreaExtra = ReactArea2D<Schemes>;
+type AreaExtra = ReactArea2D<Schemes> | ContextMenuExtra;
 
 export const DEBUG_SHOW_VALUES = true;
 
@@ -24,10 +37,10 @@ async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Scheme
 
     async function evaluateNode(nodeId: string): Promise<any> {
         if (cache.has(nodeId)) return cache.get(nodeId);
-        
+
         const node = editor.getNode(nodeId);
         const inputsData: Record<string, any[]> = {};
-        
+
         const cons = editor.getConnections().filter(c => c.target === nodeId);
         for (const c of cons) {
             const outData = await evaluateNode(c.source);
@@ -36,11 +49,11 @@ async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Scheme
                 inputsData[c.targetInput].push(outData[c.sourceOutput]);
             }
         }
-        
-        const data = ('data' in node && typeof (node as any).data === 'function') 
-            ? (node as any).data(inputsData) 
+
+        const data = ('data' in node && typeof (node as any).data === 'function')
+            ? (node as any).data(inputsData)
             : {};
-            
+
         // Debug labeling
         let updated = false;
         if (node.inputs) {
@@ -48,27 +61,27 @@ async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Scheme
                 if (!input) continue;
                 const baseLabel = input.label.split(' [')[0];
                 let newLabel = baseLabel;
-                
+
                 if (DEBUG_SHOW_VALUES && inputsData[key] && inputsData[key].length > 0) {
                     const val = inputsData[key][0];
                     const valStr = typeof val === 'boolean' ? (val ? 'True' : 'False') : (typeof val === 'number' ? Number(val).toFixed(2) : String(val));
                     newLabel = `${baseLabel} [${valStr}]`;
                 }
-                
+
                 if (input.label !== newLabel) {
                     input.label = newLabel;
                     updated = true;
                 }
             }
         }
-        
+
         cache.set(nodeId, data);
         if (updated) {
             area.update('node', nodeId);
         }
         return data;
     }
-    
+
     // Evaluate all nodes
     for (const node of editor.getNodes()) {
         await evaluateNode(node.id);
@@ -104,14 +117,85 @@ export async function createEditor(container: HTMLElement) {
             }
         }
     }));
+
+    renderPlugin.addPreset(Presets.contextMenu.setup({ delay: 0 }));
+
+    const contextMenu = new ContextMenuPlugin<Schemes>({
+        items: ContextMenuPresets.classic.setup([
+            ['input', [
+                ['Number', () => new NumberInputNode(0)],
+                ['Boolean', () => new BooleanInputNode(false)],
+                ['Agent Type', () => new AgentTypeNode()]
+            ]],
+            ['output', [
+                ['Number', () => new NumberOutputNode()],
+                ['Boolean', () => new BooleanOutputNode()]
+            ]],
+            ['boolean', [
+                ['And', () => new AndNode()],
+                ['Or', () => new OrNode()],
+                ['Xor', () => new XorNode()],
+                ['Not', () => new NotNode()]
+            ]],
+            ['numeric', [
+                ['Add', () => new AddNode()],
+                ['Subtract', () => new SubtractNode()],
+                ['Multiply', () => new MultiplyNode()],
+                ['Divide', () => new DivideNode()]
+            ]],
+            ['logic', [
+                ['Greater Than', () => new GreaterThanNode()],
+                ['Less Than', () => new LessThanNode()],
+                ['Equal To', () => new EqualToNode()],
+                ['If / Else', () => new IfElseNode()]
+            ]]
+        ])
+    });
+
     connection.addPreset(ConnectionPresets.classic.setup());
+
+    let lastPointerEvent: MouseEvent | undefined;
+    let pendingDropPosition: { x: number, y: number } | null = null;
+    let pendingDropConnection: { nodeId: string, side: 'input' | 'output', key: string } | null = null;
+
+    area.addPipe(context => {
+        const c = context as any;
+        if (['pointermove', 'pointerup'].includes(c.type)) {
+            if (c.data && c.data.event) {
+                lastPointerEvent = c.data.event;
+            }
+        }
+        if (c.type === 'pointerdown') {
+            pendingDropPosition = null;
+            pendingDropConnection = null;
+        }
+        return context;
+    });
+
+    connection.addPipe(context => {
+        const c = context as any;
+        if (c.type === 'connectiondrop') {
+            const ev = c.data.event || lastPointerEvent;
+            if (ev) {
+                // Record the exact projected SVG coordinates
+                pendingDropPosition = { ...area.area.pointer };
+                pendingDropConnection = c.data.initial;
+
+                setTimeout(() => {
+                    area.emit({ type: 'contextmenu', data: { event: ev, context: 'root' } } as any);
+                }, 10);
+            }
+        }
+        return context;
+    });
 
     let recentlyRemovedConnection: any = null;
     let removeTimeout: any = null;
 
     editor.addPipe(context => {
-        if (context.type === 'connectionremove') {
-            recentlyRemovedConnection = context.data;
+        const c = context as any;
+        if (c.type === 'connectionremove') {
+            recentlyRemovedConnection = c.data;
             clearTimeout(removeTimeout);
             removeTimeout = setTimeout(() => {
                 recentlyRemovedConnection = null;
@@ -122,7 +206,7 @@ export async function createEditor(container: HTMLElement) {
             const { source, target, sourceOutput, targetInput } = context.data;
             const sourceNode = editor.getNode(source);
             const targetNode = editor.getNode(target);
-            
+
             // Get the socket definitions to check compatibility
             const outSocket = sourceNode?.outputs[sourceOutput]?.socket;
             const inSocket = targetNode?.inputs[targetInput]?.socket;
@@ -132,10 +216,46 @@ export async function createEditor(container: HTMLElement) {
                 if (recentlyRemovedConnection && recentlyRemovedConnection.target === target && recentlyRemovedConnection.targetInput === targetInput) {
                     const toRestore = recentlyRemovedConnection;
                     setTimeout(() => {
-                        editor.addConnection(toRestore).catch(() => {});
+                        editor.addConnection(toRestore).catch(() => { });
                     }, 10);
                 }
                 return;
+            }
+        }
+
+        if (c.type === 'nodecreated') {
+            if (pendingDropPosition) {
+                const pos = { ...pendingDropPosition };
+                pendingDropPosition = null;
+                setTimeout(() => area.translate(c.data.id, pos), 0);
+            }
+
+            if (pendingDropConnection) {
+                const src = pendingDropConnection;
+                pendingDropConnection = null;
+
+                const newNode = c.data;
+                setTimeout(() => {
+                    try {
+                        if (src.side === 'output') {
+                            const inputs = Object.entries(newNode.inputs);
+                            if (inputs.length > 0) {
+                                editor.addConnection(new ClassicPreset.Connection(
+                                    editor.getNode(src.nodeId), src.key,
+                                    newNode, inputs[0][0]
+                                )).catch(() => { });
+                            }
+                        } else if (src.side === 'input') {
+                            const outputs = Object.entries(newNode.outputs);
+                            if (outputs.length > 0) {
+                                editor.addConnection(new ClassicPreset.Connection(
+                                    newNode, outputs[0][0],
+                                    editor.getNode(src.nodeId), src.key
+                                )).catch(() => { });
+                            }
+                        }
+                    } catch (e) { }
+                }, 10);
             }
         }
 
@@ -155,6 +275,7 @@ export async function createEditor(container: HTMLElement) {
     editor.use(area);
     area.use(connection);
     area.use(renderPlugin);
+    area.use(contextMenu);
 
     AreaExtensions.simpleNodesOrder(area);
 
@@ -180,7 +301,7 @@ export async function createEditor(container: HTMLElement) {
 
     await editor.addConnection(new ClassicPreset.Connection<Node, Node>(valInput, 'num', gtNode, 'a'));
     await editor.addConnection(new ClassicPreset.Connection<Node, Node>(threshInput, 'num', gtNode, 'b'));
-    
+
     await editor.addConnection(new ClassicPreset.Connection<Node, Node>(gtNode, 'out', andNode, 'a'));
     await editor.addConnection(new ClassicPreset.Connection<Node, Node>(activeSwitch, 'bool', andNode, 'b'));
 
@@ -199,8 +320,18 @@ export async function createEditor(container: HTMLElement) {
         processGraph(editor, area);
     }, 10);
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            area.emit({ type: 'pointerdown', data: { event: new PointerEvent('pointerdown') } } as any);
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     return {
-        destroy: () => area.destroy()
+        destroy: () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            area.destroy();
+        }
     };
 }
 
