@@ -1,6 +1,7 @@
 import { NumberInputNode } from "./input/NumberInputNode";
 import { BooleanInputNode } from "./input/BooleanInputNode";
 import { AgentTypeNode } from "./input/AgentTypeNode";
+import { ActiveOutputNode } from "./output/ActiveOutputNode";
 import { BooleanOutputNode } from "./output/BooleanOutputNode";
 import { NumberOutputNode } from "./output/NumberOutputNode";
 import { AndNode } from "./util/boolean/AndNode";
@@ -21,6 +22,7 @@ export const canonicalBehaviorNodeLabels = [
     "Number Input",
     "Boolean Input",
     "Agent Type",
+    "Active",
     "Boolean Output",
     "Number Output",
     "And",
@@ -49,6 +51,7 @@ const creators: Record<string, Creator> = {
     "Number Input": (d) => new NumberInputNode(numberFromData(d)),
     "Boolean Input": (d) => new BooleanInputNode(typeof d.bool === "boolean" ? d.bool : false),
     "Agent Type": () => new AgentTypeNode(),
+    Active: () => new ActiveOutputNode(),
     "Boolean Output": () => new BooleanOutputNode(),
     "Number Output": () => new NumberOutputNode(),
     And: () => new AndNode(),

@@ -13,6 +13,7 @@ import { AgentTypeNode } from './input/AgentTypeNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
+import { ActiveOutputNode } from './output/ActiveOutputNode';
 import { BooleanOutputNode } from './output/BooleanOutputNode';
 import { NumberOutputNode } from './output/NumberOutputNode';
 import { AndNode } from './util/boolean/AndNode';
@@ -134,6 +135,7 @@ export async function createEditor(container: HTMLElement, species: Species) {
                 ['Agent Type', () => new AgentTypeNode()]
             ]],
             ['output', [
+                ['Active', () => new ActiveOutputNode()],
                 ['Number', () => new NumberOutputNode()],
                 ['Boolean', () => new BooleanOutputNode()]
             ]],
