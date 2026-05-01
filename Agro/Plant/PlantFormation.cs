@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Timers;
 using AgentsSystem;
+using Agro.BehaviorGraph;
 using glTFLoader.Schema;
 using NumericHelpers;
 using Utils;
@@ -64,10 +65,14 @@ public partial class PlantFormation2 : IPlantFormation
 	/// </summary>
 	public SpeciesSettings Parameters { get; private set; }
 
-	public PlantFormation2(AgroWorld world, SpeciesSettings parameters, ISoilFormation soil, SeedAgent seed, Pcg parentRNG, int hoursPerTick)
+	/// <summary>When set, above-ground agent ticks run this graph instead of the <see cref="Behavior"/> switch.</summary>
+	public CompiledBehaviorGraph? BehaviorGraph { get; private set; }
+
+	public PlantFormation2(AgroWorld world, SpeciesSettings parameters, ISoilFormation soil, SeedAgent seed, Pcg parentRNG, int hoursPerTick, CompiledBehaviorGraph? behaviorGraph = null)
 	{
 		World = world;
 		Parameters = parameters ?? SpeciesSettings.Default;
+		BehaviorGraph = behaviorGraph;
 		Parameters.Init(hoursPerTick);
 		Soil = soil;
 		Seed[0] = seed;

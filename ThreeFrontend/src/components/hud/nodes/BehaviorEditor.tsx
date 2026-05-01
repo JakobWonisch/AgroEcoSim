@@ -10,12 +10,14 @@ import { ContextMenuPlugin, Presets as ContextMenuPresets } from 'rete-context-m
 import { Presets, ReactPlugin, useRete } from 'rete-react-plugin';
 import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
 import { AgentTypeNode } from './input/AgentTypeNode';
+import { OrganSensorsNode } from './input/OrganSensorsNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
 import { ActiveOutputNode } from './output/ActiveOutputNode';
 import { BooleanOutputNode } from './output/BooleanOutputNode';
 import { NumberOutputNode } from './output/NumberOutputNode';
+import { GrowthNode } from './output/GrowthNode';
 import { AndNode } from './util/boolean/AndNode';
 import { NotNode } from './util/boolean/NotNode';
 import { OrNode } from './util/boolean/OrNode';
@@ -132,12 +134,14 @@ export async function createEditor(container: HTMLElement, species: Species) {
             ['input', [
                 ['Number', () => new NumberInputNode(0)],
                 ['Boolean', () => new BooleanInputNode(false)],
-                ['Agent Type', () => new AgentTypeNode()]
+                ['Agent Type', () => new AgentTypeNode()],
+                ['Organ Sensors', () => new OrganSensorsNode()]
             ]],
             ['output', [
                 ['Active', () => new ActiveOutputNode()],
                 ['Number', () => new NumberOutputNode()],
-                ['Boolean', () => new BooleanOutputNode()]
+                ['Boolean', () => new BooleanOutputNode()],
+                ['Growth', () => new GrowthNode()]
             ]],
             ['boolean', [
                 ['And', () => new AndNode()],

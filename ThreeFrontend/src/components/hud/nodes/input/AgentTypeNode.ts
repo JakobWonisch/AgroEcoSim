@@ -14,13 +14,13 @@ export class AgentTypeNode extends ClassicPreset.Node {
     }
 
     data() {
-        // Randomly set outputs for now
+        // Editor preview only; simulation uses live organ flags on the server (same mapping as Organ Sensors).
         return {
-            type1: Math.random() > 0.5,
-            type2: Math.random() > 0.5,
-            type3: Math.random() > 0.5,
-            type4: Math.random() > 0.5,
-            type5: Math.random() > 0.5,
+            type1: false,
+            type2: false,
+            type3: false,
+            type4: false,
+            type5: false,
         };
     }
 }

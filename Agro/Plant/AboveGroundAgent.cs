@@ -1,4 +1,5 @@
 using AgentsSystem;
+using Agro.BehaviorGraph;
 using Agro.Plant.Flower;
 using Microsoft.VisualBasic;
 using System;
@@ -382,6 +383,14 @@ public partial struct AboveGroundAgent : IPlantAgent
 	public void Tick(IFormation _formation, int agentID, uint timestep)
 	{
 		var formation = (PlantSubFormation<AboveGroundAgent>)_formation;
+		var graph = formation.Plant.BehaviorGraph;
+		if (graph != null)
+		{
+			Console.WriteLine("behaviorgraph is not null ");
+			GraphTickInterpreter.Execute(ref this, formation, agentID, timestep, graph);
+			return;
+		}
+
 		switch (formation.Plant.Parameters.Behavior)
 		{
 			case Behavior.Default:

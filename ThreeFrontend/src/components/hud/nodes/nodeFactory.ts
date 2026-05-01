@@ -4,6 +4,8 @@ import { AgentTypeNode } from "./input/AgentTypeNode";
 import { ActiveOutputNode } from "./output/ActiveOutputNode";
 import { BooleanOutputNode } from "./output/BooleanOutputNode";
 import { NumberOutputNode } from "./output/NumberOutputNode";
+import { GrowthNode } from "./output/GrowthNode";
+import { OrganSensorsNode } from "./input/OrganSensorsNode";
 import { AndNode } from "./util/boolean/AndNode";
 import { NotNode } from "./util/boolean/NotNode";
 import { OrNode } from "./util/boolean/OrNode";
@@ -22,6 +24,7 @@ export const canonicalBehaviorNodeLabels = [
     "Number Input",
     "Boolean Input",
     "Agent Type",
+    "Organ Sensors",
     "Active",
     "Boolean Output",
     "Number Output",
@@ -37,6 +40,7 @@ export const canonicalBehaviorNodeLabels = [
     "Subtract",
     "Multiply",
     "Divide",
+    "Growth",
 ] as const;
 
 type Creator = (data: Record<string, unknown>) => any;
@@ -51,6 +55,7 @@ const creators: Record<string, Creator> = {
     "Number Input": (d) => new NumberInputNode(numberFromData(d)),
     "Boolean Input": (d) => new BooleanInputNode(typeof d.bool === "boolean" ? d.bool : false),
     "Agent Type": () => new AgentTypeNode(),
+    "Organ Sensors": () => new OrganSensorsNode(),
     Active: () => new ActiveOutputNode(),
     "Boolean Output": () => new BooleanOutputNode(),
     "Number Output": () => new NumberOutputNode(),
@@ -66,6 +71,7 @@ const creators: Record<string, Creator> = {
     Subtract: () => new SubtractNode(),
     Multiply: () => new MultiplyNode(),
     Divide: () => new DivideNode(),
+    Growth: () => new GrowthNode(),
 };
 
 export function isSupportedBehaviorExportLabel(label: string): boolean {
