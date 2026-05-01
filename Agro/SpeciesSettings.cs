@@ -5,7 +5,7 @@ using Agro.Species;
 
 namespace Agro;
 
-public enum Behavior : byte { Default, Geranium_Sanguineum, Geranium_x_Cantabrigiense, Geranium_Macrorrhizum, Bergenia_Cordifolia }
+public enum Behavior : byte { Default, Geranium_Sanguineum, Geranium_x_Cantabrigiense, Geranium_Macrorrhizum, Bergenia_Cordifolia, Test }
 
 public class SpeciesSettings
 {
@@ -51,16 +51,20 @@ public class SpeciesSettings
     ///<summary>
     /// Dominance factor reduces (or boosts) growth of lateral branches. Multiplies with each recursion level.
     ///</summary>
-    public float DominanceFactor { get => dominanceFactor; init {
-        dominanceFactor = value;
-        const int factors = 16;
-        DominanceFactors = new float[factors + 1];
-        DominanceFactors[0] = 1;
-        DominanceFactors[1] = 1;
-        DominanceFactors[2] = dominanceFactor;
-        for(int i = 3; i < factors; ++i)
-            DominanceFactors[i] = MathF.Pow(dominanceFactor, i);
-    } }
+    public float DominanceFactor
+    {
+        get => dominanceFactor; init
+        {
+            dominanceFactor = value;
+            const int factors = 16;
+            DominanceFactors = new float[factors + 1];
+            DominanceFactors[0] = 1;
+            DominanceFactors[1] = 1;
+            DominanceFactors[2] = dominanceFactor;
+            for (int i = 3; i < factors; ++i)
+                DominanceFactors[i] = MathF.Pow(dominanceFactor, i);
+        }
+    }
 
     /// <summary>Age (hours) when plant switches to deterministic sympodial growth.</summary>
     public float SympodialStartAgeHours = 24f * 45f;
@@ -203,7 +207,7 @@ public class SpeciesSettings
     public float AuxinsThreshold => 1f;
 
     public float DensityDryWood = 700_000; //in g/m³
-	public float DensityDryStem = 200_000; //in g/m³
+    public float DensityDryStem = 200_000; //in g/m³
 
     public float PetioleCoverThreshold { get; private set; } = float.MaxValue;
 
@@ -250,8 +254,8 @@ public class SpeciesSettings
     public float growthFactor { get; set; } = 0.2f;
 
     public float MaxRadius { get; set; } = 0.0005f;
-    public float[] pChaningSeaonns { get; set; } = [ 0.0015f, 0.0005f, 0.001f, 0f];
-    public float[] pFloweringSeaonns { get; set; } = [ 0.0005f, 0.005f, 0.0003f, 0f ];
+    public float[] pChaningSeaonns { get; set; } = [0.0015f, 0.0005f, 0.001f, 0f];
+    public float[] pFloweringSeaonns { get; set; } = [0.0005f, 0.005f, 0.0003f, 0f];
 
     public float pExpandRizome { get; set; } = 0.005f;
     public int RizomeMaxDepth { get; set; } = 15;
@@ -268,7 +272,8 @@ public class SpeciesSettings
         Predefined.Add(new());
 
         //Just gueesing
-        Predefined.Add(new() {
+        Predefined.Add(new()
+        {
             Name = "Persea americana",
             Aka = "Avocado",
             LeafLength = 0.2f,
