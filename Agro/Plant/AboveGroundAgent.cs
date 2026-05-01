@@ -383,11 +383,11 @@ public partial struct AboveGroundAgent : IPlantAgent
 	public void Tick(IFormation _formation, int agentID, uint timestep)
 	{
 		var formation = (PlantSubFormation<AboveGroundAgent>)_formation;
-		var graph = formation.Plant.BehaviorGraph;
-		if (graph != null)
+		var graphs = formation.Plant.BehaviorGraphs;
+		if (graphs.Count > 0)
 		{
-			Console.WriteLine("behaviorgraph is not null ");
-			GraphTickInterpreter.Execute(ref this, formation, agentID, timestep, graph);
+			foreach (var graph in graphs)
+				GraphTickInterpreter.Execute(ref this, formation, agentID, timestep, graph);
 			return;
 		}
 

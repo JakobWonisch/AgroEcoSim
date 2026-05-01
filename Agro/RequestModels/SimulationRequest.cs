@@ -2,6 +2,19 @@ using System.Text.Json.Serialization;
 
 namespace Agro;
 
+/// <summary>One named behavior graph in <see cref="SimulationRequest.SpeciesGraphs"/> (matches frontend wire shape).</summary>
+public sealed class SpeciesGraphUploadEntry
+{
+	[JsonPropertyName("Id")]
+	public required string Id { get; init; }
+
+	[JsonPropertyName("Name")]
+	public required string Name { get; init; }
+
+	[JsonPropertyName("Graph")]
+	public required global::ExportedGraph Graph { get; init; }
+}
+
 public class ImportedObjData
 {
     public string[] Vertices { get; set; }
@@ -48,10 +61,10 @@ public class SimulationRequest
     public SpeciesSettings[]? Species { get; init; }
 
     /// <summary>
-    /// Per-species behavior graphs keyed by species name (same key as <see cref="PlantRequest.SpeciesName"/>).
+    /// Per-species ordered behavior graphs keyed by species name (same key as <see cref="PlantRequest.SpeciesName"/>).
     /// </summary>
     [JsonPropertyName("SpeciesGraphs")]
-    public Dictionary<string, global::ExportedGraph>? SpeciesGraphs { get; init; }
+    public Dictionary<string, List<SpeciesGraphUploadEntry>>? SpeciesGraphs { get; init; }
 
     ///<summary>
     ///A list of seeds to be planted (default: a single centered plant)

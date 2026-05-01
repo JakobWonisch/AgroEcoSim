@@ -32,13 +32,16 @@ import { MultiplyNode } from './util/numeric/MultiplyNode';
 import { SubtractNode } from './util/numeric/SubtractNode';
 import type { Species } from '../../../helpers/Species';
 import appstate from '../../../appstate';
+import type { NamedGraph } from './Conversion';
 import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
 
 export const DEBUG_SHOW_VALUES = true;
 
-function pushSpeciesGraph(species: Species, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
-    species.behaviorGraph.value = toJSON(editor, area);
+function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
+    const snapshot = toJSON(editor, area);
+    species.behaviorGraphs.value = species.behaviorGraphs.peek().map(g =>
+        g.id === namedGraph.id ? { ...g, graph: snapshot } : g);
 }
 
 async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
@@ -97,7 +100,7 @@ async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Scheme
     }
 }
 
-export async function createEditor(container: HTMLElement, species: Species) {
+export async function createEditor(container: HTMLElement, species: Species, namedGraph: NamedGraph) {
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
     const connection = new ConnectionPlugin<Schemes, AreaExtra>();
@@ -138,7 +141,6 @@ export async function createEditor(container: HTMLElement, species: Species) {
                 ['Organ Sensors', () => new OrganSensorsNode()]
             ]],
             ['output', [
-                ['Active', () => new ActiveOutputNode()],
                 ['Number', () => new NumberOutputNode()],
                 ['Boolean', () => new BooleanOutputNode()],
                 ['Growth', () => new GrowthNode()]
@@ -236,6 +238,11 @@ export async function createEditor(container: HTMLElement, species: Species) {
         }
 
         if (c.type === 'nodecreated') {
+            if ((c.data as any).label === 'Active') {
+                const actives = editor.getNodes().filter((n: any) => n.label === 'Active');
+                if (actives.length > 1)
+                    setTimeout(() => editor.removeNode(c.data.id).catch(() => { }), 0);
+            }
             if (pendingDropPosition) {
                 const pos = { ...pendingDropPosition };
                 pendingDropPosition = null;
@@ -271,10 +278,26 @@ export async function createEditor(container: HTMLElement, species: Species) {
             }
         }
 
+        if (c.type === 'noderemoved') {
+            const removed = c.data;
+            if ((removed as any).label === 'Active') {
+                const still = editor.getNodes().some((n: any) => n.label === 'Active');
+                if (!still) {
+                    setTimeout(async () => {
+                        const node = new ActiveOutputNode();
+                        await editor.addNode(node);
+                        await area.translate(node.id, { x: 120, y: 120 });
+                        processGraph(editor, area);
+                        pushSpeciesGraph(species, namedGraph, editor, area);
+                    }, 0);
+                }
+            }
+        }
+
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
             setTimeout(() => {
                 processGraph(editor, area);
-                pushSpeciesGraph(species, editor, area);
+                pushSpeciesGraph(species, namedGraph, editor, area);
             }, 0);
         }
 
@@ -285,7 +308,7 @@ export async function createEditor(container: HTMLElement, species: Species) {
         m.graphUpdateTrigger.addEventListener('update', () => {
             setTimeout(() => {
                 processGraph(editor, area);
-                pushSpeciesGraph(species, editor, area);
+                pushSpeciesGraph(species, namedGraph, editor, area);
             }, 0);
         });
     });
@@ -297,20 +320,21 @@ export async function createEditor(container: HTMLElement, species: Species) {
 
     AreaExtensions.simpleNodesOrder(area);
 
-    const initial = species.behaviorGraph.peek();
+    const initial = namedGraph.graph;
     if (initial?.nodes?.length > 0)
         await fromJSON(initial, editor, area, createNodeFromExport);
 
     const speciesName = species.name.peek();
-    appstate.registerBehaviorGraphGetter(speciesName, () => toJSON(editor, area));
-    pushSpeciesGraph(species, editor, area);
+    const graphId = namedGraph.id;
+    appstate.registerBehaviorGraphGetter(speciesName, graphId, () => toJSON(editor, area));
+    pushSpeciesGraph(species, namedGraph, editor, area);
 
     setTimeout(() => {
         const nodes = editor.getNodes();
         if (nodes.length > 0)
             AreaExtensions.zoomAt(area, nodes);
         processGraph(editor, area);
-        pushSpeciesGraph(species, editor, area);
+        pushSpeciesGraph(species, namedGraph, editor, area);
     }, 10);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -322,17 +346,17 @@ export async function createEditor(container: HTMLElement, species: Species) {
 
     return {
         destroy: () => {
-            appstate.unregisterBehaviorGraphGetter(speciesName);
+            appstate.unregisterBehaviorGraphGetter(speciesName, graphId);
             window.removeEventListener('keydown', handleKeyDown);
             area.destroy();
         }
     };
 }
 
-export default function BehaviorEditor({ species }: { species: Species }) {
+export default function BehaviorEditor({ species, namedGraph }: { species: Species; namedGraph: NamedGraph }) {
     const factory = useMemo(
-        () => (container: HTMLElement) => createEditor(container, species),
-        [species.name.value, species]
+        () => (container: HTMLElement) => createEditor(container, species, namedGraph),
+        [species.name.value, namedGraph.id]
     );
     const [ref] = useRete(factory);
 

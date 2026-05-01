@@ -8,122 +8,140 @@ public static class GraphTickInterpreter
 	{
 		var outs = new Dictionary<(int NodeIndex, string Socket), WireValue>();
 
-		foreach (var node in graph.NodesInOrder)
+		for (var t = 0; t < graph.NodesInOrder.Length; t++)
 		{
-			var g = node.GraphNodeIndex;
-			switch (node.Kind)
+			if (!graph.ActiveSubtreeMask[t])
+				continue;
+			EvaluateNode(graph.NodesInOrder[t], ref agent, outs);
+		}
+
+		var gateNode = graph.NodesInOrder[graph.ActiveGateTopoIndex];
+		if (!FirstBool(gateNode.Inputs, "isActive", outs))
+			return;
+
+		for (var t = 0; t < graph.NodesInOrder.Length; t++)
+		{
+			if (graph.ActiveSubtreeMask[t])
+				continue;
+			EvaluateNode(graph.NodesInOrder[t], ref agent, outs);
+		}
+	}
+
+	static void EvaluateNode(CompiledNode node, ref AboveGroundAgent agent, Dictionary<(int NodeIndex, string Socket), WireValue> outs)
+	{
+		var g = node.GraphNodeIndex;
+		switch (node.Kind)
+		{
+			case GraphNodeKind.NumberInput:
+				outs[(g, "num")] = WireValue.OfFloat(node.NumberConst);
+				break;
+			case GraphNodeKind.BooleanInput:
+				outs[(g, "bool")] = WireValue.OfBool(node.BoolConst);
+				break;
+			case GraphNodeKind.AgentType:
+			case GraphNodeKind.OrganSensors:
+				WriteOrganSensors(ref agent, outs, g);
+				break;
+			case GraphNodeKind.Add:
 			{
-				case GraphNodeKind.NumberInput:
-					outs[(g, "num")] = WireValue.OfFloat(node.NumberConst);
-					break;
-				case GraphNodeKind.BooleanInput:
-					outs[(g, "bool")] = WireValue.OfBool(node.BoolConst);
-					break;
-				case GraphNodeKind.AgentType:
-				case GraphNodeKind.OrganSensors:
-					WriteOrganSensors(ref agent, outs, g);
-					break;
-				case GraphNodeKind.Add:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfFloat(a + b);
-					break;
-				}
-				case GraphNodeKind.Subtract:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfFloat(a - b);
-					break;
-				}
-				case GraphNodeKind.Multiply:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfFloat(a * b);
-					break;
-				}
-				case GraphNodeKind.Divide:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfFloat(b != 0f ? a / b : 0f);
-					break;
-				}
-				case GraphNodeKind.And:
-				{
-					var a = FirstBool(node.Inputs, "a", outs);
-					var b = FirstBool(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfBool(a && b);
-					break;
-				}
-				case GraphNodeKind.Or:
-				{
-					var a = FirstBool(node.Inputs, "a", outs);
-					var b = FirstBool(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfBool(a || b);
-					break;
-				}
-				case GraphNodeKind.Xor:
-				{
-					var a = FirstBool(node.Inputs, "a", outs);
-					var b = FirstBool(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfBool(a ^ b);
-					break;
-				}
-				case GraphNodeKind.Not:
-				{
-					var a = FirstBool(node.Inputs, "a", outs);
-					outs[(g, "out")] = WireValue.OfBool(!a);
-					break;
-				}
-				case GraphNodeKind.GreaterThanOrEqual:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					var ok = node.NumericInclusive ? a >= b : a > b;
-					outs[(g, "out")] = WireValue.OfBool(ok);
-					break;
-				}
-				case GraphNodeKind.LessThanOrEqual:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					var ok = node.NumericInclusive ? a <= b : a < b;
-					outs[(g, "out")] = WireValue.OfBool(ok);
-					break;
-				}
-				case GraphNodeKind.EqualTo:
-				{
-					var a = FirstFloat(node.Inputs, "a", outs);
-					var b = FirstFloat(node.Inputs, "b", outs);
-					outs[(g, "out")] = WireValue.OfBool(MathF.Abs(a - b) < 1e-6f);
-					break;
-				}
-				case GraphNodeKind.IfElse:
-				{
-					var cond = FirstBool(node.Inputs, "condition", outs);
-					var t = FirstFloat(node.Inputs, "trueValue", outs);
-					var f = FirstFloat(node.Inputs, "falseValue", outs);
-					outs[(g, "out")] = WireValue.OfFloat(cond ? t : f);
-					break;
-				}
-				case GraphNodeKind.Active:
-				case GraphNodeKind.BooleanOutput:
-				case GraphNodeKind.NumberOutput:
-					break;
-				case GraphNodeKind.Growth:
-				{
-					var dLen = FirstFloat(node.Inputs, "Length", outs);
-					var dRad = FirstFloat(node.Inputs, "Radius", outs);
-					agent.Length += dLen;
-					agent.Radius += dRad;
-					break;
-				}
-				default:
-					break;
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfFloat(a + b);
+				break;
 			}
+			case GraphNodeKind.Subtract:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfFloat(a - b);
+				break;
+			}
+			case GraphNodeKind.Multiply:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfFloat(a * b);
+				break;
+			}
+			case GraphNodeKind.Divide:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfFloat(b != 0f ? a / b : 0f);
+				break;
+			}
+			case GraphNodeKind.And:
+			{
+				var a = FirstBool(node.Inputs, "a", outs);
+				var b = FirstBool(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfBool(a && b);
+				break;
+			}
+			case GraphNodeKind.Or:
+			{
+				var a = FirstBool(node.Inputs, "a", outs);
+				var b = FirstBool(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfBool(a || b);
+				break;
+			}
+			case GraphNodeKind.Xor:
+			{
+				var a = FirstBool(node.Inputs, "a", outs);
+				var b = FirstBool(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfBool(a ^ b);
+				break;
+			}
+			case GraphNodeKind.Not:
+			{
+				var a = FirstBool(node.Inputs, "a", outs);
+				outs[(g, "out")] = WireValue.OfBool(!a);
+				break;
+			}
+			case GraphNodeKind.GreaterThanOrEqual:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				var ok = node.NumericInclusive ? a >= b : a > b;
+				outs[(g, "out")] = WireValue.OfBool(ok);
+				break;
+			}
+			case GraphNodeKind.LessThanOrEqual:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				var ok = node.NumericInclusive ? a <= b : a < b;
+				outs[(g, "out")] = WireValue.OfBool(ok);
+				break;
+			}
+			case GraphNodeKind.EqualTo:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfBool(MathF.Abs(a - b) < 1e-6f);
+				break;
+			}
+			case GraphNodeKind.IfElse:
+			{
+				var cond = FirstBool(node.Inputs, "condition", outs);
+				var t = FirstFloat(node.Inputs, "trueValue", outs);
+				var f = FirstFloat(node.Inputs, "falseValue", outs);
+				outs[(g, "out")] = WireValue.OfFloat(cond ? t : f);
+				break;
+			}
+			case GraphNodeKind.Active:
+			case GraphNodeKind.BooleanOutput:
+			case GraphNodeKind.NumberOutput:
+				break;
+			case GraphNodeKind.Growth:
+			{
+				var dLen = FirstFloat(node.Inputs, "Length", outs);
+				var dRad = FirstFloat(node.Inputs, "Radius", outs);
+				agent.Length += dLen;
+				agent.Radius += dRad;
+				break;
+			}
+			default:
+				break;
 		}
 	}
 

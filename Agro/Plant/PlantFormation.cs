@@ -65,14 +65,14 @@ public partial class PlantFormation2 : IPlantFormation
 	/// </summary>
 	public SpeciesSettings Parameters { get; private set; }
 
-	/// <summary>When set, above-ground agent ticks run this graph instead of the <see cref="Behavior"/> switch.</summary>
-	public CompiledBehaviorGraph? BehaviorGraph { get; private set; }
+	/// <summary>When non-empty, above-ground agent ticks run these graphs in order instead of the <see cref="Behavior"/> switch.</summary>
+	public IReadOnlyList<CompiledBehaviorGraph> BehaviorGraphs { get; private set; }
 
-	public PlantFormation2(AgroWorld world, SpeciesSettings parameters, ISoilFormation soil, SeedAgent seed, Pcg parentRNG, int hoursPerTick, CompiledBehaviorGraph? behaviorGraph = null)
+	public PlantFormation2(AgroWorld world, SpeciesSettings parameters, ISoilFormation soil, SeedAgent seed, Pcg parentRNG, int hoursPerTick, IReadOnlyList<CompiledBehaviorGraph>? behaviorGraphs = null)
 	{
 		World = world;
 		Parameters = parameters ?? SpeciesSettings.Default;
-		BehaviorGraph = behaviorGraph;
+		BehaviorGraphs = behaviorGraphs ?? Array.Empty<CompiledBehaviorGraph>();
 		Parameters.Init(hoursPerTick);
 		Soil = soil;
 		Seed[0] = seed;

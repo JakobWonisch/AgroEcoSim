@@ -110,7 +110,54 @@ public static class BehaviorGraphCompiler
 			};
 		}
 
-		compiled = new CompiledBehaviorGraph { NodesInOrder = compiledNodes };
+		var activeOrigIndices = new List<int>();
+		for (var i = 0; i < kinds.Length; i++)
+		{
+			if (kinds[i] == GraphNodeKind.Active)
+				activeOrigIndices.Add(i);
+		}
+
+		if (activeOrigIndices.Count != 1)
+		{
+			error = "Graph must contain exactly one Active node.";
+			return false;
+		}
+
+		var activeOrig = activeOrigIndices[0];
+		var origToTopo = new int[nodes.Count];
+		for (var ti = 0; ti < topo.Count; ti++)
+			origToTopo[topo[ti]] = ti;
+
+		var activeTopoIndex = origToTopo[activeOrig];
+		var activeSubtreeMask = new bool[compiledNodes.Length];
+
+		void MarkUpstream(int origIdx, HashSet<int> visited)
+		{
+			if (!visited.Add(origIdx))
+				return;
+			var slot = origToTopo[origIdx];
+			activeSubtreeMask[slot] = true;
+			var cn = compiledNodes[slot];
+			foreach (var kv in cn.Inputs)
+			{
+				foreach (var (prodOrig, _) in kv.Value)
+					MarkUpstream(prodOrig, visited);
+			}
+		}
+
+		var gateCompiled = compiledNodes[activeTopoIndex];
+		if (gateCompiled.Inputs.TryGetValue("isActive", out var activeConns))
+		{
+			foreach (var (prodOrig, _) in activeConns)
+				MarkUpstream(prodOrig, new HashSet<int>());
+		}
+
+		compiled = new CompiledBehaviorGraph
+		{
+			NodesInOrder = compiledNodes,
+			ActiveGateTopoIndex = activeTopoIndex,
+			ActiveSubtreeMask = activeSubtreeMask,
+		};
 		return true;
 	}
 

@@ -17,6 +17,44 @@ export interface ExportedGraph {
     }[];
 }
 
+/** One behavior graph in a per-species ordered list (editor + wire format). */
+export interface NamedGraph {
+    id: string;
+    name: string;
+    graph: ExportedGraph;
+}
+
+export function newBehaviorGraphId(): string {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+    return `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/** Boolean Input(true) wired into Active.isActive — gate defaults to active until rewired. */
+export function createDefaultExportedGraph(): ExportedGraph {
+    const boolId = newBehaviorGraphId();
+    const activeId = newBehaviorGraphId();
+    const connId = newBehaviorGraphId();
+    return {
+        nodes: [
+            { id: boolId, label: "Boolean Input", data: { bool: true }, position: { x: 0, y: 0 } },
+            { id: activeId, label: "Active", data: {}, position: { x: 220, y: 0 } },
+        ],
+        connections: [
+            {
+                id: connId,
+                source: boolId,
+                sourceOutput: "bool",
+                target: activeId,
+                targetInput: "isActive",
+            },
+        ],
+    };
+}
+
+export function createDefaultNamedGraph(displayName: string): NamedGraph {
+    return { id: newBehaviorGraphId(), name: displayName, graph: createDefaultExportedGraph() };
+}
+
 function safeClone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value));
 }

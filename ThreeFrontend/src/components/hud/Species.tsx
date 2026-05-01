@@ -3,6 +3,8 @@ import appstate from "../../appstate";
 import { Species } from "src/helpers/Species";
 import { computed, signal, useSignal } from "@preact/signals";
 import BehaviorEditor from "./nodes/BehaviorEditor";
+import type { NamedGraph } from "./nodes/Conversion";
+import { createDefaultNamedGraph } from "./nodes/Conversion";
 
 const conflictStyle: h.JSX.CSSProperties = {
     borderColor: "#ee2211",
@@ -10,6 +12,27 @@ const conflictStyle: h.JSX.CSSProperties = {
 };
 
 const selectedSpecies = signal('');
+
+/** Per-species selected behavior graph id (left list). */
+const selectedGraphIdBySpecies = signal<Map<string, string>>(new Map());
+
+function getSelectedGraphId(speciesName: string, graphs: NamedGraph[]): string {
+    const m = selectedGraphIdBySpecies.peek();
+    let id = m.get(speciesName);
+    if (!id || !graphs.some(g => g.id === id)) {
+        id = graphs[0]?.id ?? "";
+        const next = new Map(m);
+        next.set(speciesName, id);
+        selectedGraphIdBySpecies.value = next;
+    }
+    return id;
+}
+
+function setSelectedGraphId(speciesName: string, id: string) {
+    const next = new Map(selectedGraphIdBySpecies.peek());
+    next.set(speciesName, id);
+    selectedGraphIdBySpecies.value = next;
+}
 
 export function SpeciesList()
 {
@@ -47,8 +70,16 @@ export function SpeciesItem()
 
     const nameConflict = useSignal(false);
     const links = computed(() => appstate.seeds.value.reduce((a, c) => a + (c.species.value == species.name.value ? 1 : 0), 0));
+    const graphs = species.behaviorGraphs.value;
+    void selectedGraphIdBySpecies.value;
+    const selectedGraphId = getSelectedGraphId(species.name.value, graphs);
+    const selectedGraph = graphs.find(g => g.id === selectedGraphId) ?? graphs[0];
+
     return <div class="speciesDetails stack" style={{
         gap: '1em',
+        flex: 1,
+        minHeight: 0,
+        width: '100%',
     }}>
         <div class="inputs">
             <div>
@@ -200,6 +231,89 @@ export function SpeciesItem()
             </div> */}
         </div>
 
-        <BehaviorEditor key={species.name.value} species={species} />
+        {selectedGraph ? <div style={{
+            display: 'flex',
+            flexDirection: 'row',
+            flex: 1,
+            minHeight: 0,
+            gap: '0.75em',
+            width: '100%',
+        }}>
+            <div style={{
+                width: 220,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                overflow: 'auto',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 4,
+                padding: 8,
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <strong>Graphs</strong>
+                    <button type="button" onClick={() => {
+                        const list = species.behaviorGraphs.peek();
+                        const n = list.length + 1;
+                        const entry = createDefaultNamedGraph(`Graph ${n}`);
+                        species.behaviorGraphs.value = [...list, entry];
+                        setSelectedGraphId(species.name.value, entry.id);
+                    }}>+</button>
+                </div>
+                {graphs.map((g, gi) => <div
+                    key={g.id}
+                    onClick={() => setSelectedGraphId(species.name.value, g.id)}
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        padding: 6,
+                        cursor: 'pointer',
+                        background: g.id === selectedGraphId ? 'rgba(80,160,120,0.25)' : 'rgba(0,0,0,0.2)',
+                        borderRadius: 4,
+                        border: g.id === selectedGraphId ? '2px solid #5a8' : '1px solid rgba(255,255,255,0.12)',
+                    }}
+                >
+                    <input
+                        type="text"
+                        value={g.name}
+                        onClick={e => e.stopPropagation()}
+                        onInput={e => {
+                            const v = (e.target as HTMLInputElement).value;
+                            species.behaviorGraphs.value = species.behaviorGraphs.peek().map(x =>
+                                x.id === g.id ? { ...x, name: v } : x);
+                        }}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        <button type="button" disabled={gi === 0} onClick={e => {
+                            e.stopPropagation();
+                            if (gi === 0) return;
+                            const list = [...species.behaviorGraphs.peek()];
+                            [list[gi - 1], list[gi]] = [list[gi], list[gi - 1]];
+                            species.behaviorGraphs.value = list;
+                        }}>↑</button>
+                        <button type="button" disabled={gi >= graphs.length - 1} onClick={e => {
+                            e.stopPropagation();
+                            if (gi >= graphs.length - 1) return;
+                            const list = [...species.behaviorGraphs.peek()];
+                            [list[gi], list[gi + 1]] = [list[gi + 1], list[gi]];
+                            species.behaviorGraphs.value = list;
+                        }}>↓</button>
+                        <button type="button" disabled={graphs.length <= 1} onClick={e => {
+                            e.stopPropagation();
+                            if (graphs.length <= 1) return;
+                            const list = species.behaviorGraphs.peek().filter(x => x.id !== g.id);
+                            species.behaviorGraphs.value = list;
+                            if (selectedGraphId === g.id)
+                                setSelectedGraphId(species.name.value, list[0].id);
+                        }}>Remove</button>
+                    </div>
+                </div>)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 360, display: 'flex', flexDirection: 'column' }}>
+                <BehaviorEditor key={`${species.name.value}:${selectedGraph.id}`} species={species} namedGraph={selectedGraph} />
+            </div>
+        </div> : <></>}
     </div>;
 }

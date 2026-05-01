@@ -1,5 +1,6 @@
 import { signal } from "@preact/signals"
-import type { ExportedGraph } from "../components/hud/nodes/Conversion";
+import type { ExportedGraph, NamedGraph } from "../components/hud/nodes/Conversion";
+import { createDefaultNamedGraph } from "../components/hud/nodes/Conversion";
 
 const DegToRad = Math.PI / 180.0;
 const RadToDeg = 180.0 / Math.PI;
@@ -9,8 +10,8 @@ export class Species {
     aka = signal("");
     behaviorIndex = signal(0);
 
-    /** Full species definition for simulation (Rete export). */
-    behaviorGraph = signal<ExportedGraph>({ nodes: [], connections: [] });
+    /** Ordered behavior graphs for simulation (Rete export); executed top-to-bottom per agent tick. */
+    behaviorGraphs = signal<NamedGraph[]>([createDefaultNamedGraph("Main")]);
 
     //trunkToWood = signal(1);
     height = signal(12);
@@ -68,7 +69,7 @@ export class Species {
         return {
             name: this.name.peek(),
             aka: this.aka.peek(),
-            graph: structuredClone(this.behaviorGraph.peek()),
+            graphs: structuredClone(this.behaviorGraphs.peek()),
             behavior: this.behaviorIndex.peek(),
             height: this.height.peek(),
 
@@ -117,10 +118,13 @@ export class Species {
         };
     }
 
-    public loadPredefined(entry: { name: string; aka?: string; graph: ExportedGraph }) {
+    public loadPredefined(entry: { name: string; aka?: string; graphs: NamedGraph[] }) {
         this.name.value = entry.name;
         this.aka.value = entry.aka ?? "";
-        this.behaviorGraph.value = structuredClone(entry.graph ?? { nodes: [], connections: [] });
+        if (Array.isArray(entry.graphs) && entry.graphs.length > 0)
+            this.behaviorGraphs.value = structuredClone(entry.graphs);
+        else
+            this.behaviorGraphs.value = [createDefaultNamedGraph("Main")];
         return this;
     }
 
@@ -128,8 +132,8 @@ export class Species {
         this.name.value = s.name;
         this.aka.value = s.aka;
         this.behaviorIndex.value = s.behavior ?? 0;
-        if (s.graph && typeof s.graph === "object")
-            this.behaviorGraph.value = structuredClone(s.graph);
+        if (Array.isArray(s.graphs) && s.graphs.length > 0)
+            this.behaviorGraphs.value = structuredClone(s.graphs);
         this.height.value = s.height;
         this.nodeDistance.value = s.nodeDistance;
         this.nodeDistanceVar.value = s.nodeDistanceVar;

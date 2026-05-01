@@ -56,7 +56,7 @@ public static class Initialize
 										 new Vector2(minVegTemp, minVegTemp + rnd.NextFloat(8f, 14f)));
 				var plantSpeciesName = settings.Plants[i].SpeciesName;
 				var profile = PlantSpeciesProfile.Resolve(plantSpeciesName, settings);
-				plantsFormation[i] = new PlantFormation2(world, profile.Morphology, soil, seed, rnd, world.HoursPerTick, profile.BehaviorGraph);
+				plantsFormation[i] = new PlantFormation2(world, profile.Morphology, soil, seed, rnd, world.HoursPerTick, profile.BehaviorGraphs);
 			}
 		}
 		else

@@ -13,6 +13,13 @@ import { scene } from "./components/viewport/ThreeSceneFn";
 import { VisualMappingOptions } from "./helpers/Plant";
 import { Species } from "./helpers/Species";
 import type { ExportedGraph } from "./components/hud/nodes/Conversion";
+
+/** One species graph entry in POST body (matches backend SpeciesGraphUploadEntry). */
+export interface SpeciesGraphWireEntry {
+    Id: string;
+    Name: string;
+    Graph: ExportedGraph;
+}
 import { IObjImport, Parse } from "./helpers/ObjParser";
 import { BoxTerrainItem, ITerrainItem, MeshTerrainItem } from "./helpers/Terrain";
 
@@ -188,24 +195,37 @@ class State {
     //SPECIES
     species = signal<Species[]>([Species.Default()]);
     behaviors = signal<string[]>([]);
-    /** When a behavior editor is mounted, snapshots use live Rete state. */
-    private behaviorGraphGetters = new Map<string, () => ExportedGraph>();
+    /** When a behavior editor is mounted, snapshots use live Rete state (per graph id). */
+    private behaviorGraphGetters = new Map<string, Map<string, () => ExportedGraph>>();
 
-    registerBehaviorGraphGetter = (speciesName: string, getter: () => ExportedGraph) => {
-        this.behaviorGraphGetters.set(speciesName, getter);
+    registerBehaviorGraphGetter = (speciesName: string, graphId: string, getter: () => ExportedGraph) => {
+        let inner = this.behaviorGraphGetters.get(speciesName);
+        if (!inner) {
+            inner = new Map();
+            this.behaviorGraphGetters.set(speciesName, inner);
+        }
+        inner.set(graphId, getter);
     };
 
-    unregisterBehaviorGraphGetter = (speciesName: string) => {
-        this.behaviorGraphGetters.delete(speciesName);
+    unregisterBehaviorGraphGetter = (speciesName: string, graphId: string) => {
+        const inner = this.behaviorGraphGetters.get(speciesName);
+        inner?.delete(graphId);
+        if (inner && inner.size === 0)
+            this.behaviorGraphGetters.delete(speciesName);
     };
 
-    collectSpeciesGraphs = (): Record<string, ExportedGraph> => {
-        const out: Record<string, ExportedGraph> = {};
+    collectSpeciesGraphs = (): Record<string, SpeciesGraphWireEntry[]> => {
+        const out: Record<string, SpeciesGraphWireEntry[]> = {};
         for (const s of this.species.peek()) {
             const name = s.name.peek();
-            const g = this.behaviorGraphGetters.get(name)?.() ?? s.behaviorGraph.peek();
-            if ((g.nodes?.length ?? 0) > 0 || (g.connections?.length ?? 0) > 0)
-                out[name] = structuredClone(g);
+            const getters = this.behaviorGraphGetters.get(name);
+            const entries: SpeciesGraphWireEntry[] = s.behaviorGraphs.peek().map(ng => ({
+                Id: ng.id,
+                Name: ng.name,
+                Graph: getters?.get(ng.id)?.() ?? structuredClone(ng.graph),
+            }));
+            if (entries.some(e => (e.Graph.nodes?.length ?? 0) > 0 || (e.Graph.connections?.length ?? 0) > 0))
+                out[name] = entries;
         }
         return out;
     };
@@ -783,8 +803,12 @@ const st = new State();
 export default st;
 //now that the singleton is exported push in the default seed
 st.seeds.value = [ new Seed(st.species.peek()[0].name.peek(), st.fieldSizeX.peek() * 0.5, -0.01, st.fieldSizeZ.peek() * 0.5, 0, false) ];
-fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graph: ExportedGraph }[]) => {
-    st.species.value = list.map(e => new Species().loadPredefined(e));
+fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graphs: { id: string; name: string; graph: ExportedGraph }[] }[]) => {
+    st.species.value = list.map(e => new Species().loadPredefined({
+        name: e.name,
+        aka: e.aka,
+        graphs: (e.graphs ?? []).map(g => ({ id: g.id, name: g.name, graph: g.graph })),
+    }));
 });
 
 fetch(`${location.protocol}//${BackendURI}/Simulation/behaviors`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: string[]) => st.behaviors.value = list);

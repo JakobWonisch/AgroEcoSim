@@ -23,19 +23,37 @@ public class BehaviorGraphCompilerTests
 		TargetInput = targetIn,
 	};
 
+	/// <summary>Boolean Input(true) → Active.isActive (required for every compile).</summary>
+	static (GraphNode[] nodes, GraphConnection[] connections) GatePair(string p)
+	{
+		var nodes = new[]
+		{
+			N($"{p}-bool", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+			N($"{p}-act", "Active"),
+		};
+		var connections = new[]
+		{
+			C($"{p}-c", $"{p}-bool", "bool", $"{p}-act", "isActive"),
+		};
+		return (nodes, connections);
+	}
+
 	[Fact]
 	public void TryCompile_AddChain_TopologicalOrder()
 	{
+		var (gn, gc) = GatePair("z");
 		var g = new ExportedGraph
 		{
 			Nodes =
 			[
+				..gn,
 				N("a", "Number Input", new Dictionary<string, object> { ["value"] = 2f }),
 				N("b", "Number Input", new Dictionary<string, object> { ["value"] = 3f }),
 				N("c", "Add"),
 			],
 			Connections =
 			[
+				..gc,
 				C("e1", "a", "num", "c", "a"),
 				C("e2", "b", "num", "c", "b"),
 			],
@@ -43,7 +61,7 @@ public class BehaviorGraphCompilerTests
 
 		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
 		Assert.NotNull(compiled);
-		Assert.Equal(3, compiled!.NodesInOrder.Length);
+		Assert.Equal(5, compiled!.NodesInOrder.Length);
 		var kinds = compiled.NodesInOrder.Select(n => n.Kind).ToArray();
 		Assert.Contains(GraphNodeKind.NumberInput, kinds);
 		Assert.Contains(GraphNodeKind.Add, kinds);
@@ -55,15 +73,18 @@ public class BehaviorGraphCompilerTests
 	[Fact]
 	public void TryCompile_Cycle_Fails()
 	{
+		var (gn, gc) = GatePair("z");
 		var g = new ExportedGraph
 		{
 			Nodes =
 			[
+				..gn,
 				N("x", "Not"),
 				N("y", "Not"),
 			],
 			Connections =
 			[
+				..gc,
 				C("1", "x", "out", "y", "a"),
 				C("2", "y", "out", "x", "a"),
 			],
@@ -77,10 +98,11 @@ public class BehaviorGraphCompilerTests
 	[Fact]
 	public void TryCompile_UnknownLabel_Fails()
 	{
+		var (gn, gc) = GatePair("z");
 		var g = new ExportedGraph
 		{
-			Nodes = [N("z", "Mystery Node")],
-			Connections = [],
+			Nodes = [..gn, N("m", "Mystery Node")],
+			Connections = [..gc],
 		};
 
 		Assert.False(BehaviorGraphCompiler.TryCompile(g, out _, out var err));
@@ -90,31 +112,34 @@ public class BehaviorGraphCompilerTests
 	[Fact]
 	public void TryCompile_Growth_NodeOnly_Ok()
 	{
+		var (gn, gc) = GatePair("z");
 		var g = new ExportedGraph
 		{
-			Nodes = [N("g", "Growth")],
-			Connections = [],
+			Nodes = [..gn, N("gr", "Growth")],
+			Connections = [..gc],
 		};
 
 		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
 		Assert.NotNull(compiled);
-		Assert.Single(compiled!.NodesInOrder);
-		Assert.Equal(GraphNodeKind.Growth, compiled.NodesInOrder[0].Kind);
+		Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.Growth);
 	}
 
 	[Fact]
 	public void TryCompile_Growth_WithLengthRadiusInputs()
 	{
+		var (gn, gc) = GatePair("z");
 		var g = new ExportedGraph
 		{
 			Nodes =
 			[
+				..gn,
 				N("a", "Number Input", new Dictionary<string, object> { ["value"] = 0.01f }),
 				N("b", "Number Input", new Dictionary<string, object> { ["value"] = 0.001f }),
 				N("gr", "Growth"),
 			],
 			Connections =
 			[
+				..gc,
 				C("e1", "a", "num", "gr", "Length"),
 				C("e2", "b", "num", "gr", "Radius"),
 			],
@@ -124,5 +149,80 @@ public class BehaviorGraphCompilerTests
 		var growth = compiled!.NodesInOrder.Single(n => n.Kind == GraphNodeKind.Growth);
 		Assert.True(growth.Inputs.ContainsKey("Length"));
 		Assert.True(growth.Inputs.ContainsKey("Radius"));
+	}
+
+	[Fact]
+	public void TryCompile_NoActive_Fails()
+	{
+		var g = new ExportedGraph
+		{
+			Nodes =
+			[
+				N("a", "Number Input", new Dictionary<string, object> { ["value"] = 1f }),
+				N("gr", "Growth"),
+			],
+			Connections =
+			[
+				C("e1", "a", "num", "gr", "Length"),
+			],
+		};
+
+		Assert.False(BehaviorGraphCompiler.TryCompile(g, out _, out var err));
+		Assert.Contains("Active", err, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
+	public void TryCompile_TwoActive_Fails()
+	{
+		var g = new ExportedGraph
+		{
+			Nodes =
+			[
+				N("b1", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+				N("a1", "Active"),
+				N("b2", "Boolean Input", new Dictionary<string, object> { ["bool"] = false }),
+				N("a2", "Active"),
+			],
+			Connections =
+			[
+				C("c1", "b1", "bool", "a1", "isActive"),
+				C("c2", "b2", "bool", "a2", "isActive"),
+			],
+		};
+
+		Assert.False(BehaviorGraphCompiler.TryCompile(g, out _, out var err));
+		Assert.Contains("Active", err, StringComparison.OrdinalIgnoreCase);
+	}
+
+	[Fact]
+	public void TryCompile_ActiveSubtreeMask_ExcludesUnrelatedGrowth()
+	{
+		var g = new ExportedGraph
+		{
+			Nodes =
+			[
+				N("gate-bool", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+				N("gate-act", "Active"),
+				N("a", "Number Input", new Dictionary<string, object> { ["value"] = 0.01f }),
+				N("b", "Number Input", new Dictionary<string, object> { ["value"] = 0.001f }),
+				N("gr", "Growth"),
+			],
+			Connections =
+			[
+				C("gc", "gate-bool", "bool", "gate-act", "isActive"),
+				C("e1", "a", "num", "gr", "Length"),
+				C("e2", "b", "num", "gr", "Radius"),
+			],
+		};
+
+		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
+		var mask = compiled!.ActiveSubtreeMask;
+		Assert.NotNull(mask);
+		var growthTopo = Array.FindIndex(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.Growth);
+		Assert.True(growthTopo >= 0);
+		Assert.False(mask[growthTopo]);
+		var boolTopo = Array.FindIndex(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.BooleanInput);
+		Assert.True(boolTopo >= 0);
+		Assert.True(mask[boolTopo]);
 	}
 }

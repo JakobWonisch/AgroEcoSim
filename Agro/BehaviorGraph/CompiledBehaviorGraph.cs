@@ -5,6 +5,15 @@ namespace Agro.BehaviorGraph;
 public sealed class CompiledBehaviorGraph
 {
 	public required CompiledNode[] NodesInOrder { get; init; }
+
+	/// <summary>Topological index of the unique <see cref="GraphNodeKind.Active"/> node.</summary>
+	public required int ActiveGateTopoIndex { get; init; }
+
+	/// <summary>
+	/// Per topo slot: true if this node lies on a path that feeds the Active gate input <c>isActive</c>
+	/// (transitive producers only; the Active node itself is not marked).
+	/// </summary>
+	public required bool[] ActiveSubtreeMask { get; init; }
 }
 
 public sealed class CompiledNode
