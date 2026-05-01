@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Agro;
 
 public class ImportedObjData
@@ -44,6 +46,12 @@ public class SimulationRequest
     ///A list of seeds to be planted (default: a single centered plant)
     ///</summary>
     public SpeciesSettings[]? Species { get; init; }
+
+    /// <summary>
+    /// Per-species behavior graphs keyed by species name (same key as <see cref="PlantRequest.SpeciesName"/>).
+    /// </summary>
+    [JsonPropertyName("SpeciesGraphs")]
+    public Dictionary<string, global::ExportedGraph>? SpeciesGraphs { get; init; }
 
     ///<summary>
     ///A list of seeds to be planted (default: a single centered plant)

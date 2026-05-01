@@ -57,6 +57,15 @@ app.Run();
 [JsonSerializable(typeof(SimulationRequest))]
 [JsonSerializable(typeof(PlantRequest))]
 [JsonSerializable(typeof(ObstacleRequest))]
+[JsonSerializable(typeof(PredefinedSpeciesEntry))]
+[JsonSerializable(typeof(List<PredefinedSpeciesEntry>))]
+[JsonSerializable(typeof(ExportedGraph))]
+[JsonSerializable(typeof(GraphNode))]
+[JsonSerializable(typeof(GraphConnection))]
+[JsonSerializable(typeof(NodePosition))]
+[JsonSerializable(typeof(Dictionary<string, ExportedGraph>))]
+[JsonSerializable(typeof(SpeciesSettings))]
+[JsonSerializable(typeof(SpeciesSettings[]))]
 
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {

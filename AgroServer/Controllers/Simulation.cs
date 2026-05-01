@@ -52,14 +52,8 @@ public class SimulationController// : ControllerBase
 
         api.MapPost("/terrain", (ImportedObjData data) => terrainBuffer.Add(data));
 
-        //Returns a listing of all predefined species
-        api.MapGet("/species", () => SpeciesSettings.Predefined);
-
-        //Updates a species
-        api.MapPost("/species", (ExportedGraph data) =>
-        {
-            // TODO: implement species update
-        });
+        // Predefined species templates (name + ExportedGraph per entry)
+        api.MapGet("/species", () => PredefinedSpeciesCatalog.All);
 
         //Returns a listing of all predefined behaviors
         api.MapGet("/behaviors", () => Enum.GetNames<Behavior>());

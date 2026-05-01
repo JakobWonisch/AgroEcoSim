@@ -1,4 +1,5 @@
 import { h, render } from 'preact';
+import { useMemo } from 'preact/hooks';
 import {
     ClassicPreset,
     NodeEditor
@@ -11,7 +12,7 @@ import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchContr
 import { AgentTypeNode } from './input/AgentTypeNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
-import { AreaExtra, Node, Schemes } from './NodeTypes';
+import { AreaExtra, Schemes } from './NodeTypes';
 import { BooleanOutputNode } from './output/BooleanOutputNode';
 import { NumberOutputNode } from './output/NumberOutputNode';
 import { AndNode } from './util/boolean/AndNode';
@@ -26,8 +27,16 @@ import { AddNode } from './util/numeric/AddNode';
 import { DivideNode } from './util/numeric/DivideNode';
 import { MultiplyNode } from './util/numeric/MultiplyNode';
 import { SubtractNode } from './util/numeric/SubtractNode';
+import type { Species } from '../../../helpers/Species';
+import appstate from '../../../appstate';
+import { fromJSON, toJSON } from './Conversion';
+import { createNodeFromExport } from './nodeFactory';
 
 export const DEBUG_SHOW_VALUES = true;
+
+function pushSpeciesGraph(species: Species, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
+    species.behaviorGraph.value = toJSON(editor, area);
+}
 
 async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
     const cache = new Map<string, any>();
@@ -85,7 +94,7 @@ async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Scheme
     }
 }
 
-export async function createEditor(container: HTMLElement) {
+export async function createEditor(container: HTMLElement, species: Species) {
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
     const connection = new ConnectionPlugin<Schemes, AreaExtra>();
@@ -141,8 +150,8 @@ export async function createEditor(container: HTMLElement) {
                 ['Divide', () => new DivideNode()]
             ]],
             ['logic', [
-                ['Greater Than', () => new GreaterThanNode()],
-                ['Less Than', () => new LessThanNode()],
+                ['Greater Than (or Equal)', () => new GreaterThanNode()],
+                ['Less Than (or Equal)', () => new LessThanNode()],
                 ['Equal To', () => new EqualToNode()],
                 ['If / Else', () => new IfElseNode()]
             ]]
@@ -257,7 +266,10 @@ export async function createEditor(container: HTMLElement) {
         }
 
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
-            setTimeout(() => processGraph(editor, area), 0);
+            setTimeout(() => {
+                processGraph(editor, area);
+                pushSpeciesGraph(species, editor, area);
+            }, 0);
         }
 
         return context;
@@ -265,7 +277,10 @@ export async function createEditor(container: HTMLElement) {
 
     import('./Controls').then(m => {
         m.graphUpdateTrigger.addEventListener('update', () => {
-            setTimeout(() => processGraph(editor, area), 0);
+            setTimeout(() => {
+                processGraph(editor, area);
+                pushSpeciesGraph(species, editor, area);
+            }, 0);
         });
     });
 
@@ -276,45 +291,20 @@ export async function createEditor(container: HTMLElement) {
 
     AreaExtensions.simpleNodesOrder(area);
 
-    const valInput = new NumberInputNode(10);
-    valInput.label = 'Value';
-    await editor.addNode(valInput);
+    const initial = species.behaviorGraph.peek();
+    if (initial?.nodes?.length > 0)
+        await fromJSON(initial, editor, area, createNodeFromExport);
 
-    const threshInput = new NumberInputNode(5);
-    threshInput.label = 'Threshold';
-    await editor.addNode(threshInput);
-
-    const activeSwitch = new BooleanInputNode(true);
-    await editor.addNode(activeSwitch);
-
-    const gtNode = new GreaterThanNode();
-    await editor.addNode(gtNode);
-
-    const andNode = new AndNode();
-    await editor.addNode(andNode);
-
-    const outNode = new BooleanOutputNode();
-    await editor.addNode(outNode);
-
-    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(valInput, 'num', gtNode, 'a'));
-    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(threshInput, 'num', gtNode, 'b'));
-
-    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(gtNode, 'out', andNode, 'a'));
-    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(activeSwitch, 'bool', andNode, 'b'));
-
-    await editor.addConnection(new ClassicPreset.Connection<Node, Node>(andNode, 'out', outNode, 'bool'));
-
-    await area.translate(valInput.id, { x: 50, y: 50 });
-    await area.translate(threshInput.id, { x: 50, y: 250 });
-    await area.translate(activeSwitch.id, { x: 50, y: 450 });
-
-    await area.translate(gtNode.id, { x: 350, y: 150 });
-    await area.translate(andNode.id, { x: 650, y: 300 });
-    await area.translate(outNode.id, { x: 950, y: 300 });
+    const speciesName = species.name.peek();
+    appstate.registerBehaviorGraphGetter(speciesName, () => toJSON(editor, area));
+    pushSpeciesGraph(species, editor, area);
 
     setTimeout(() => {
-        AreaExtensions.zoomAt(area, editor.getNodes());
+        const nodes = editor.getNodes();
+        if (nodes.length > 0)
+            AreaExtensions.zoomAt(area, nodes);
         processGraph(editor, area);
+        pushSpeciesGraph(species, editor, area);
     }, 10);
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -326,14 +316,19 @@ export async function createEditor(container: HTMLElement) {
 
     return {
         destroy: () => {
+            appstate.unregisterBehaviorGraphGetter(speciesName);
             window.removeEventListener('keydown', handleKeyDown);
             area.destroy();
         }
     };
 }
 
-export default function BehaviorEditor() {
-    const [ref] = useRete(createEditor);
+export default function BehaviorEditor({ species }: { species: Species }) {
+    const factory = useMemo(
+        () => (container: HTMLElement) => createEditor(container, species),
+        [species.name.value, species]
+    );
+    const [ref] = useRete(factory);
 
     return (
         <div style={{ width: '100%', height: '100%', background: 'rgba(0,0,0,0.1)' }}>

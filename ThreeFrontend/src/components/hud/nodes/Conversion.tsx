@@ -17,12 +17,35 @@ export interface ExportedGraph {
     }[];
 }
 
+function safeClone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value));
+}
+
+function exportNodeData(node: any): Record<string, unknown> {
+    if (node && typeof node.data === "object" && node.data !== null)
+        return safeClone(node.data);
+
+    // Rete nodes in this editor often expose `data()` as a function.
+    // Persist only primitive control values that can be reliably restored.
+    if (typeof node?.data === "function") {
+        const out: Record<string, unknown> = {};
+        if (node?.valueControl && typeof node.valueControl.value === "number")
+            out.value = node.valueControl.value;
+        if (node?.switchControl && typeof node.switchControl.value === "boolean")
+            out.bool = node.switchControl.value;
+        return out;
+    }
+
+    return {};
+}
+
 export function toJSON<Schemes extends BaseSchemes>(
     editor: NodeEditor<Schemes>,
     area: BaseAreaPlugin<Schemes, any>
 ): ExportedGraph {
     const nodes = editor.getNodes();
     const connections = editor.getConnections();
+
 
     return {
         nodes: nodes.map((node: any) => {
@@ -32,7 +55,7 @@ export function toJSON<Schemes extends BaseSchemes>(
             return {
                 id: node.id,
                 label: node.label || node.constructor.name,
-                data: JSON.parse(JSON.stringify(node.data || {})), // Ensure it's serializable
+                data: exportNodeData(node),
                 position: view ? { x: view.position.x, y: view.position.y } : { x: 0, y: 0 },
             };
         }),
@@ -47,7 +70,7 @@ export function toJSON<Schemes extends BaseSchemes>(
 }
 
 
-type NodeFactory<S> = (data: { id: string; label: string; data: any }) => Promise<any>;
+type NodeFactory<S> = (data: { id: string; label: string; data: any }) => Promise<any | null>;
 
 export async function fromJSON<S extends BaseSchemes>(
     data: ExportedGraph,
@@ -57,26 +80,34 @@ export async function fromJSON<S extends BaseSchemes>(
 ) {
     await editor.clear();
 
-    const nodesMap = new Map();
+    const addedIds = new Set<string>();
 
     for (const n of data.nodes) {
         const node = await createNode(n);
+        if (!node) continue;
+
         node.id = n.id;
 
         await editor.addNode(node);
 
         await area.translate(node.id, n.position);
 
-        nodesMap.set(n.id, node);
+        addedIds.add(n.id);
     }
 
     for (const c of data.connections) {
-        await editor.addConnection({
-            id: c.id,
-            source: c.source,
-            sourceOutput: c.sourceOutput,
-            target: c.target,
-            targetInput: c.targetInput,
-        } as any);
+        if (!addedIds.has(c.source) || !addedIds.has(c.target))
+            continue;
+        try {
+            await editor.addConnection({
+                id: c.id,
+                source: c.source,
+                sourceOutput: c.sourceOutput,
+                target: c.target,
+                targetInput: c.targetInput,
+            } as any);
+        } catch {
+            // ignore broken edges (e.g. socket mismatch after type changes)
+        }
     }
 }

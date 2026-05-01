@@ -12,6 +12,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 import { scene } from "./components/viewport/ThreeSceneFn";
 import { VisualMappingOptions } from "./helpers/Plant";
 import { Species } from "./helpers/Species";
+import type { ExportedGraph } from "./components/hud/nodes/Conversion";
 import { IObjImport, Parse } from "./helpers/ObjParser";
 import { BoxTerrainItem, ITerrainItem, MeshTerrainItem } from "./helpers/Terrain";
 
@@ -187,6 +188,27 @@ class State {
     //SPECIES
     species = signal<Species[]>([Species.Default()]);
     behaviors = signal<string[]>([]);
+    /** When a behavior editor is mounted, snapshots use live Rete state. */
+    private behaviorGraphGetters = new Map<string, () => ExportedGraph>();
+
+    registerBehaviorGraphGetter = (speciesName: string, getter: () => ExportedGraph) => {
+        this.behaviorGraphGetters.set(speciesName, getter);
+    };
+
+    unregisterBehaviorGraphGetter = (speciesName: string) => {
+        this.behaviorGraphGetters.delete(speciesName);
+    };
+
+    collectSpeciesGraphs = (): Record<string, ExportedGraph> => {
+        const out: Record<string, ExportedGraph> = {};
+        for (const s of this.species.peek()) {
+            const name = s.name.peek();
+            const g = this.behaviorGraphGetters.get(name)?.() ?? s.behaviorGraph.peek();
+            if ((g.nodes?.length ?? 0) > 0 || (g.connections?.length ?? 0) > 0)
+                out[name] = structuredClone(g);
+        }
+        return out;
+    };
 
     //INITIAL SCENE SETUP
     seedsPerField = signal(1);
@@ -250,6 +272,7 @@ class State {
 
     //METHODS
     private requestBody = () => {
+        const speciesGraphs = this.collectSpeciesGraphs();
         return {
         HoursPerTick: Math.trunc(this.hoursPerTick.peek()),
         TotalHours: Math.trunc(this.totalHours.peek()),
@@ -269,8 +292,11 @@ class State {
         FieldItemRegex: this.fieldItemRegex.value,
         FieldItemRegexMaterial: this.fieldItemRegexMaterial.value,
         FieldModelPath: this.fieldModelPath.value,
-        FieldModelData: this.fieldModelData
-    }};
+        FieldModelData: this.fieldModelData,
+
+        ...(Object.keys(speciesGraphs).length > 0 ? { SpeciesGraphs: speciesGraphs } : {}),
+        };
+    };
 
     run = async() => {
         if (this.computing.peek())
@@ -757,7 +783,9 @@ const st = new State();
 export default st;
 //now that the singleton is exported push in the default seed
 st.seeds.value = [ new Seed(st.species.peek()[0].name.peek(), st.fieldSizeX.peek() * 0.5, -0.01, st.fieldSizeZ.peek() * 0.5, 0, false) ];
-fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: Species[]) => st.species.value = list.map(x => new Species().load(x)));
+fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graph: ExportedGraph }[]) => {
+    st.species.value = list.map(e => new Species().loadPredefined(e));
+});
 
 fetch(`${location.protocol}//${BackendURI}/Simulation/behaviors`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: string[]) => st.behaviors.value = list);
 

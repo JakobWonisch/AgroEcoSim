@@ -1,6 +1,5 @@
 import { signal } from "@preact/signals"
-import appstate from "../appstate";
-import { radToDeg } from "three/src/math/MathUtils";
+import type { ExportedGraph } from "../components/hud/nodes/Conversion";
 
 const DegToRad = Math.PI / 180.0;
 const RadToDeg = 180.0 / Math.PI;
@@ -9,6 +8,9 @@ export class Species {
     name = signal("Planta Fortuita " + Date.now());
     aka = signal("");
     behaviorIndex = signal(0);
+
+    /** Full species definition for simulation (Rete export). */
+    behaviorGraph = signal<ExportedGraph>({ nodes: [], connections: [] });
 
     //trunkToWood = signal(1);
     height = signal(12);
@@ -66,6 +68,7 @@ export class Species {
         return {
             name: this.name.peek(),
             aka: this.aka.peek(),
+            graph: structuredClone(this.behaviorGraph.peek()),
             behavior: this.behaviorIndex.peek(),
             height: this.height.peek(),
 
@@ -114,10 +117,19 @@ export class Species {
         };
     }
 
+    public loadPredefined(entry: { name: string; aka?: string; graph: ExportedGraph }) {
+        this.name.value = entry.name;
+        this.aka.value = entry.aka ?? "";
+        this.behaviorGraph.value = structuredClone(entry.graph ?? { nodes: [], connections: [] });
+        return this;
+    }
+
     public load(s: any) {
         this.name.value = s.name;
         this.aka.value = s.aka;
-        this.behaviorIndex.value = s.behavior;
+        this.behaviorIndex.value = s.behavior ?? 0;
+        if (s.graph && typeof s.graph === "object")
+            this.behaviorGraph.value = structuredClone(s.graph);
         this.height.value = s.height;
         this.nodeDistance.value = s.nodeDistance;
         this.nodeDistanceVar.value = s.nodeDistanceVar;

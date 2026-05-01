@@ -200,6 +200,6 @@ export function SpeciesItem()
             </div> */}
         </div>
 
-        <BehaviorEditor />
+        <BehaviorEditor key={species.name.value} species={species} />
     </div>;
 }
