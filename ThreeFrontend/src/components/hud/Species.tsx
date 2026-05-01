@@ -38,6 +38,8 @@ export function SpeciesList()
 {
     return <div className='stack' style={{
         height: '100%',
+        width: '100%',
+        minWidth: 0,
     }}>
         <select onChange={e => selectedSpecies.value = e.target[(e.target as HTMLSelectElement).selectedIndex].title} style={{
             alignSelf: 'start',
@@ -80,6 +82,7 @@ export function SpeciesItem()
         flex: 1,
         minHeight: 0,
         width: '100%',
+        maxWidth: '100%',
     }}>
         <div class="inputs">
             <div>

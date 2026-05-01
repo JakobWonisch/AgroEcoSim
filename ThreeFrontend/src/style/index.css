@@ -31,7 +31,8 @@ body {
 }
 
 #hud {
-	padding: 20px;
+	--padding: 20px;
+	padding: var(--padding);
 	padding-right: 0;
 	max-width: 25vw;
 	box-sizing: border-box;
@@ -45,19 +46,21 @@ body {
 }
 
 #hud.expanded {
-	max-width: 50vw;
-	width: 100%;
+	max-width: 100vw;
+	width: 100vw;
+	padding-right: unset;
+	padding-right: var(--padding);
 }
 
 #hud label {
 	margin: 0.4em;
 }
 
-#hud > div {
+#hud>div {
 	margin: 0.3em;
 }
 
-#hud > div input {
+#hud>div input {
 	width: 5em;
 }
 
@@ -76,7 +79,7 @@ main {
 }
 
 @media (max-width: 639px) {
-	#app > main {
+	#app>main {
 		margin: 0 2rem;
 	}
 }
@@ -93,7 +96,7 @@ canvas {
 	top: 0;
 	left: 0;
 	overflow: hidden;
-	z-index:1;
+	z-index: 1;
 }
 
 li {
@@ -140,7 +143,9 @@ ul.scrollable-listing {
 
 .speciesDetails {
 	margin-top: 1em;
-	overflow-y: auto!important;
+	overflow-y: auto !important;
+	width: 100%;
+	min-width: 0;
 }
 
 .stack {

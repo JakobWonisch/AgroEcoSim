@@ -39,6 +39,11 @@ import { createNodeFromExport } from './nodeFactory';
 export const DEBUG_SHOW_VALUES = true;
 
 function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
+    // Avoid overwriting node positions with 0/0 snapshots before views are ready.
+    const nodes = editor.getNodes();
+    if (nodes.some((n: any) => !area.nodeViews.get(n.id)))
+        return;
+
     const snapshot = toJSON(editor, area);
     species.behaviorGraphs.value = species.behaviorGraphs.peek().map(g =>
         g.id === namedGraph.id ? { ...g, graph: snapshot } : g);
@@ -327,7 +332,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     const speciesName = species.name.peek();
     const graphId = namedGraph.id;
     appstate.registerBehaviorGraphGetter(speciesName, graphId, () => toJSON(editor, area));
-    pushSpeciesGraph(species, namedGraph, editor, area);
 
     setTimeout(() => {
         const nodes = editor.getNodes();
