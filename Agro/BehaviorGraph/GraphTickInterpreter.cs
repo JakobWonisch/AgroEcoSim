@@ -1,18 +1,20 @@
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace Agro.BehaviorGraph;
 
 public static class GraphTickInterpreter
 {
-	public static void Execute(ref AboveGroundAgent agent, PlantSubFormation<AboveGroundAgent> _formation, int _agentId, uint _timestep, CompiledBehaviorGraph graph)
+	public static void Execute(ref AboveGroundAgent agent, PlantSubFormation<AboveGroundAgent> formation, int agentId, uint timestep, CompiledBehaviorGraph graph)
 	{
+		var ctx = new TickEvalContext { Formation = formation, AgentId = agentId, Timestep = timestep };
 		var outs = new Dictionary<(int NodeIndex, string Socket), WireValue>();
 
 		for (var t = 0; t < graph.NodesInOrder.Length; t++)
 		{
 			if (!graph.ActiveSubtreeMask[t])
 				continue;
-			EvaluateNode(graph.NodesInOrder[t], ref agent, outs);
+			EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
 		}
 
 		var gateNode = graph.NodesInOrder[graph.ActiveGateTopoIndex];
@@ -23,11 +25,11 @@ public static class GraphTickInterpreter
 		{
 			if (graph.ActiveSubtreeMask[t])
 				continue;
-			EvaluateNode(graph.NodesInOrder[t], ref agent, outs);
+			EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
 		}
 	}
 
-	static void EvaluateNode(CompiledNode node, ref AboveGroundAgent agent, Dictionary<(int NodeIndex, string Socket), WireValue> outs)
+	static void EvaluateNode(CompiledNode node, ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int NodeIndex, string Socket), WireValue> outs)
 	{
 		var g = node.GraphNodeIndex;
 		switch (node.Kind)
@@ -38,10 +40,41 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.BooleanInput:
 				outs[(g, "bool")] = WireValue.OfBool(node.BoolConst);
 				break;
-			case GraphNodeKind.AgentType:
-			case GraphNodeKind.OrganSensors:
-				WriteOrganSensors(ref agent, outs, g);
+			case GraphNodeKind.AgentTypeInput:
+				WriteAgentTypeInput(ref agent, outs, g);
 				break;
+			case GraphNodeKind.PhaseInput:
+				WritePhaseInput(ctx, outs, g);
+				break;
+			case GraphNodeKind.AgentStateInput:
+				WriteAgentStateInput(ref agent, ctx, outs, g);
+				break;
+			case GraphNodeKind.ParentInput:
+				WriteParentInput(ref agent, ctx, outs, g);
+				break;
+			case GraphNodeKind.IrradianceInput:
+				WriteIrradianceInput(ctx, outs, g);
+				break;
+			case GraphNodeKind.RandomChanceInput:
+			{
+				var p = FirstFloat(node.Inputs, "p", outs);
+				var hit = ctx.HasFormation && ctx.Formation!.Plant.RNG.NextFloat(0f, 1f) < p;
+				outs[(g, "out")] = WireValue.OfBool(hit);
+				break;
+			}
+			case GraphNodeKind.ParentWoodCap:
+			{
+				var value = FirstFloat(node.Inputs, "value", outs);
+				outs[(g, "out")] = WireValue.OfFloat(ParentWoodCap(ref agent, ctx, value));
+				break;
+			}
+			case GraphNodeKind.ClampMax:
+			{
+				var value = FirstFloat(node.Inputs, "value", outs);
+				var max = FirstFloat(node.Inputs, "max", outs);
+				outs[(g, "out")] = WireValue.OfFloat(MathF.Min(value, max));
+				break;
+			}
 			case GraphNodeKind.Add:
 			{
 				var a = FirstFloat(node.Inputs, "a", outs);
@@ -140,19 +173,210 @@ public static class GraphTickInterpreter
 				agent.Radius += dRad;
 				break;
 			}
+			case GraphNodeKind.DeltaEnergy:
+				agent.Energy += FirstFloat(node.Inputs, "amount", outs);
+				break;
+			case GraphNodeKind.DeltaWater:
+				agent.Water_g += FirstFloat(node.Inputs, "amount", outs);
+				break;
+			case GraphNodeKind.DeltaWood:
+				agent.GraphDeltaWood(FirstFloat(node.Inputs, "amount", outs));
+				break;
+			case GraphNodeKind.SetWood:
+				agent.GraphSetWood(FirstFloat(node.Inputs, "value", outs));
+				break;
+			case GraphNodeKind.MultiplyEnergy:
+				agent.Energy *= FirstFloat(node.Inputs, "factor", outs);
+				break;
+			case GraphNodeKind.MultiplyWater:
+				agent.Water_g *= FirstFloat(node.Inputs, "factor", outs);
+				break;
+			case GraphNodeKind.SetEnergy:
+				agent.Energy = FirstFloat(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.SetAuxins:
+				agent.Auxins = FirstFloat(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.SetTrySpawn:
+				agent.trySpawn = FirstBool(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.AccumulateProduction:
+				agent.GraphAccumulateProduction(FirstFloat(node.Inputs, "amount", outs));
+				break;
+			case GraphNodeKind.MakeBud:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
+					var children = ctx.Formation!.GetChildren(ctx.AgentId);
+					agent.MakeBud(ctx.Formation, children);
+				}
+				break;
+			case GraphNodeKind.CreateLeaves:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
+					var plant = ctx.Formation!.Plant;
+					var lateral = agent.LateralAngle + plant.Parameters.LateralRoll;
+					agent.CreateLeaves(agent, plant, lateral, ctx.AgentId);
+				}
+				break;
+			case GraphNodeKind.Death:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					ctx.Formation!.Death(ctx.AgentId);
+				break;
+			case GraphNodeKind.DeathParent:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs) && agent.Parent >= 0)
+					ctx.Formation!.Death(agent.Parent);
+				break;
+			case GraphNodeKind.DeathChildren:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
+					foreach (var child in ctx.Formation!.GetChildren(ctx.AgentId))
+						ctx.Formation.Death(child);
+				}
+				break;
+			case GraphNodeKind.BecomeMeristem:
+				if (FirstBool(node.Inputs, "trigger", outs))
+					agent.Organ = OrganTypes.Meristem;
+				break;
+			case GraphNodeKind.BecomeStem:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
+					var plant = ctx.Formation!.Plant;
+					var species = plant.Parameters;
+					var world = plant.World;
+					agent.Organ = OrganTypes.Stem;
+					agent.GraphSetGrowthTimeVar(world.HoursPerTick / (species.WoodGrowthTime + plant.RNG.NextFloatVar(species.WoodGrowthTimeVar)));
+				}
+				break;
+			case GraphNodeKind.BecomeFlowerStem:
+				if (FirstBool(node.Inputs, "trigger", outs))
+					agent.Organ = OrganTypes.FlowerStem;
+				break;
+			case GraphNodeKind.BecomeFlowerMeristem:
+				if (FirstBool(node.Inputs, "trigger", outs))
+					agent.Organ = OrganTypes.FlowerMeristem;
+				break;
+			case GraphNodeKind.SpawnMeristem:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem);
+				break;
+			case GraphNodeKind.SpawnBud:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Bud);
+				break;
+			case GraphNodeKind.SpawnStem:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Stem);
+				break;
+			case GraphNodeKind.SpawnFlowerStem:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerStem);
+				break;
+			case GraphNodeKind.SpawnFlowerMeristem:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerMeristem);
+				break;
+			case GraphNodeKind.SpawnFlowerBud:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerBud);
+				break;
+			case GraphNodeKind.SpawnFlowerPadel:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerPadel);
+				break;
+			case GraphNodeKind.SpawnRhizome:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+					SpawnEffects.SpawnRhizome(ref agent, ctx.Formation!, ctx.AgentId, agent.Orientation);
+				break;
 			default:
 				break;
 		}
 	}
 
-	static void WriteOrganSensors(ref AboveGroundAgent agent, Dictionary<(int, string), WireValue> outs, int g)
+	static void WriteAgentTypeInput(ref AboveGroundAgent agent, Dictionary<(int, string), WireValue> outs, int g)
 	{
 		var o = agent.Organ;
-		outs[(g, "type1")] = WireValue.OfBool(o == OrganTypes.Leaf);
-		outs[(g, "type2")] = WireValue.OfBool(o == OrganTypes.Stem);
-		outs[(g, "type3")] = WireValue.OfBool(o == OrganTypes.Meristem);
-		outs[(g, "type4")] = WireValue.OfBool(o == OrganTypes.Petiole);
-		outs[(g, "type5")] = WireValue.OfBool(o == OrganTypes.Bud);
+		outs[(g, "leaf")] = WireValue.OfBool(o == OrganTypes.Leaf);
+		outs[(g, "stem")] = WireValue.OfBool(o == OrganTypes.Stem);
+		outs[(g, "meristem")] = WireValue.OfBool(o == OrganTypes.Meristem);
+		outs[(g, "petiole")] = WireValue.OfBool(o == OrganTypes.Petiole);
+		outs[(g, "bud")] = WireValue.OfBool(o == OrganTypes.Bud);
+		outs[(g, "flowerStem")] = WireValue.OfBool(o == OrganTypes.FlowerStem);
+		outs[(g, "flowerMeristem")] = WireValue.OfBool(o == OrganTypes.FlowerMeristem);
+		outs[(g, "flowerBud")] = WireValue.OfBool(o == OrganTypes.FlowerBud);
+		outs[(g, "flowerPadel")] = WireValue.OfBool(o == OrganTypes.FlowerPadel);
+		outs[(g, "flowerPetiol")] = WireValue.OfBool(o == OrganTypes.FlowerPetiol);
+	}
+
+	static void WritePhaseInput(TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
+	{
+		if (!ctx.HasFormation)
+		{
+			outs[(g, "preFlower")] = WireValue.OfBool(false);
+			outs[(g, "flowering")] = WireValue.OfBool(false);
+			outs[(g, "postFlower")] = WireValue.OfBool(false);
+			outs[(g, "resetPending")] = WireValue.OfBool(false);
+			return;
+		}
+
+		var phase = ctx.Formation!.GetPhase(ctx.Formation.Plant.Parameters, ctx.Timestep);
+		outs[(g, "preFlower")] = WireValue.OfBool(phase == SeasonalPhase.PreFlower);
+		outs[(g, "flowering")] = WireValue.OfBool(phase == SeasonalPhase.Flowering);
+		outs[(g, "postFlower")] = WireValue.OfBool(phase == SeasonalPhase.PostFlower);
+		outs[(g, "resetPending")] = WireValue.OfBool(phase == SeasonalPhase.ResetPending);
+	}
+
+	static void WriteAgentStateInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
+	{
+		var world = ctx.HasFormation ? ctx.Formation!.Plant.World : null;
+		var ageHours = world is not null ? agent.AgeHours(ctx.Timestep, world) : 0f;
+		outs[(g, "energy")] = WireValue.OfFloat(agent.Energy);
+		outs[(g, "water")] = WireValue.OfFloat(agent.Water_g);
+		outs[(g, "length")] = WireValue.OfFloat(agent.Length);
+		outs[(g, "radius")] = WireValue.OfFloat(agent.Radius);
+		outs[(g, "wood")] = WireValue.OfFloat(agent.WoodRatio());
+		outs[(g, "ageHours")] = WireValue.OfFloat(ageHours);
+		outs[(g, "isRizome")] = WireValue.OfBool(agent.isRizome);
+		outs[(g, "trySpawn")] = WireValue.OfBool(agent.trySpawn);
+	}
+
+	static void WriteParentInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
+	{
+		if (!ctx.HasFormation || agent.Parent < 0)
+		{
+			outs[(g, "parentIsRhizome")] = WireValue.OfBool(false);
+			outs[(g, "parentWood")] = WireValue.OfFloat(agent.WoodRatio());
+			return;
+		}
+
+		var formation = ctx.Formation!;
+		var parentIsRhizome = formation.GetIsRizome(agent.Parent);
+		outs[(g, "parentIsRhizome")] = WireValue.OfBool(parentIsRhizome);
+		outs[(g, "parentWood")] = WireValue.OfFloat(
+			parentIsRhizome ? agent.WoodRatio() : formation.GetWoodRatio(agent.Parent));
+	}
+
+	static void WriteIrradianceInput(TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
+	{
+		if (!ctx.HasFormation)
+		{
+			outs[(g, "irradiance")] = WireValue.OfFloat(0f);
+			return;
+		}
+
+		var ir = ctx.Formation!.Plant.World.Irradiance.GetIrradiance(ctx.Formation, ctx.AgentId);
+		outs[(g, "irradiance")] = WireValue.OfFloat(ir);
+	}
+
+	static float ParentWoodCap(ref AboveGroundAgent agent, TickEvalContext ctx, float value)
+	{
+		if (!ctx.HasFormation || agent.Parent < 0)
+			return value;
+
+		var formation = ctx.Formation!;
+		var parentWood = formation.GetIsRizome(agent.Parent)
+			? agent.WoodRatio()
+			: formation.GetWoodRatio(agent.Parent);
+		return value <= parentWood ? value : parentWood;
 	}
 
 	static float FirstFloat(Dictionary<string, List<(int ProducerIndex, string ProducerSocket)>> inputs, string key, Dictionary<(int, string), WireValue> outs)

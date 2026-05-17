@@ -268,6 +268,9 @@ public partial struct AboveGroundAgent : IPlantAgent
 	[M(AI)] public readonly float LifeSupportPerHour() => Length * Radius * (Organ == OrganTypes.Leaf ? LeafThickness : Radius * WoodFactor);
 	[M(AI)] public readonly float LifeSupportPerTick(AgroWorld world) => LifeSupportPerHour() * world.HoursPerTick;
 
+	[M(AI)] public readonly float AgeHours(uint timestep, AgroWorld world) => (timestep - BirthTime) * world.HoursPerTick;
+	[M(AI)] internal uint GraphBirthTime() => BirthTime;
+
 	public const float mPhotoEfficiency = 0.005f;
 	public const float ExpectedIrradiance = 500f; //in W/m² per hour see https://en.wikipedia.org/wiki/Solar_irradiance
 	[M(AI)] public readonly float PhotosynthPerTick(AgroWorld world) => Length * Radius * (Organ == OrganTypes.Leaf ? 2f : TwoPiTenth) * mPhotoEfficiency * ExpectedIrradiance * world.HoursPerTick;
@@ -732,7 +735,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 	}
 
 	[M(AI)]
-	private void MakeBud(PlantSubFormation<AboveGroundAgent> formation, IList<int>? children)
+	internal void MakeBud(PlantSubFormation<AboveGroundAgent> formation, IList<int>? children)
 	{
 		Organ = OrganTypes.Bud;
 		ParentRadiusAtBirth = !formation.GetIsRizome(Parent) ? formation.GetBaseRadius(Parent) : float.MaxValue; ;
@@ -871,6 +874,14 @@ public partial struct AboveGroundAgent : IPlantAgent
 
 	[M(AI)] public void IncAuxins(float amount) => Auxins += amount;
 	//public void IncCytokinins(float amount) => Cytokinins += amount;
+
+	#region Behavior graph mutations
+	[M(AI)] internal void GraphDeltaWood(float amount) => WoodFactor += amount;
+	[M(AI)] internal void GraphSetWood(float value) => WoodFactor = value;
+	[M(AI)] internal void GraphSetGrowthTimeVar(float value) => GrowthTimeVar = value;
+	[M(AI)] internal void GraphAccumulateProduction(float amount) => CurrentDayProductionInv += amount;
+	[M(AI)] internal void GraphAccumulateEnvResourcesInv(float amount) => CurrentDayEnvResourcesInv += amount;
+	#endregion
 
 	[M(AI)]
 	public void DailyMax(float resources, float production)

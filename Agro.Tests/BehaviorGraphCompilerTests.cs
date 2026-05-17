@@ -225,4 +225,29 @@ public class BehaviorGraphCompilerTests
 		Assert.True(boolTopo >= 0);
 		Assert.True(mask[boolTopo]);
 	}
+
+	[Theory]
+	[InlineData("Phase Input")]
+	[InlineData("Agent State Input")]
+	[InlineData("Parent Input")]
+	[InlineData("Irradiance Input")]
+	[InlineData("Random Chance Input")]
+	[InlineData("Delta Energy")]
+	[InlineData("Set trySpawn")]
+	[InlineData("Parent Wood Cap")]
+	[InlineData("Clamp Max")]
+	[InlineData("Make Bud")]
+	[InlineData("Spawn Meristem")]
+	[InlineData("Death")]
+	public void TryCompile_NewNodeLabels_Ok(string label)
+	{
+		var (gn, gc) = GatePair("z");
+		var g = new ExportedGraph
+		{
+			Nodes = [..gn, N("n", label)],
+			Connections = [..gc],
+		};
+		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
+		Assert.Contains(compiled!.NodesInOrder, n => n.Kind != GraphNodeKind.Active && n.Kind != GraphNodeKind.BooleanInput);
+	}
 }
