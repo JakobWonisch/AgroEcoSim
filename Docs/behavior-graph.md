@@ -94,7 +94,7 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
 - input
   - `Number Input` — control `value` (numeric); output `num: Number`.
   - `Boolean Input` — control `switch` (boolean); output `bool: Boolean`.
-  - `Agent Type Input` — organ-type flags: `leaf`, `stem`, `meristem`, `petiole`, `bud`, `flowerStem`, `flowerMeristem`, `flowerBud`, `flowerPadel`, `flowerPetiol` (display labels e.g. "Is Leaf", "Is Stem"). Legacy export labels `Agent Type` and `Organ Input` still compile.
+  - `Agent Type Input` — organ-type flags: `leaf`, `stem`, `meristem`, `petiole`, `bud`, `flowerStem`, `flowerMeristem`, `flowerBud`, `flowerPadel`, `flowerPetiol` (display labels e.g. "Is Leaf", "Is Stem").
   - `Phase Input` — `preFlower`, `flowering`, `postFlower`, `resetPending` (bool) from `formation.GetPhase`.
   - `Agent State Input` — `energy`, `water`, `length`, `radius`, `wood`, `ageHours`, `isRizome`, `trySpawn`.
   - `Parent Input` — `parentIsRhizome` (bool), `parentWood` (float).

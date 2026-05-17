@@ -58,8 +58,7 @@ import {
 export const canonicalBehaviorNodeLabels = [
     "Number Input",
     "Boolean Input",
-    "Agent Type",
-    "Organ Input",
+    "Agent Type Input",
     "Phase Input",
     "Agent State Input",
     "Parent Input",
@@ -124,8 +123,6 @@ const creators: Record<string, Creator> = {
     "Number Input": (d) => new NumberInputNode(numberFromData(d)),
     "Boolean Input": (d) => new BooleanInputNode(typeof d.bool === "boolean" ? d.bool : false),
     "Agent Type Input": () => new AgentTypeInputNode(),
-    "Agent Type": () => new AgentTypeInputNode(),
-    "Organ Input": () => new AgentTypeInputNode(),
     "Phase Input": () => new PhaseInputNode(),
     "Agent State Input": () => new AgentStateInputNode(),
     "Parent Input": () => new ParentInputNode(),

@@ -220,8 +220,6 @@ public static class BehaviorGraphCompiler
 				payload.boo = ReadBool(node.Data);
 				return true;
 			case "Agent Type Input":
-			case "Agent Type":
-			case "Organ Input":
 				kind = GraphNodeKind.AgentTypeInput;
 				return true;
 			case "Phase Input":
