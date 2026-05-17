@@ -1,11 +1,15 @@
 import { NumberInputNode } from "./input/NumberInputNode";
 import { BooleanInputNode } from "./input/BooleanInputNode";
-import { AgentTypeNode } from "./input/AgentTypeNode";
+import { AgentTypeInputNode } from "./input/AgentTypeInputNode";
 import { ActiveOutputNode } from "./output/ActiveOutputNode";
 import { BooleanOutputNode } from "./output/BooleanOutputNode";
 import { NumberOutputNode } from "./output/NumberOutputNode";
 import { GrowthNode } from "./output/GrowthNode";
-import { OrganSensorsNode } from "./input/OrganSensorsNode";
+import { PhaseInputNode } from "./input/PhaseInputNode";
+import { AgentStateInputNode } from "./input/AgentStateInputNode";
+import { ParentInputNode } from "./input/ParentInputNode";
+import { IrradianceInputNode } from "./input/IrradianceInputNode";
+import { RandomChanceInputNode } from "./input/RandomChanceInputNode";
 import { AndNode } from "./util/boolean/AndNode";
 import { NotNode } from "./util/boolean/NotNode";
 import { OrNode } from "./util/boolean/OrNode";
@@ -18,13 +22,48 @@ import { AddNode } from "./util/numeric/AddNode";
 import { DivideNode } from "./util/numeric/DivideNode";
 import { MultiplyNode } from "./util/numeric/MultiplyNode";
 import { SubtractNode } from "./util/numeric/SubtractNode";
+import { ParentWoodCapNode } from "./util/numeric/ParentWoodCapNode";
+import { ClampMaxNode } from "./util/numeric/ClampMaxNode";
+import { DeltaEnergyNode } from "./output/DeltaEnergyNode";
+import { DeltaWaterNode } from "./output/DeltaWaterNode";
+import { DeltaWoodNode } from "./output/DeltaWoodNode";
+import { SetWoodNode } from "./output/SetWoodNode";
+import { MultiplyEnergyNode } from "./output/MultiplyEnergyNode";
+import { MultiplyWaterNode } from "./output/MultiplyWaterNode";
+import { SetEnergyNode } from "./output/SetEnergyNode";
+import { SetAuxinsNode } from "./output/SetAuxinsNode";
+import { SetTrySpawnNode } from "./output/SetTrySpawnNode";
+import { AccumulateProductionNode } from "./output/AccumulateProductionNode";
+import { MakeBudNode } from "./output/MakeBudNode";
+import { CreateLeavesNode } from "./output/CreateLeavesNode";
+import { DeathNode } from "./output/DeathNode";
+import { DeathParentNode } from "./output/DeathParentNode";
+import { DeathChildrenNode } from "./output/DeathChildrenNode";
+import { BecomeMeristemNode } from "./output/BecomeMeristemNode";
+import { BecomeStemNode } from "./output/BecomeStemNode";
+import { BecomeFlowerStemNode } from "./output/BecomeFlowerStemNode";
+import { BecomeFlowerMeristemNode } from "./output/BecomeFlowerMeristemNode";
+import {
+    SpawnMeristemNode,
+    SpawnBudNode,
+    SpawnStemNode,
+    SpawnFlowerStemNode,
+    SpawnFlowerMeristemNode,
+    SpawnFlowerBudNode,
+    SpawnFlowerPadelNode,
+    SpawnRhizomeNode,
+} from "./output/spawn/SpawnNodes";
 
 /** Labels that match `super('…')` on node classes under hud/nodes (canonical export labels). */
 export const canonicalBehaviorNodeLabels = [
     "Number Input",
     "Boolean Input",
-    "Agent Type",
-    "Organ Sensors",
+    "Agent Type Input",
+    "Phase Input",
+    "Agent State Input",
+    "Parent Input",
+    "Irradiance Input",
+    "Random Chance Input",
     "Active",
     "Boolean Output",
     "Number Output",
@@ -40,7 +79,36 @@ export const canonicalBehaviorNodeLabels = [
     "Subtract",
     "Multiply",
     "Divide",
+    "Parent Wood Cap",
+    "Clamp Max",
     "Growth",
+    "Delta Energy",
+    "Delta Water",
+    "Delta Wood",
+    "Set Wood",
+    "Multiply Energy",
+    "Multiply Water",
+    "Set Energy",
+    "Set Auxins",
+    "Set trySpawn",
+    "Accumulate Production",
+    "Make Bud",
+    "Create Leaves",
+    "Death",
+    "Death Parent",
+    "Death Children",
+    "Become Meristem",
+    "Become Stem",
+    "Become Flower Stem",
+    "Become Flower Meristem",
+    "Spawn Meristem",
+    "Spawn Bud",
+    "Spawn Stem",
+    "Spawn Flower Stem",
+    "Spawn Flower Meristem",
+    "Spawn Flower Bud",
+    "Spawn Flower Padel",
+    "Spawn Rhizome",
 ] as const;
 
 type Creator = (data: Record<string, unknown>) => any;
@@ -54,8 +122,12 @@ function numberFromData(d: Record<string, unknown>): number {
 const creators: Record<string, Creator> = {
     "Number Input": (d) => new NumberInputNode(numberFromData(d)),
     "Boolean Input": (d) => new BooleanInputNode(typeof d.bool === "boolean" ? d.bool : false),
-    "Agent Type": () => new AgentTypeNode(),
-    "Organ Sensors": () => new OrganSensorsNode(),
+    "Agent Type Input": () => new AgentTypeInputNode(),
+    "Phase Input": () => new PhaseInputNode(),
+    "Agent State Input": () => new AgentStateInputNode(),
+    "Parent Input": () => new ParentInputNode(),
+    "Irradiance Input": () => new IrradianceInputNode(),
+    "Random Chance Input": () => new RandomChanceInputNode(),
     Active: () => new ActiveOutputNode(),
     "Boolean Output": () => new BooleanOutputNode(),
     "Number Output": () => new NumberOutputNode(),
@@ -71,7 +143,36 @@ const creators: Record<string, Creator> = {
     Subtract: () => new SubtractNode(),
     Multiply: () => new MultiplyNode(),
     Divide: () => new DivideNode(),
+    "Parent Wood Cap": () => new ParentWoodCapNode(),
+    "Clamp Max": () => new ClampMaxNode(),
     Growth: () => new GrowthNode(),
+    "Delta Energy": () => new DeltaEnergyNode(),
+    "Delta Water": () => new DeltaWaterNode(),
+    "Delta Wood": () => new DeltaWoodNode(),
+    "Set Wood": () => new SetWoodNode(),
+    "Multiply Energy": () => new MultiplyEnergyNode(),
+    "Multiply Water": () => new MultiplyWaterNode(),
+    "Set Energy": () => new SetEnergyNode(),
+    "Set Auxins": () => new SetAuxinsNode(),
+    "Set trySpawn": () => new SetTrySpawnNode(),
+    "Accumulate Production": () => new AccumulateProductionNode(),
+    "Make Bud": () => new MakeBudNode(),
+    "Create Leaves": () => new CreateLeavesNode(),
+    Death: () => new DeathNode(),
+    "Death Parent": () => new DeathParentNode(),
+    "Death Children": () => new DeathChildrenNode(),
+    "Become Meristem": () => new BecomeMeristemNode(),
+    "Become Stem": () => new BecomeStemNode(),
+    "Become Flower Stem": () => new BecomeFlowerStemNode(),
+    "Become Flower Meristem": () => new BecomeFlowerMeristemNode(),
+    "Spawn Meristem": () => new SpawnMeristemNode(),
+    "Spawn Bud": () => new SpawnBudNode(),
+    "Spawn Stem": () => new SpawnStemNode(),
+    "Spawn Flower Stem": () => new SpawnFlowerStemNode(),
+    "Spawn Flower Meristem": () => new SpawnFlowerMeristemNode(),
+    "Spawn Flower Bud": () => new SpawnFlowerBudNode(),
+    "Spawn Flower Padel": () => new SpawnFlowerPadelNode(),
+    "Spawn Rhizome": () => new SpawnRhizomeNode(),
 };
 
 export function isSupportedBehaviorExportLabel(label: string): boolean {

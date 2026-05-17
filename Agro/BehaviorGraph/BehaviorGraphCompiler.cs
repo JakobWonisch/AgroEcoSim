@@ -219,11 +219,110 @@ public static class BehaviorGraphCompiler
 				kind = GraphNodeKind.BooleanInput;
 				payload.boo = ReadBool(node.Data);
 				return true;
-			case "Agent Type":
-				kind = GraphNodeKind.AgentType;
+			case "Agent Type Input":
+				kind = GraphNodeKind.AgentTypeInput;
 				return true;
-			case "Organ Sensors":
-				kind = GraphNodeKind.OrganSensors;
+			case "Phase Input":
+				kind = GraphNodeKind.PhaseInput;
+				return true;
+			case "Agent State Input":
+				kind = GraphNodeKind.AgentStateInput;
+				return true;
+			case "Parent Input":
+				kind = GraphNodeKind.ParentInput;
+				return true;
+			case "Irradiance Input":
+				kind = GraphNodeKind.IrradianceInput;
+				return true;
+			case "Random Chance Input":
+				kind = GraphNodeKind.RandomChanceInput;
+				return true;
+			case "Parent Wood Cap":
+				kind = GraphNodeKind.ParentWoodCap;
+				return true;
+			case "Clamp Max":
+				kind = GraphNodeKind.ClampMax;
+				return true;
+			case "Delta Energy":
+				kind = GraphNodeKind.DeltaEnergy;
+				return true;
+			case "Delta Water":
+				kind = GraphNodeKind.DeltaWater;
+				return true;
+			case "Delta Wood":
+				kind = GraphNodeKind.DeltaWood;
+				return true;
+			case "Set Wood":
+				kind = GraphNodeKind.SetWood;
+				return true;
+			case "Multiply Energy":
+				kind = GraphNodeKind.MultiplyEnergy;
+				return true;
+			case "Multiply Water":
+				kind = GraphNodeKind.MultiplyWater;
+				return true;
+			case "Set Energy":
+				kind = GraphNodeKind.SetEnergy;
+				return true;
+			case "Set Auxins":
+				kind = GraphNodeKind.SetAuxins;
+				return true;
+			case "Set trySpawn":
+				kind = GraphNodeKind.SetTrySpawn;
+				return true;
+			case "Accumulate Production":
+				kind = GraphNodeKind.AccumulateProduction;
+				return true;
+			case "Make Bud":
+				kind = GraphNodeKind.MakeBud;
+				return true;
+			case "Create Leaves":
+				kind = GraphNodeKind.CreateLeaves;
+				return true;
+			case "Death":
+				kind = GraphNodeKind.Death;
+				return true;
+			case "Death Parent":
+				kind = GraphNodeKind.DeathParent;
+				return true;
+			case "Death Children":
+				kind = GraphNodeKind.DeathChildren;
+				return true;
+			case "Become Meristem":
+				kind = GraphNodeKind.BecomeMeristem;
+				return true;
+			case "Become Stem":
+				kind = GraphNodeKind.BecomeStem;
+				return true;
+			case "Become Flower Stem":
+				kind = GraphNodeKind.BecomeFlowerStem;
+				return true;
+			case "Become Flower Meristem":
+				kind = GraphNodeKind.BecomeFlowerMeristem;
+				return true;
+			case "Spawn Meristem":
+				kind = GraphNodeKind.SpawnMeristem;
+				return true;
+			case "Spawn Bud":
+				kind = GraphNodeKind.SpawnBud;
+				return true;
+			case "Spawn Stem":
+				kind = GraphNodeKind.SpawnStem;
+				return true;
+			case "Spawn Flower Stem":
+				kind = GraphNodeKind.SpawnFlowerStem;
+				return true;
+			case "Spawn Flower Meristem":
+				kind = GraphNodeKind.SpawnFlowerMeristem;
+				return true;
+			case "Spawn Flower Bud":
+				kind = GraphNodeKind.SpawnFlowerBud;
+				return true;
+			case "Spawn Flower Padel":
+				kind = GraphNodeKind.SpawnFlowerPadel;
+				return true;
+			case "Spawn Rhizome":
+				kind = GraphNodeKind.SpawnRhizome;
 				return true;
 			case "Active":
 				kind = GraphNodeKind.Active;

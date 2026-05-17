@@ -9,8 +9,12 @@ import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-
 import { ContextMenuPlugin, Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
 import { Presets, ReactPlugin, useRete } from 'rete-react-plugin';
 import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
-import { AgentTypeNode } from './input/AgentTypeNode';
-import { OrganSensorsNode } from './input/OrganSensorsNode';
+import { AgentTypeInputNode } from './input/AgentTypeInputNode';
+import { PhaseInputNode } from './input/PhaseInputNode';
+import { AgentStateInputNode } from './input/AgentStateInputNode';
+import { ParentInputNode } from './input/ParentInputNode';
+import { IrradianceInputNode } from './input/IrradianceInputNode';
+import { RandomChanceInputNode } from './input/RandomChanceInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
@@ -18,6 +22,37 @@ import { ActiveOutputNode } from './output/ActiveOutputNode';
 import { BooleanOutputNode } from './output/BooleanOutputNode';
 import { NumberOutputNode } from './output/NumberOutputNode';
 import { GrowthNode } from './output/GrowthNode';
+import { DeltaEnergyNode } from './output/DeltaEnergyNode';
+import { DeltaWaterNode } from './output/DeltaWaterNode';
+import { DeltaWoodNode } from './output/DeltaWoodNode';
+import { SetWoodNode } from './output/SetWoodNode';
+import { MultiplyEnergyNode } from './output/MultiplyEnergyNode';
+import { MultiplyWaterNode } from './output/MultiplyWaterNode';
+import { SetEnergyNode } from './output/SetEnergyNode';
+import { SetAuxinsNode } from './output/SetAuxinsNode';
+import { SetTrySpawnNode } from './output/SetTrySpawnNode';
+import { AccumulateProductionNode } from './output/AccumulateProductionNode';
+import { MakeBudNode } from './output/MakeBudNode';
+import { CreateLeavesNode } from './output/CreateLeavesNode';
+import { DeathNode } from './output/DeathNode';
+import { DeathParentNode } from './output/DeathParentNode';
+import { DeathChildrenNode } from './output/DeathChildrenNode';
+import { BecomeMeristemNode } from './output/BecomeMeristemNode';
+import { BecomeStemNode } from './output/BecomeStemNode';
+import { BecomeFlowerStemNode } from './output/BecomeFlowerStemNode';
+import { BecomeFlowerMeristemNode } from './output/BecomeFlowerMeristemNode';
+import {
+    SpawnMeristemNode,
+    SpawnBudNode,
+    SpawnStemNode,
+    SpawnFlowerStemNode,
+    SpawnFlowerMeristemNode,
+    SpawnFlowerBudNode,
+    SpawnFlowerPadelNode,
+    SpawnRhizomeNode,
+} from './output/spawn/SpawnNodes';
+import { ParentWoodCapNode } from './util/numeric/ParentWoodCapNode';
+import { ClampMaxNode } from './util/numeric/ClampMaxNode';
 import { AndNode } from './util/boolean/AndNode';
 import { NotNode } from './util/boolean/NotNode';
 import { OrNode } from './util/boolean/OrNode';
@@ -142,13 +177,44 @@ export async function createEditor(container: HTMLElement, species: Species, nam
             ['input', [
                 ['Number', () => new NumberInputNode(0)],
                 ['Boolean', () => new BooleanInputNode(false)],
-                ['Agent Type', () => new AgentTypeNode()],
-                ['Organ Sensors', () => new OrganSensorsNode()]
+                ['Agent Type Input', () => new AgentTypeInputNode()],
+                ['Phase Input', () => new PhaseInputNode()],
+                ['Agent State Input', () => new AgentStateInputNode()],
+                ['Parent Input', () => new ParentInputNode()],
+                ['Irradiance Input', () => new IrradianceInputNode()],
+                ['Random Chance Input', () => new RandomChanceInputNode()],
             ]],
             ['output', [
                 ['Number', () => new NumberOutputNode()],
                 ['Boolean', () => new BooleanOutputNode()],
-                ['Growth', () => new GrowthNode()]
+                ['Growth', () => new GrowthNode()],
+                ['Delta Energy', () => new DeltaEnergyNode()],
+                ['Delta Water', () => new DeltaWaterNode()],
+                ['Delta Wood', () => new DeltaWoodNode()],
+                ['Set Wood', () => new SetWoodNode()],
+                ['Multiply Energy', () => new MultiplyEnergyNode()],
+                ['Multiply Water', () => new MultiplyWaterNode()],
+                ['Set Energy', () => new SetEnergyNode()],
+                ['Set Auxins', () => new SetAuxinsNode()],
+                ['Set trySpawn', () => new SetTrySpawnNode()],
+                ['Accumulate Production', () => new AccumulateProductionNode()],
+                ['Make Bud', () => new MakeBudNode()],
+                ['Create Leaves', () => new CreateLeavesNode()],
+                ['Death', () => new DeathNode()],
+                ['Death Parent', () => new DeathParentNode()],
+                ['Death Children', () => new DeathChildrenNode()],
+                ['Become Meristem', () => new BecomeMeristemNode()],
+                ['Become Stem', () => new BecomeStemNode()],
+                ['Become Flower Stem', () => new BecomeFlowerStemNode()],
+                ['Become Flower Meristem', () => new BecomeFlowerMeristemNode()],
+                ['Spawn Meristem', () => new SpawnMeristemNode()],
+                ['Spawn Bud', () => new SpawnBudNode()],
+                ['Spawn Stem', () => new SpawnStemNode()],
+                ['Spawn Flower Stem', () => new SpawnFlowerStemNode()],
+                ['Spawn Flower Meristem', () => new SpawnFlowerMeristemNode()],
+                ['Spawn Flower Bud', () => new SpawnFlowerBudNode()],
+                ['Spawn Flower Padel', () => new SpawnFlowerPadelNode()],
+                ['Spawn Rhizome', () => new SpawnRhizomeNode()],
             ]],
             ['boolean', [
                 ['And', () => new AndNode()],
@@ -160,7 +226,9 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Add', () => new AddNode()],
                 ['Subtract', () => new SubtractNode()],
                 ['Multiply', () => new MultiplyNode()],
-                ['Divide', () => new DivideNode()]
+                ['Divide', () => new DivideNode()],
+                ['Parent Wood Cap', () => new ParentWoodCapNode()],
+                ['Clamp Max', () => new ClampMaxNode()],
             ]],
             ['logic', [
                 ['Greater Than (or Equal)', () => new GreaterThanNode()],

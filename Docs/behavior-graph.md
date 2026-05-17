@@ -94,19 +94,33 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
 - input
   - `Number Input` — control `value` (numeric); output `num: Number`.
   - `Boolean Input` — control `switch` (boolean); output `bool: Boolean`.
-  - `Agent Type` — five boolean outputs `type1..type5` (server fills these from the agent's organ type).
-  - `Organ Sensors` — five boolean outputs `type1..type5` labelled `Leaf, Stem, Meristem, Petiole, Bud` (same server semantics as `Agent Type`).
+  - `Agent Type Input` — organ-type flags: `leaf`, `stem`, `meristem`, `petiole`, `bud`, `flowerStem`, `flowerMeristem`, `flowerBud`, `flowerPadel`, `flowerPetiol` (display labels e.g. "Is Leaf", "Is Stem").
+  - `Phase Input` — `preFlower`, `flowering`, `postFlower`, `resetPending` (bool) from `formation.GetPhase`.
+  - `Agent State Input` — `energy`, `water`, `length`, `radius`, `wood`, `ageHours`, `isRizome`, `trySpawn`.
+  - `Parent Input` — `parentIsRhizome` (bool), `parentWood` (float).
+  - `Irradiance Input` — `irradiance` (float) from the light simulator.
+  - `Random Chance Input` — input `p` (0–1); output `out` (bool), `RNG.NextFloat(0,1) < p`.
 - output
-  - `Active` — input `isActive: Boolean`. **Gates the graph:** the interpreter evaluates only the transitive producers of `isActive` first, then reads the boolean; if false, the remainder of the graph is skipped for that tick. (The `Active` node’s own `switch` case is still a no-op when executed.)
-  - `Boolean Output` — input `bool: Boolean`. Currently a no-op.
-  - `Number Output` — input `num: Number`. Currently a no-op.
-  - `Growth` — inputs `Length: Number` and `Radius: Number`; the runtime applies these as deltas to the agent's length and radius.
+  - `Active` — input `isActive: Boolean`. **Gates the graph** (see interpreter section).
+  - `Boolean Output` / `Number Output` — no-ops (placeholders).
+  - `Growth` — inputs `Length`, `Radius`; adds deltas to agent size.
+  - `Delta Energy` / `Delta Water` / `Delta Wood` — input `amount`.
+  - `Set Energy` / `Set Wood` / `Set Auxins` — input `value`.
+  - `Multiply Energy` / `Multiply Water` — input `factor`.
+  - `Set trySpawn` — input `value` (bool).
+  - `Accumulate Production` — input `amount`; adds to `CurrentDayProductionInv`.
+  - `Make Bud` / `Create Leaves` — input `trigger` (bool); run `MakeBud` / `CreateLeaves` when true.
+  - `Death` / `Death Parent` / `Death Children` — input `trigger`.
+  - `Become Meristem` / `Become Stem` / `Become Flower Stem` / `Become Flower Meristem` — input `trigger`.
+  - `Spawn Meristem`, `Spawn Bud`, `Spawn Stem`, `Spawn Flower Stem`, `Spawn Flower Meristem`, `Spawn Flower Bud`, `Spawn Flower Padel`, `Spawn Rhizome` — input `trigger`.
 - boolean
   - `And`, `Or`, `Xor` — inputs `a, b: Boolean`; output `out: Boolean`.
   - `Not` — input `a: Boolean`; output `out: Boolean`.
 - numeric
   - `Add`, `Subtract`, `Multiply`, `Divide` — inputs `a, b: Number`; output `out: Number`.
   - `Divide` returns `0` when the divisor is `0`.
+  - `Parent Wood Cap` — input `value`; output `out` capped to parent wood (rhizome parent exception).
+  - `Clamp Max` — inputs `value`, `max`; output `Min(value, max)`.
 - logic
   - `Greater Than (or Equal)`, `Less Than (or Equal)` — inputs `a, b: Number`; output `out: Boolean`. Carry an `equal` flag in their `data` (see `ReadInclusiveEqual`) that switches between strict and inclusive comparison.
   - `Equal To` — inputs `a, b: Number`; output `out: Boolean` (uses `|a-b| < 1e-6`).
@@ -213,8 +227,9 @@ The output type is `CompiledBehaviorGraph` with `NodesInOrder`, `ActiveGateTopoI
 - **Phase 1:** Walks `NodesInOrder` in order, evaluating only nodes whose topo index is set in `ActiveSubtreeMask`.
 - Reads `FirstBool(gateNode.Inputs, "isActive", outs)` for the compiled `Active` node. If false, returns without running the rest.
 - **Phase 2:** Walks `NodesInOrder` again, evaluating nodes **not** in `ActiveSubtreeMask` (the rest of the graph, including `Growth` and any `Active` node if present in that phase).
-- `Growth` applies `Length` / `Radius` deltas. `Boolean Output` / `Number Output` / `Active` case bodies remain no-ops when evaluated.
-- `Agent Type` and `Organ Sensors` use `WriteOrganSensors` into `outs`.
+- Effect nodes apply agent/formation mutations when evaluated in phase 2. `Boolean Output` / `Number Output` / `Active` remain no-ops.
+- Input nodes write read-only values into `outs` (editor preview returns zeros/false; server uses live agent/formation).
+- Spawn/death/bud/leaves nodes require a valid `formation` and `agentId`; simple field deltas work without formation.
 
 [Agro/BehaviorGraph/WireValue.cs](../Agro/BehaviorGraph/WireValue.cs) is a small tagged union:
 
@@ -235,12 +250,24 @@ The label strings and socket names below are the contract that must match across
 
 - `Number Input` — out `num`.
 - `Boolean Input` — out `bool`.
-- `Agent Type` — out `type1`, `type2`, `type3`, `type4`, `type5`.
-- `Organ Sensors` — out `type1..type5` (mapped to Leaf, Stem, Meristem, Petiole, Bud server-side).
+- `Agent Type Input` — out `leaf`, `stem`, `meristem`, `petiole`, `bud`, `flowerStem`, `flowerMeristem`, `flowerBud`, `flowerPadel`, `flowerPetiol`.
+- `Phase Input` — out `preFlower`, `flowering`, `postFlower`, `resetPending`.
+- `Agent State Input` — out `energy`, `water`, `length`, `radius`, `wood`, `ageHours`, `isRizome`, `trySpawn`.
+- `Parent Input` — out `parentIsRhizome`, `parentWood`.
+- `Irradiance Input` — out `irradiance`.
+- `Random Chance Input` — in `p`; out `out`.
+- `Parent Wood Cap` — in `value`; out `out`.
+- `Clamp Max` — in `value`, `max`; out `out`.
 - `Active` — in `isActive`.
 - `Boolean Output` — in `bool`.
 - `Number Output` — in `num`.
 - `Growth` — in `Length`, `Radius`.
+- `Delta Energy` / `Delta Water` / `Delta Wood` — in `amount`.
+- `Set Energy` / `Set Wood` / `Set Auxins` — in `value`.
+- `Multiply Energy` / `Multiply Water` — in `factor`.
+- `Set trySpawn` — in `value`.
+- `Accumulate Production` — in `amount`.
+- `Make Bud` / `Create Leaves` / `Death` / `Death Parent` / `Death Children` / `Become *` / `Spawn *` — in `trigger`.
 - `And`, `Or`, `Xor` — in `a`, `b`; out `out`.
 - `Not` — in `a`; out `out`.
 - `Add`, `Subtract`, `Multiply`, `Divide` — in `a`, `b`; out `out`.
@@ -273,7 +300,7 @@ There is no end-to-end tick test for the interpreter today; adding one means stu
 - **Inputs default to falsy.** Missing connections produce `0f` / `false`. Any feature that needs a different default has to inject explicit producer nodes.
 - **Multiple producers into one input.** The runtime only consults the first producer in the `Inputs[targetInput]` list. The compiler appends in connection iteration order.
 - **`processGraph` is preview-only.** It runs entirely client-side, calling each node's `data(inputsData)` to populate `[value]` debug labels in the editor. It does not influence the simulation.
-- **Editor preview vs. server runtime.** `Agent Type`/`Organ Sensors` outputs are forced to `false` in the editor preview but driven by the live agent on the server (`WriteOrganSensors`).
+- **Editor preview vs. server runtime.** `Agent Type Input` outputs are forced to `false` in the editor preview but driven by the live agent on the server (`WriteAgentTypeInput`).
 - **Position is purely cosmetic.** It is captured and restored, but the simulation ignores it.
 - **Graph reuse across plants.** A single `CompiledBehaviorGraph` is constructed per species at resolve time and shared by every `PlantFormation2` of that species. Compiled state must remain immutable for the duration of a simulation.
 - **Logging.** Compile errors and key resolution issues are written to `Console.Error.WriteLine` from `PlantSpeciesProfile`; the frontend does not currently surface them.
