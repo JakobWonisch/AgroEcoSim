@@ -396,10 +396,6 @@ public partial struct AboveGroundAgent : IPlantAgent
 
 		switch (formation.Plant.Parameters.Behavior)
 		{
-			case Behavior.Default:
-			case Behavior.Test:
-				Test.Tick(ref this, formation, agentID, timestep);
-				break;
 			case Behavior.Geranium_Sanguineum: GeraniumSanguineum.TickGeraniumSanguineum(ref this, formation, agentID, timestep); break;
 			case Behavior.Geranium_Macrorrhizum: case Behavior.Geranium_x_Cantabrigiense: case Behavior.Bergenia_Cordifolia: Bergania.Tick(ref this, formation, agentID, timestep); break;
 			default: TickDefault(_formation, agentID, timestep); break;

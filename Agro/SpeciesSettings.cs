@@ -5,7 +5,7 @@ using Agro.Species;
 
 namespace Agro;
 
-public enum Behavior : byte { Default, Geranium_Sanguineum, Geranium_x_Cantabrigiense, Geranium_Macrorrhizum, Bergenia_Cordifolia, Test }
+public enum Behavior : byte { Default, Geranium_Sanguineum, Geranium_x_Cantabrigiense, Geranium_Macrorrhizum, Bergenia_Cordifolia }
 
 public class SpeciesSettings
 {

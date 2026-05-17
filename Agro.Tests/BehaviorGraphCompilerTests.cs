@@ -250,4 +250,12 @@ public class BehaviorGraphCompilerTests
 		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
 		Assert.Contains(compiled!.NodesInOrder, n => n.Kind != GraphNodeKind.Active && n.Kind != GraphNodeKind.BooleanInput);
 	}
+
+	[Fact]
+	public void TryCompile_DefaultSpeciesBootstrapGraph_Ok()
+	{
+		var g = DefaultSpeciesGraphBuilder.Build();
+		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
+		Assert.True(compiled!.NodesInOrder.Length > 2);
+	}
 }

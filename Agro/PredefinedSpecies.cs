@@ -35,7 +35,7 @@ public static class PredefinedSpeciesCatalog
 
 	public static IReadOnlyList<PredefinedSpeciesEntry> All => Lazy.Value;
 
-	static global::ExportedGraph BuildDefaultGatedGraph()
+	static global::ExportedGraph BuildMinimalGatedGraph()
 	{
 		var boolId = Guid.NewGuid().ToString();
 		var activeId = Guid.NewGuid().ToString();
@@ -90,7 +90,9 @@ public static class PredefinedSpeciesCatalog
 					{
 						Id = Guid.NewGuid().ToString(),
 						Name = "Main",
-						Graph = BuildDefaultGatedGraph(),
+						Graph = s.Name == "Default"
+							? BehaviorGraph.DefaultSpeciesGraphBuilder.Build()
+							: BuildMinimalGatedGraph(),
 					},
 				],
 			});
