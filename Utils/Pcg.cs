@@ -459,6 +459,9 @@ public class Pcg
 
 	[M(AI)]internal ulong GetSeed() => _state;
 
+	/// <summary>Full generator state for deterministic replay / parity comparison.</summary>
+	public (ulong State, ulong Increment) Snapshot() => (_state, _increment);
+
 	[M(AI)]internal void SaveBinary(System.IO.BinaryWriter writer)
 	{
 		writer.Write(_state);

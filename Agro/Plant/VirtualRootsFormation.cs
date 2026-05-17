@@ -52,6 +52,8 @@ public class VirtualRootsFormation : IPlantSubFormation<UnderGroundAgent>
         Energy = energy;
     }
 
+	internal (float Water_g, float Energy, Vector3 Size) SnapshotForTesting() => (Water_g, Energy, Size);
+
     public void Tick(uint timestep)
     {
 		var world = Plant.World;

@@ -11,7 +11,7 @@ namespace Agro;
 //TODO IMPORTANT All resource transport should be request-confirm messages, i.e. pull-policy.
 //  There should never be forced resource push since it may not be able to fit into the available storage.
 [StructLayout(LayoutKind.Auto)]
-public struct UnderGroundAgent : IPlantAgent
+public partial struct UnderGroundAgent : IPlantAgent
 {
 	const MethodImplOptions AI = MethodImplOptions.AggressiveInlining;
 	///////////////////////////

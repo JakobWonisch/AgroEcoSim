@@ -17,25 +17,27 @@ public class SimulationWorld
 
     public void Add(IObstacle obstacle) => Obstacles.Add(obstacle);
 
-    public void Run(uint simulationLength)
+    public void Run(uint simulationLength, Action<SimulationWorld, uint>? afterStep = null)
 	{
 		#if !DEBUG
-		if (Formations.Count > 1)
+		if (Formations.Count > 1 && afterStep == null)
 			RunParallel(simulationLength);
 		else
 		#endif
-			RunSequential(simulationLength);
+			RunSequential(simulationLength, afterStep);
 	}
 
-	public void RunSequential(uint simulationLength)
+	public void RunSequential(uint simulationLength, Action<SimulationWorld, uint>? afterStep = null)
 	{
-		for(int i = 0; i < simulationLength; ++i, ++Timestep)
+		for(int i = 0; i < simulationLength; ++i)
 		{
 			TickSequential();
 			DeliverPostSequential();
 
 			CensusSequential();
 			ExecCallbacks();
+			afterStep?.Invoke(this, Timestep);
+			++Timestep;
 		}
 	}
 
