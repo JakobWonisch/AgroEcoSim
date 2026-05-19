@@ -252,10 +252,40 @@ public class BehaviorGraphCompilerTests
 	}
 
 	[Fact]
-	public void TryCompile_DefaultSpeciesBootstrapGraph_Ok()
+	public void TryCompile_AllDefaultSpeciesSubgraphs_Ok()
 	{
-		var g = DefaultSpeciesGraphBuilder.Build();
-		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
-		Assert.True(compiled!.NodesInOrder.Length > 2);
+		var withEffects = new HashSet<string>(StringComparer.Ordinal)
+		{
+			"Life support",
+			"Photosynthesis",
+		};
+
+		foreach (var (name, graph) in DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs())
+		{
+			Assert.True(BehaviorGraphCompiler.TryCompile(graph, out var compiled, out var err),
+				$"Subgraph '{name}' failed: {err}");
+			Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.Active);
+
+			if (name == "Life support")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaEnergy);
+				continue;
+			}
+
+			if (name == "Photosynthesis")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaEnergy);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaWater);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.AccumulateProduction);
+				continue;
+			}
+
+			Assert.DoesNotContain(compiled.NodesInOrder, n =>
+				n.Kind is GraphNodeKind.DeltaEnergy or GraphNodeKind.DeltaWater or GraphNodeKind.Growth
+					or GraphNodeKind.Death or GraphNodeKind.MakeBud or GraphNodeKind.SetAuxins
+					or GraphNodeKind.AccumulateProduction);
+		}
+
+		Assert.Equal(16, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
 	}
 }
