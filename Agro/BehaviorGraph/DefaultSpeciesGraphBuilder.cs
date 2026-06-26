@@ -15,6 +15,23 @@ public static class DefaultSpeciesGraphBuilder
 		public const string PhotoEfficiency = "default-config-photo-efficiency";
 		public const string MinIrradiance = "default-config-min-irradiance";
 		public const string LeafSurfaceFactor = "default-config-leaf-surface-factor";
+		public const string PetioleAgeBudMinHours = "default-config-petiole-age-bud-min-hours";
+		public const string PetioleAgeBudReferenceHours = "default-config-petiole-age-bud-reference-hours";
+		public const string PetioleUnproductiveMinAgeHours = "default-config-petiole-unproductive-min-age-hours";
+		public const string UnproductiveProductionThreshold = "default-config-unproductive-production-threshold";
+		public const string PetioleCoverThreshold = "default-config-petiole-cover-threshold";
+		public const string MinDominanceForStemDeath = "default-config-min-dominance-for-stem-death";
+		public const string EnoughEnergyFactor = "default-config-enough-energy-factor";
+		public const string StemDeathProbabilityBase = "default-config-stem-death-probability-base";
+		public const string StemDeathHeightCoeff = "default-config-stem-death-height-coeff";
+		public const string StemDeathEfficiencyCoeff = "default-config-stem-death-efficiency-coeff";
+		public const string StemDeathRadiusCoeff = "default-config-stem-death-radius-coeff";
+	}
+
+	static float DefaultPetioleCoverThreshold()
+	{
+		var s = SpeciesSettings.Default;
+		return MathF.Cos(MathF.PI * 0.5f - s.LateralPitch) * s.PetioleLength * 0.25f;
 	}
 
 	public static IReadOnlyList<BehaviorConfigUploadEntry> BuildDefaultConfiguration() =>
@@ -50,6 +67,94 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Leaf surface factor",
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(2f),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleAgeBudMinHours,
+			Key = "Petiole age bud min hours",
+			Label = "Petiole age bud min hours",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(36f),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleAgeBudReferenceHours,
+			Key = "Petiole age bud reference hours",
+			Label = "Petiole age bud reference hours",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(4032f),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleUnproductiveMinAgeHours,
+			Key = "Petiole unproductive min age hours",
+			Label = "Petiole unproductive min age hours",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(48f),
+		},
+		new()
+		{
+			Id = ConfigIds.UnproductiveProductionThreshold,
+			Key = "Unproductive production threshold",
+			Label = "Unproductive production threshold",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(0.5f),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleCoverThreshold,
+			Key = "Petiole cover threshold",
+			Label = "Petiole cover threshold",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultPetioleCoverThreshold()),
+		},
+		new()
+		{
+			Id = ConfigIds.MinDominanceForStemDeath,
+			Key = "Min dominance for stem death",
+			Label = "Min dominance for stem death",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(1f),
+		},
+		new()
+		{
+			Id = ConfigIds.EnoughEnergyFactor,
+			Key = "Enough energy factor",
+			Label = "Enough energy factor",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(320f),
+		},
+		new()
+		{
+			Id = ConfigIds.StemDeathProbabilityBase,
+			Key = "Stem death probability base",
+			Label = "Stem death probability base",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(0.004f),
+		},
+		new()
+		{
+			Id = ConfigIds.StemDeathHeightCoeff,
+			Key = "Stem death height coeff",
+			Label = "Stem death height coeff",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(5f),
+		},
+		new()
+		{
+			Id = ConfigIds.StemDeathEfficiencyCoeff,
+			Key = "Stem death efficiency coeff",
+			Label = "Stem death efficiency coeff",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(4f),
+		},
+		new()
+		{
+			Id = ConfigIds.StemDeathRadiusCoeff,
+			Key = "Stem death radius coeff",
+			Label = "Stem death radius coeff",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(20f),
 		},
 	];
 
@@ -219,11 +324,12 @@ public static class DefaultSpeciesGraphBuilder
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var form = b.Add("form", "Formation Input", 0, 120);
-		var c36 = b.AddNum("c36", 36f, 280, 0);
+		var minAge = b.AddConfig("min-age", ConfigIds.PetioleAgeBudMinHours, false, 280, 0,
+			"Minimum petiole age (hours) before age-based budding");
 
 		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
 		b.Connect(state, "ageHours", ageOk, "a");
-		b.Connect(c36, "num", ageOk, "b");
+		b.Connect(minAge, "num", ageOk, "b");
 
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "petiole", and1, "a");
@@ -252,11 +358,12 @@ public static class DefaultSpeciesGraphBuilder
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var form = b.Add("form", "Formation Input", 0, 120);
-		var c1 = b.AddNum("c1", 1f, 280, 0);
+		var minDom = b.AddConfig("min-dom", ConfigIds.MinDominanceForStemDeath, false, 280, 0,
+			"DominanceLevel must exceed this for height-based stem death");
 
 		var domGt1 = b.Add("dom-gt1", "Greater Than", 520, 0);
 		b.Connect(state, "dominanceLevel", domGt1, "a");
-		b.Connect(c1, "num", domGt1, "b");
+		b.Connect(minDom, "num", domGt1, "b");
 
 		var parentDomLt = b.Add("parent-dom-lt", "Less Than", 520, 60);
 		b.Connect(form, "parentDominance", parentDomLt, "a");
@@ -405,8 +512,9 @@ public static class DefaultSpeciesGraphBuilder
 
 		var coverSum = b.Add("cover-sum", "Add", 1000, 80);
 		b.Connect(state, "parentRadiusAtBirth", coverSum, "a");
-		var cThreshold = b.AddNum("c-threshold", 0f, 760, 80);
-		b.Connect(cThreshold, "num", coverSum, "b");
+		var coverThreshold = b.AddConfig("cover-threshold", ConfigIds.PetioleCoverThreshold, false, 760, 80,
+			"species.PetioleCoverThreshold");
+		b.Connect(coverThreshold, "num", coverSum, "b");
 		var coverLt = b.Add("cover-lt", "Less Than", 1000, 120);
 		b.Connect(coverSum, "out", coverLt, "a");
 		b.Connect(form, "parentBaseRadius", coverLt, "b");
@@ -425,12 +533,14 @@ public static class DefaultSpeciesGraphBuilder
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var form = b.Add("form", "Formation Input", 0, 120);
-		var c48 = b.AddNum("c48", 48f, 280, 0);
-		var cHalf = b.AddNum("c-half", 0.5f, 1240, 120);
+		var minAge = b.AddConfig("min-age", ConfigIds.PetioleUnproductiveMinAgeHours, false, 280, 0,
+			"Minimum petiole age (hours) before unproductive-branch death");
+		var prodThreshold = b.AddConfig("prod-threshold", ConfigIds.UnproductiveProductionThreshold, false, 1240, 120,
+			"Children production / energyProductionMax below this triggers death roll");
 
 		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
 		b.Connect(state, "ageHours", ageOk, "a");
-		b.Connect(c48, "num", ageOk, "b");
+		b.Connect(minAge, "num", ageOk, "b");
 
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "petiole", and1, "a");
@@ -445,7 +555,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		var prodLow = b.Add("prod-low", "Less Than", 1240, 120);
 		b.Connect(prodRatio, "out", prodLow, "a");
-		b.Connect(cHalf, "num", prodLow, "b");
+		b.Connect(prodThreshold, "num", prodLow, "b");
 
 		var and2 = b.Add("and2", "And", 1000, 40);
 		b.Connect(and1, "out", and2, "a");

@@ -304,10 +304,10 @@ public class BehaviorGraphCompilerTests
 	}
 
 	[Fact]
-	public void DefaultSpeciesConfiguration_IncludesLeafThickness()
+	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(4, entries.Count);
+		Assert.Equal(15, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -321,6 +321,44 @@ public class BehaviorGraphCompilerTests
 
 		var surface = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafSurfaceFactor);
 		Assert.Equal(2f, surface.Value.GetSingle());
+
+		Assert.Equal(36f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleAgeBudMinHours).Value.GetSingle());
+		Assert.Equal(4032f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleAgeBudReferenceHours).Value.GetSingle());
+		Assert.Equal(48f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleUnproductiveMinAgeHours).Value.GetSingle());
+		Assert.Equal(0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.UnproductiveProductionThreshold).Value.GetSingle());
+		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MinDominanceForStemDeath).Value.GetSingle());
+		Assert.Equal(320f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.EnoughEnergyFactor).Value.GetSingle());
+		Assert.Equal(0.004f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemDeathProbabilityBase).Value.GetSingle());
+		Assert.Equal(5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemDeathHeightCoeff).Value.GetSingle());
+		Assert.Equal(4f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemDeathEfficiencyCoeff).Value.GetSingle());
+		Assert.Equal(20f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemDeathRadiusCoeff).Value.GetSingle());
+
+		var cover = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold);
+		var s = SpeciesSettings.Default;
+		var expectedCover = MathF.Cos(MathF.PI * 0.5f - s.LateralPitch) * s.PetioleLength * 0.25f;
+		Assert.Equal(expectedCover, cover.Value.GetSingle(), 6);
+	}
+
+	[Fact]
+	public void StubSubgraphs_ReferenceConfigurationValues()
+	{
+		var petioleAge = DefaultSpeciesGraphBuilder.BuildPetioleAgeBudSubgraph();
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.PetioleAgeBudMinHours,
+			petioleAge.Nodes.Find(n => n.Id == "pab-min-age")!.Data.GetProperty("configId").GetString());
+
+		var stemDeath = DefaultSpeciesGraphBuilder.BuildStemDominanceDeathSubgraph();
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.MinDominanceForStemDeath,
+			stemDeath.Nodes.Find(n => n.Id == "sdd-min-dom")!.Data.GetProperty("configId").GetString());
+
+		var cover = DefaultSpeciesGraphBuilder.BuildPetioleCoverBudSubgraph();
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold,
+			cover.Nodes.Find(n => n.Id == "pcb-cover-threshold")!.Data.GetProperty("configId").GetString());
+
+		var unproductive = DefaultSpeciesGraphBuilder.BuildPetioleUnproductiveDeathSubgraph();
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.PetioleUnproductiveMinAgeHours,
+			unproductive.Nodes.Find(n => n.Id == "pud-min-age")!.Data.GetProperty("configId").GetString());
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.UnproductiveProductionThreshold,
+			unproductive.Nodes.Find(n => n.Id == "pud-prod-threshold")!.Data.GetProperty("configId").GetString());
 	}
 
 	[Fact]
