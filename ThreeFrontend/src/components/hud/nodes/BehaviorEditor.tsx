@@ -153,8 +153,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     renderPlugin.addPreset(Presets.contextMenu.setup({ delay: 0 }));
 
-    const contextMenu = new ContextMenuPlugin<Schemes>({
-        items: ContextMenuPresets.classic.setup([
+    const behaviorGraphMenuItems = ContextMenuPresets.classic.setup([
             ['input', [
                 ['Number', () => new NumberInputNode(0)],
                 ['Boolean', () => new BooleanInputNode(false)],
@@ -219,7 +218,13 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Equal To', () => new EqualToNode()],
                 ['If / Else', () => new IfElseNode()]
             ]]
-        ])
+        ]);
+
+    const contextMenu = new ContextMenuPlugin<Schemes>({
+        items: (context, plugin) => {
+            const menu = behaviorGraphMenuItems(context, plugin);
+            return context === 'root' ? { ...menu, searchBar: false } : menu;
+        },
     });
 
     connection.addPreset(ConnectionPresets.classic.setup());
