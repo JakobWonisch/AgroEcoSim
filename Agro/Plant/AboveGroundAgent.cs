@@ -876,6 +876,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 	[M(AI)] internal void GraphSetWood(float value) => WoodFactor = value;
 	[M(AI)] internal void GraphSetGrowthTimeVar(float value) => GrowthTimeVar = value;
 	[M(AI)] internal void GraphAccumulateProduction(float amount) => CurrentDayProductionInv += amount;
+	[M(AI)] internal void GraphAccumulateEnvResources(float amount) => CurrentDayEnvResources += amount;
 	[M(AI)] internal void GraphAccumulateEnvResourcesInv(float amount) => CurrentDayEnvResourcesInv += amount;
 	#endregion
 

@@ -286,6 +286,12 @@ public static class BehaviorGraphCompiler
 			case "Accumulate Production":
 				kind = GraphNodeKind.AccumulateProduction;
 				return true;
+			case "Accumulate Env Resources":
+				kind = GraphNodeKind.AccumulateEnvResources;
+				return true;
+			case "Accumulate Env Resources Inv":
+				kind = GraphNodeKind.AccumulateEnvResourcesInv;
+				return true;
 			case "Make Bud":
 				kind = GraphNodeKind.MakeBud;
 				return true;

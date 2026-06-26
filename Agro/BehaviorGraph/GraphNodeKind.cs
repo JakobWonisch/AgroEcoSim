@@ -39,6 +39,8 @@ public enum GraphNodeKind : byte
 	SetAuxins,
 	SetTrySpawn,
 	AccumulateProduction,
+	AccumulateEnvResources,
+	AccumulateEnvResourcesInv,
 	MakeBud,
 	CreateLeaves,
 	Death,

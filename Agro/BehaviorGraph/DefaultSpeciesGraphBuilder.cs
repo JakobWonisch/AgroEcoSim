@@ -12,6 +12,9 @@ public static class DefaultSpeciesGraphBuilder
 	public static class ConfigIds
 	{
 		public const string LeafThickness = "default-config-leaf-thickness";
+		public const string PhotoEfficiency = "default-config-photo-efficiency";
+		public const string MinIrradiance = "default-config-min-irradiance";
+		public const string LeafSurfaceFactor = "default-config-leaf-surface-factor";
 	}
 
 	public static IReadOnlyList<BehaviorConfigUploadEntry> BuildDefaultConfiguration() =>
@@ -23,6 +26,30 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Leaf thickness",
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(AboveGroundAgent.LeafThickness),
+		},
+		new()
+		{
+			Id = ConfigIds.PhotoEfficiency,
+			Key = "Photo efficiency",
+			Label = "Photo efficiency",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(AboveGroundAgent.mPhotoEfficiency),
+		},
+		new()
+		{
+			Id = ConfigIds.MinIrradiance,
+			Key = "Min irradiance",
+			Label = "Min irradiance",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(0.01f),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafSurfaceFactor,
+			Key = "Leaf surface factor",
+			Label = "Leaf surface factor",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(2f),
 		},
 	];
 
@@ -100,7 +127,6 @@ public static class DefaultSpeciesGraphBuilder
 
 	/// <summary>
 	/// TickDefault lines 427–456: leaf photosynthesis when Water_g &gt; 0 and irradiance &gt; 0.01.
-	/// MISSING effect nodes: CurrentDayEnvResources += approxLight*surface; CurrentDayEnvResourcesInv += approxLight.
 	/// </summary>
 	public static global::ExportedGraph BuildPhotosynthesisSubgraph()
 	{
@@ -110,11 +136,12 @@ public static class DefaultSpeciesGraphBuilder
 		var ir = b.Add("ir", "Irradiance Input", 0, 120);
 
 		var c0 = b.AddNum("c0", 0f, 280, 0);
-		var c001 = b.AddNum("c001", 0.01f, 280, 40);
-		// AboveGroundAgent.mPhotoEfficiency
-		var cPhotoEff = b.AddNum("photo-eff", 0.005f, 280, 80);
-		// surface = Length * Radius * 2f (leaf branch in TickDefault)
-		var cSurface2 = b.AddNum("surface-2", 2f, 280, 120);
+		var minIr = b.AddConfig("min-ir", ConfigIds.MinIrradiance, false, 280, 40,
+			"Minimum irradiance (W/m²) to run photosynthesis");
+		var photoEff = b.AddConfig("photo-eff", ConfigIds.PhotoEfficiency, false, 280, 80,
+			"AboveGroundAgent.mPhotoEfficiency");
+		var surfaceFactor = b.AddConfig("surface-factor", ConfigIds.LeafSurfaceFactor, false, 280, 120,
+			"Leaf surface multiplier: Length * Radius * factor");
 
 		// Active: Organ == Leaf && Water_g > 0 && irradiance > 0.01
 		var hasWater = b.Add("has-water", "Greater Than", 520, 0);
@@ -123,7 +150,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		var bright = b.Add("bright", "Greater Than", 520, 60);
 		b.Connect(ir, "irradiance", bright, "a");
-		b.Connect(c001, "num", bright, "b");
+		b.Connect(minIr, "num", bright, "b");
 
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "leaf", and1, "a");
@@ -140,7 +167,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		var surface = b.Add("surface", "Multiply", 720, 200);
 		b.Connect(lr, "out", surface, "a");
-		b.Connect(cSurface2, "num", surface, "b");
+		b.Connect(surfaceFactor, "num", surface, "b");
 
 		var byLight = b.Add("by-light", "Multiply", 960, 200);
 		b.Connect(surface, "out", byLight, "a");
@@ -148,7 +175,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		var lightEff = b.Add("light-eff", "Multiply", 1200, 200);
 		b.Connect(byLight, "out", lightEff, "a");
-		b.Connect(cPhotoEff, "num", lightEff, "b");
+		b.Connect(photoEff, "num", lightEff, "b");
 
 		var lightLeWater = b.Add("light-le-water", "Less Than", 1440, 240);
 		b.Connect(lightEff, "out", lightLeWater, "a");
@@ -173,9 +200,14 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(photoAmt, "out", prodInv, "a");
 		b.Connect(surface, "out", prodInv, "b");
 
-		var accProd = b.Add("acc-prod", "Accumulate Production", 2160, 300,
-			"MISSING: CurrentDayEnvResources += approxLight*surface (no effect node)");
+		var accProd = b.Add("acc-prod", "Accumulate Production", 2160, 300);
 		b.Connect(prodInv, "out", accProd, "amount");
+
+		var accEnv = b.Add("acc-env", "Accumulate Env Resources", 2160, 360);
+		b.Connect(byLight, "out", accEnv, "amount");
+
+		var accEnvInv = b.Add("acc-env-inv", "Accumulate Env Resources Inv", 2160, 420);
+		b.Connect(ir, "irradiance", accEnvInv, "amount");
 
 		return b.FinishWithActive(activeCond, "out").Build();
 	}

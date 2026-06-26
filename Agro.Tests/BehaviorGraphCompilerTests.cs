@@ -279,13 +279,17 @@ public class BehaviorGraphCompilerTests
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaEnergy);
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaWater);
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.AccumulateProduction);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.AccumulateEnvResources);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.AccumulateEnvResourcesInv);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
 				continue;
 			}
 
 			Assert.DoesNotContain(compiled.NodesInOrder, n =>
 				n.Kind is GraphNodeKind.DeltaEnergy or GraphNodeKind.DeltaWater or GraphNodeKind.Growth
 					or GraphNodeKind.Death or GraphNodeKind.MakeBud or GraphNodeKind.SetAuxins
-					or GraphNodeKind.AccumulateProduction);
+					or GraphNodeKind.AccumulateProduction or GraphNodeKind.AccumulateEnvResources
+					or GraphNodeKind.AccumulateEnvResourcesInv);
 		}
 
 		Assert.Equal(2, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
@@ -303,9 +307,20 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesLeafThickness()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
+		Assert.Equal(4, entries.Count);
+
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
 		Assert.Equal(AboveGroundAgent.LeafThickness, leaf.Value.GetSingle());
+
+		var photoEff = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PhotoEfficiency);
+		Assert.Equal(AboveGroundAgent.mPhotoEfficiency, photoEff.Value.GetSingle());
+
+		var minIr = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MinIrradiance);
+		Assert.Equal(0.01f, minIr.Value.GetSingle());
+
+		var surface = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafSurfaceFactor);
+		Assert.Equal(2f, surface.Value.GetSingle());
 	}
 
 	[Fact]
@@ -320,6 +335,27 @@ public class BehaviorGraphCompilerTests
 	}
 
 	[Fact]
+	public void PhotosynthesisSubgraph_ReferencesConfigurationValues()
+	{
+		var photo = DefaultSpeciesGraphBuilder.BuildPhotosynthesisSubgraph();
+
+		var photoEff = photo.Nodes.Find(n => n.Id == "photo-photo-eff");
+		Assert.NotNull(photoEff);
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.PhotoEfficiency,
+			photoEff.Data.GetProperty("configId").GetString());
+
+		var minIr = photo.Nodes.Find(n => n.Id == "photo-min-ir");
+		Assert.NotNull(minIr);
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.MinIrradiance,
+			minIr.Data.GetProperty("configId").GetString());
+
+		var surfaceFactor = photo.Nodes.Find(n => n.Id == "photo-surface-factor");
+		Assert.NotNull(surfaceFactor);
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.LeafSurfaceFactor,
+			surfaceFactor.Data.GetProperty("configId").GetString());
+	}
+
+	[Fact]
 	public void DefaultSpeciesSubgraphs_IncludeEditorComments()
 	{
 		var life = DefaultSpeciesGraphBuilder.BuildLifeSupportSubgraph();
@@ -328,9 +364,9 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal("Simulation Settings Input", simNode.Label);
 
 		var photo = DefaultSpeciesGraphBuilder.BuildPhotosynthesisSubgraph();
-		var accProd = photo.Nodes.Find(n => n.Id == "photo-acc-prod");
-		Assert.NotNull(accProd);
-		Assert.True(accProd.Data.TryGetProperty("comment", out _));
+		var accEnv = photo.Nodes.Find(n => n.Id == "photo-acc-env");
+		Assert.NotNull(accEnv);
+		Assert.Equal("Accumulate Env Resources", accEnv.Label);
 	}
 
 	[Fact]

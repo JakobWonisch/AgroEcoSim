@@ -39,6 +39,8 @@ import { SetEnergyNode } from './output/SetEnergyNode';
 import { SetAuxinsNode } from './output/SetAuxinsNode';
 import { SetTrySpawnNode } from './output/SetTrySpawnNode';
 import { AccumulateProductionNode } from './output/AccumulateProductionNode';
+import { AccumulateEnvResourcesNode } from './output/AccumulateEnvResourcesNode';
+import { AccumulateEnvResourcesInvNode } from './output/AccumulateEnvResourcesInvNode';
 import { MakeBudNode } from './output/MakeBudNode';
 import { CreateLeavesNode } from './output/CreateLeavesNode';
 import { DeathNode } from './output/DeathNode';
@@ -194,6 +196,8 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Set Auxins', () => new SetAuxinsNode()],
                 ['Set trySpawn', () => new SetTrySpawnNode()],
                 ['Accumulate Production', () => new AccumulateProductionNode()],
+                ['Accumulate Env Resources', () => new AccumulateEnvResourcesNode()],
+                ['Accumulate Env Resources Inv', () => new AccumulateEnvResourcesInvNode()],
                 ['Make Bud', () => new MakeBudNode()],
                 ['Create Leaves', () => new CreateLeavesNode()],
                 ['Become Meristem', () => new BecomeMeristemNode()],

@@ -234,6 +234,12 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.AccumulateProduction:
 				agent.GraphAccumulateProduction(FirstFloat(node.Inputs, "amount", outs));
 				break;
+			case GraphNodeKind.AccumulateEnvResources:
+				agent.GraphAccumulateEnvResources(FirstFloat(node.Inputs, "amount", outs));
+				break;
+			case GraphNodeKind.AccumulateEnvResourcesInv:
+				agent.GraphAccumulateEnvResourcesInv(FirstFloat(node.Inputs, "amount", outs));
+				break;
 			case GraphNodeKind.MakeBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
