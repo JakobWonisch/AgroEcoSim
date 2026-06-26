@@ -43,6 +43,7 @@ import { BecomeMeristemNode } from "./output/BecomeMeristemNode";
 import { BecomeStemNode } from "./output/BecomeStemNode";
 import { BecomeFlowerStemNode } from "./output/BecomeFlowerStemNode";
 import { BecomeFlowerMeristemNode } from "./output/BecomeFlowerMeristemNode";
+import { applyNodeComment } from "./nodeComment";
 import {
     SpawnMeristemNode,
     SpawnBudNode,
@@ -188,5 +189,7 @@ export async function createNodeFromExport(data: { id: string; label: string; da
         console.warn("[nodeFactory] Unsupported node label (not in hud/nodes):", label, "id:", data.id);
         return null;
     }
-    return create(d);
+    const node = create(d);
+    if (node) applyNodeComment(node, d);
+    return node;
 }

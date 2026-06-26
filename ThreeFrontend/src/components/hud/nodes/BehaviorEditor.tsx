@@ -8,6 +8,7 @@ import { AreaExtensions, AreaPlugin } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
 import { ContextMenuPlugin, Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
 import { Presets, ReactPlugin, useRete } from 'rete-react-plugin';
+import { CommentableNodeComponent } from './CommentableNode';
 import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
 import { AgentTypeInputNode } from './input/AgentTypeInputNode';
 import { PhaseInputNode } from './input/PhaseInputNode';
@@ -98,6 +99,9 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     renderPlugin.addPreset(Presets.classic.setup({
         customize: {
+            node() {
+                return CommentableNodeComponent as any;
+            },
             control(data) {
                 if (data.payload instanceof SwitchControl) {
                     return SwitchControlComponent as any;
