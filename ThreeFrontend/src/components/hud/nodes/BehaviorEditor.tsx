@@ -94,6 +94,24 @@ function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: Node
         g.id === namedGraph.id ? { ...g, graph: snapshot } : g);
 }
 
+function measureNodeView(area: AreaPlugin<Schemes, AreaExtra>, nodeId: string) {
+    const el = area.nodeViews.get(nodeId)?.element;
+    if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+        return { width: el.offsetWidth, height: el.offsetHeight };
+    }
+    return { width: 200, height: 80 };
+}
+
+async function placeNodeTopCenterAt(
+    area: AreaPlugin<Schemes, AreaExtra>,
+    nodeId: string,
+    anchor: { x: number; y: number },
+) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    const { width } = measureNodeView(area, nodeId);
+    await area.translate(nodeId, { x: anchor.x - width / 2, y: anchor.y });
+}
+
 export async function createEditor(container: HTMLElement, species: Species, namedGraph: NamedGraph) {
     const editor = new NodeEditor<Schemes>();
     const area = new AreaPlugin<Schemes, AreaExtra>(container);
@@ -206,6 +224,20 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     connection.addPreset(ConnectionPresets.classic.setup());
 
+    let pendingNodePosition: { x: number, y: number } | null = null;
+
+    area.addPipe(context => {
+        const c = context as any;
+        if (c.type === 'contextmenu' && c.data.context === 'root') {
+            area.area.setPointerFrom(c.data.event);
+            pendingNodePosition = { ...area.area.pointer };
+        }
+        if (c.type === 'pointerdown') {
+            pendingNodePosition = null;
+        }
+        return context;
+    });
+
     let recentlyRemovedConnection: any = null;
     let removeTimeout: any = null;
 
@@ -245,6 +277,11 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 const actives = editor.getNodes().filter((n: any) => n.label === 'Active');
                 if (actives.length > 1)
                     setTimeout(() => editor.removeNode(c.data.id).catch(() => { }), 0);
+            }
+            if (pendingNodePosition) {
+                const anchor = { ...pendingNodePosition };
+                pendingNodePosition = null;
+                setTimeout(() => { void placeNodeTopCenterAt(area, c.data.id, anchor); }, 0);
             }
         }
 
