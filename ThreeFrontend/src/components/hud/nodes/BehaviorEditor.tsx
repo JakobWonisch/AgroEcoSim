@@ -80,6 +80,7 @@ import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
 import { applyAutoLayout } from './autoLayout';
 import { setEditorContext } from './editorContext';
+import { notifyGraphUiUpdate } from './graphUpdate';
 
 function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
     // Avoid overwriting node positions with 0/0 snapshots before views are ready.
@@ -263,6 +264,8 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
             setTimeout(() => {
                 pushSpeciesGraph(species, namedGraph, editor, area);
+                if (context.type === 'connectioncreated' || context.type === 'connectionremoved')
+                    notifyGraphUiUpdate();
             }, 0);
         }
 

@@ -12,7 +12,7 @@ import {
 } from './behaviorConfiguration';
 import type { EditorContext } from './editorContext';
 import type { Species } from '../../../helpers/Species';
-import { graphUpdateTrigger } from './graphUpdate';
+import { notifyGraphUiUpdate } from './graphUpdate';
 
 export async function replaceConstantWithConfigInput(
     node: NumberInputNode | BooleanInputNode,
@@ -39,6 +39,7 @@ export async function replaceConstantWithConfigInput(
         { id: configId, key, label: comment, type, value },
     ];
 
+    notifyGraphUiUpdate();
     await replaceNodeInEditor(node.id, () => new ConfigurationValueInputNode(configId, type), ctx);
 }
 
@@ -50,7 +51,7 @@ export async function rebindConfigurationInput(
 ) {
     if (node.configId === configId && node.configType === type) {
         ctx.pushGraph();
-        graphUpdateTrigger.dispatchEvent(new Event('update'));
+        notifyGraphUiUpdate();
         return;
     }
 
@@ -58,7 +59,7 @@ export async function rebindConfigurationInput(
         node.configId = configId;
         node.configControl.configId = configId;
         ctx.pushGraph();
-        graphUpdateTrigger.dispatchEvent(new Event('update'));
+        notifyGraphUiUpdate();
         return;
     }
 
@@ -69,7 +70,6 @@ export async function rebindConfigurationInput(
         ctx,
         sourceOutput,
     );
-    graphUpdateTrigger.dispatchEvent(new Event('update'));
 }
 
 export function replaceConfigNodesInGraph(
@@ -166,6 +166,7 @@ async function replaceNodeInEditor(
     }
 
     ctx.pushGraph();
+    notifyGraphUiUpdate();
 }
 
 export async function deleteConfigurationEntry(
@@ -195,7 +196,7 @@ export async function deleteConfigurationEntry(
         }
     }
 
-    graphUpdateTrigger.dispatchEvent(new Event('update'));
+    notifyGraphUiUpdate();
 }
 
 export function isConfigurationInputConnected(node: ConfigurationValueInputNode, ctx: EditorContext): boolean {

@@ -3,7 +3,7 @@ import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { BooleanInputNode } from './input/BooleanInputNode';
 import type { NumberInputNode } from './input/NumberInputNode';
-import { graphUpdateTrigger } from './graphUpdate';
+import { graphUpdateTrigger, notifyGraphUiUpdate } from './graphUpdate';
 import {
     sortConfigEntries,
     type BehaviorConfigEntry,
@@ -170,40 +170,37 @@ export function ConfigSelectControlComponent(props: { data: ConfigSelectControl 
     const ctx = getEditorContext();
     const [open, setOpen] = useState(false);
     const [configId, setConfigId] = useState(props.data.configId);
-    const [entries, setEntries] = useState<BehaviorConfigEntry[]>([]);
+    const [revision, setRevision] = useState(0);
 
     useEffect(() => {
         setConfigId(props.data.configId);
     }, [props.data.configId]);
 
     useEffect(() => {
-        const species = ctx?.species;
-        if (!species) return;
-        const sync = () => {
-            const node = props.data.getNode();
-            const isConn = ctx ? isConfigurationInputConnected(node, ctx) : false;
-            setEntries(configEntriesForDropdown(species.behaviorConfiguration.peek(), node, isConn));
-        };
-        sync();
-        const onUpdate = () => sync();
+        const onUpdate = () => setRevision(r => r + 1);
         graphUpdateTrigger.addEventListener('update', onUpdate);
         return () => graphUpdateTrigger.removeEventListener('update', onUpdate);
-    }, [ctx, props.data]);
+    }, []);
+
+    void revision;
+    const node = props.data.getNode();
+    const isConnected = ctx ? isConfigurationInputConnected(node, ctx) : false;
+    const allEntries = ctx?.species.behaviorConfiguration.peek() ?? [];
+    const entries = configEntriesForDropdown(allEntries, node, isConnected);
 
     const selected = entries.find(e => e.id === configId)
-        ?? ctx?.species.behaviorConfiguration.peek().find(e => e.id === configId);
+        ?? allEntries.find(e => e.id === configId);
     const label = selected?.label?.trim() || '(select configuration value)';
 
     const pick = async (entry: BehaviorConfigEntry) => {
         setConfigId(entry.id);
         props.data.configId = entry.id;
         setOpen(false);
-        const node = props.data.getNode();
         if (ctx) {
             await rebindConfigurationInput(node, entry.id, entry.type, ctx);
         } else {
             props.data.onBindingChange(entry.id, entry.type);
-            graphUpdateTrigger.dispatchEvent(new Event('update'));
+            notifyGraphUiUpdate();
         }
     };
 
@@ -218,7 +215,10 @@ export function ConfigSelectControlComponent(props: { data: ConfigSelectControl 
             'button',
             {
                 type: 'button',
-                onClick: () => setOpen(v => !v),
+                onClick: () => {
+                    setRevision(r => r + 1);
+                    setOpen(v => !v);
+                },
                 style: {
                     width: '100%',
                     padding: '6px 8px',
