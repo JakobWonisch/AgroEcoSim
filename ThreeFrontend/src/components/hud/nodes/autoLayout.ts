@@ -122,26 +122,43 @@ function assignColumnsEarly(
     return column;
 }
 
-/** As far right as possible: successors in the same member set sit in later columns. */
-function assignColumnsLate(
+/** As far right as possible within mainSet, but not left of active predecessors + 1. */
+function computeMainColumns(
     topoOrder: string[],
     successors: Map<string, string[]>,
-    memberSet: Set<string>
+    predecessors: Map<string, string[]>,
+    mainSet: Set<string>,
+    activeColumns: Map<string, number>
 ): Map<string, number> {
-    const column = new Map<string, number>();
-    const members = topoOrder.filter(id => memberSet.has(id));
-
-    for (const id of [...topoOrder].reverse()) {
-        if (!memberSet.has(id))
+    const lower = new Map<string, number>();
+    for (const id of topoOrder) {
+        if (!mainSet.has(id))
             continue;
-        const succs = (successors.get(id) ?? []).filter(s => memberSet.has(s));
-        column.set(id, succs.length === 0 ? 0 : Math.min(...succs.map(s => column.get(s) ?? 0)) - 1);
+        let bound = 0;
+        for (const pred of predecessors.get(id) ?? []) {
+            if (activeColumns.has(pred))
+                bound = Math.max(bound, activeColumns.get(pred)! + 1);
+            else if (mainSet.has(pred))
+                bound = Math.max(bound, (lower.get(pred) ?? 0) + 1);
+        }
+        lower.set(id, bound);
     }
 
-    const minCol = Math.min(...members.map(id => column.get(id) ?? 0));
-    if (minCol !== 0) {
+    const column = new Map<string, number>();
+    for (const id of [...topoOrder].reverse()) {
+        if (!mainSet.has(id))
+            continue;
+        const succs = (successors.get(id) ?? []).filter(s => mainSet.has(s));
+        let col = succs.length === 0 ? 0 : Math.min(...succs.map(s => column.get(s)!)) - 1;
+        col = Math.max(col, lower.get(id)!);
+        column.set(id, col);
+    }
+
+    const members = topoOrder.filter(id => mainSet.has(id));
+    const minCol = Math.min(...members.map(id => column.get(id)!));
+    if (minCol < 0) {
         for (const id of members)
-            column.set(id, (column.get(id) ?? 0) - minCol);
+            column.set(id, column.get(id)! - minCol);
     }
 
     return column;
@@ -162,65 +179,99 @@ function measureNode(
     return { width: DEFAULT_NODE_WIDTH, height: DEFAULT_NODE_HEIGHT };
 }
 
-function placeSubgraph(
-    memberSet: Set<string>,
-    columns: Map<string, number>,
+function placeDualRegion(
+    activeSet: Set<string>,
+    mainSet: Set<string>,
+    activeColumns: Map<string, number>,
+    mainColumns: Map<string, number>,
     topoOrder: string[],
     sizes: Map<string, Size>,
-    originX: number,
-    originY: number,
     rowMargin: number,
-    columnMargin: number
-): { positions: Map<string, Position>; height: number } {
+    columnMargin: number,
+    activeMargin: number
+): Map<string, Position> {
     const topoIndex = new Map(topoOrder.map((id, i) => [id, i]));
-    const byColumn = new Map<number, string[]>();
+    const sortedCols = [...new Set([
+        ...[...activeSet].map(id => activeColumns.get(id) ?? 0),
+        ...[...mainSet].map(id => mainColumns.get(id) ?? 0),
+    ])].sort((a, b) => a - b);
 
-    for (const id of memberSet) {
-        const col = columns.get(id) ?? 0;
-        let list = byColumn.get(col);
-        if (!list) {
-            list = [];
-            byColumn.set(col, list);
+    const colWidth = new Map<number, number>();
+    for (const col of sortedCols) {
+        let w = 0;
+        for (const id of activeSet) {
+            if ((activeColumns.get(id) ?? 0) === col)
+                w = Math.max(w, sizes.get(id)!.width);
         }
-        list.push(id);
+        for (const id of mainSet) {
+            if ((mainColumns.get(id) ?? 0) === col)
+                w = Math.max(w, sizes.get(id)!.width);
+        }
+        colWidth.set(col, w);
     }
 
-    for (const ids of byColumn.values())
-        ids.sort((a, b) => (topoIndex.get(a) ?? 0) - (topoIndex.get(b) ?? 0));
+    const colX = new Map<number, number>();
+    let x = rowMargin;
+    for (const col of sortedCols) {
+        colX.set(col, x);
+        x += colWidth.get(col)! + columnMargin;
+    }
 
     const positions = new Map<string, Position>();
-    let regionBottom = originY;
-    let x = originX;
 
-    for (const col of [...byColumn.keys()].sort((a, b) => a - b)) {
-        const ids = byColumn.get(col)!;
-        const colWidth = Math.max(...ids.map(id => sizes.get(id)!.width));
-        let y = originY;
-
-        for (const id of ids) {
-            const { height } = sizes.get(id)!;
-            positions.set(id, { x, y });
-            regionBottom = Math.max(regionBottom, y + height);
-            y += height + rowMargin;
+    const stackBand = (memberSet: Set<string>, columns: Map<string, number>, originY: number): number => {
+        const byColumn = new Map<number, string[]>();
+        for (const id of memberSet) {
+            const col = columns.get(id) ?? 0;
+            let list = byColumn.get(col);
+            if (!list) {
+                list = [];
+                byColumn.set(col, list);
+            }
+            list.push(id);
         }
+        for (const ids of byColumn.values())
+            ids.sort((a, b) => (topoIndex.get(a) ?? 0) - (topoIndex.get(b) ?? 0));
 
-        x += colWidth + columnMargin;
-    }
+        let regionBottom = originY;
+        for (const col of sortedCols) {
+            const ids = byColumn.get(col);
+            if (!ids)
+                continue;
+            const colXPos = colX.get(col)!;
+            let y = originY;
+            for (const id of ids) {
+                const { height } = sizes.get(id)!;
+                positions.set(id, { x: colXPos, y });
+                regionBottom = Math.max(regionBottom, y + height);
+                y += height + rowMargin;
+            }
+        }
+        return regionBottom - originY;
+    };
 
-    return { positions, height: regionBottom - originY };
+    const activeHeight = stackBand(activeSet, activeColumns, rowMargin);
+    if (mainSet.size > 0)
+        stackBand(mainSet, mainColumns, rowMargin + activeHeight + activeMargin);
+
+    return positions;
 }
 
 function layoutSingleRegion(
     nodeIds: string[],
     topoOrder: string[],
     successors: Map<string, string[]>,
+    predecessors: Map<string, string[]>,
     sizes: Map<string, Size>,
     rowMargin: number,
     columnMargin: number
 ): Map<string, Position> {
     const memberSet = new Set(nodeIds);
-    const columns = assignColumnsLate(topoOrder, successors, memberSet);
-    return placeSubgraph(memberSet, columns, topoOrder, sizes, rowMargin, rowMargin, rowMargin, columnMargin).positions;
+    const columns = computeMainColumns(topoOrder, successors, predecessors, memberSet, new Map());
+    return placeDualRegion(
+        new Set(), memberSet, new Map(), columns,
+        topoOrder, sizes, rowMargin, columnMargin, 0
+    );
 }
 
 export function computeAutoLayoutPositions(
@@ -246,32 +297,17 @@ export function computeAutoLayoutPositions(
 
     const activeId = findActiveNodeId(nodes);
     if (!activeId)
-        return layoutSingleRegion(nodeIds, topoOrder, successors, sizes, rowMargin, columnMargin);
+        return layoutSingleRegion(nodeIds, topoOrder, successors, predecessors, sizes, rowMargin, columnMargin);
 
     const activeSet = computeActiveSubtree(activeId, connectionsFull);
     const mainSet = new Set(nodeIds.filter(id => !activeSet.has(id)));
-    const positions = new Map<string, Position>();
-
     const activeColumns = assignColumnsEarly(topoOrder, predecessors, activeSet);
-    const activeLayout = placeSubgraph(
-        activeSet, activeColumns, topoOrder, sizes,
-        rowMargin, rowMargin, rowMargin, columnMargin
+    const mainColumns = computeMainColumns(topoOrder, successors, predecessors, mainSet, activeColumns);
+
+    return placeDualRegion(
+        activeSet, mainSet, activeColumns, mainColumns,
+        topoOrder, sizes, rowMargin, columnMargin, activeMargin
     );
-    for (const [id, pos] of activeLayout.positions)
-        positions.set(id, pos);
-
-    if (mainSet.size > 0) {
-        const mainStartY = rowMargin + activeLayout.height + activeMargin;
-        const mainColumns = assignColumnsLate(topoOrder, successors, mainSet);
-        const mainLayout = placeSubgraph(
-            mainSet, mainColumns, topoOrder, sizes,
-            rowMargin, mainStartY, rowMargin, columnMargin
-        );
-        for (const [id, pos] of mainLayout.positions)
-            positions.set(id, pos);
-    }
-
-    return positions;
 }
 
 export async function applyAutoLayout(
