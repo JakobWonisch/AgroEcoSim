@@ -7,6 +7,8 @@ public sealed class GraphNodePayload
 	public float? Value { get; init; }
 	public bool? Bool { get; init; }
 	public string? Comment { get; init; }
+	public string? ConfigId { get; init; }
+	public string? ConfigType { get; init; }
 
 	public static GraphNodePayload FromNumber(float value, string? comment = null) =>
 		new() { Value = value, Comment = comment };
@@ -17,6 +19,14 @@ public sealed class GraphNodePayload
 	public static GraphNodePayload FromComment(string comment) =>
 		new() { Comment = comment };
 
+	public static GraphNodePayload FromConfig(string configId, bool isBoolean, string? comment = null) =>
+		new()
+		{
+			ConfigId = configId,
+			ConfigType = isBoolean ? "boolean" : "number",
+			Comment = comment,
+		};
+
 	public JsonElement ToJsonElement()
 	{
 		var dict = new Dictionary<string, object>();
@@ -26,6 +36,10 @@ public sealed class GraphNodePayload
 			dict["bool"] = b;
 		if (!string.IsNullOrWhiteSpace(Comment))
 			dict["comment"] = Comment.Trim();
+		if (!string.IsNullOrWhiteSpace(ConfigId))
+			dict["configId"] = ConfigId;
+		if (!string.IsNullOrWhiteSpace(ConfigType))
+			dict["configType"] = ConfigType;
 		return JsonSerializer.SerializeToElement(dict);
 	}
 }

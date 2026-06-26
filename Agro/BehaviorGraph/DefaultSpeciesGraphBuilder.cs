@@ -8,6 +8,24 @@ namespace Agro.BehaviorGraph;
 /// </summary>
 public static class DefaultSpeciesGraphBuilder
 {
+	/// <summary>Stable configuration ids for Default species bootstrap graphs.</summary>
+	public static class ConfigIds
+	{
+		public const string LeafThickness = "default-config-leaf-thickness";
+	}
+
+	public static IReadOnlyList<BehaviorConfigUploadEntry> BuildDefaultConfiguration() =>
+	[
+		new()
+		{
+			Id = ConfigIds.LeafThickness,
+			Key = "Leaf thickness",
+			Label = "Leaf thickness",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(AboveGroundAgent.LeafThickness),
+		},
+	];
+
 	public static IReadOnlyList<(string Name, global::ExportedGraph Graph)> BuildDefaultSpeciesSubgraphs() =>
 	[
 		("Life support", BuildLifeSupportSubgraph()),
@@ -41,8 +59,8 @@ public static class DefaultSpeciesGraphBuilder
 		var state = b.Add("state", "Agent State Input", 0, 140);
 		var sim = b.Add("sim", "Simulation Settings Input", 0, 200);
 
-		// AboveGroundAgent.LeafThickness
-		var cLeafThick = b.AddNum("leaf-thick", 0.0001f, 240, 80);
+		var leafThick = b.AddConfig("leaf-thick", ConfigIds.LeafThickness, false, 240, 80,
+			"AboveGroundAgent.LeafThickness");
 		var c0 = b.AddNum("c0", 0f, 240, 160);
 
 		var lr = b.Add("lr", "Multiply", 480, 100);
@@ -51,7 +69,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		var leafHour = b.Add("leaf-hour", "Multiply", 720, 80);
 		b.Connect(lr, "out", leafHour, "a");
-		b.Connect(cLeafThick, "num", leafHour, "b");
+		b.Connect(leafThick, "num", leafHour, "b");
 
 		var rw = b.Add("rw", "Multiply", 720, 140);
 		b.Connect(state, "radius", rw, "a");
@@ -462,6 +480,9 @@ public static class DefaultSpeciesGraphBuilder
 
 		public string AddNum(string id, float value, float x, float y, string? comment = null) =>
 			Add(id, "Number Input", x, y, GraphNodePayload.FromNumber(value, comment));
+
+		public string AddConfig(string id, string configId, bool isBoolean, float x, float y, string? comment = null) =>
+			Add(id, "Configuration Value Input", x, y, GraphNodePayload.FromConfig(configId, isBoolean, comment));
 
 		public void Connect(string source, string sourceOutput, string target, string targetInput)
 		{

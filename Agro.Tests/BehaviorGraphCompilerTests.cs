@@ -270,6 +270,7 @@ public class BehaviorGraphCompilerTests
 			{
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaEnergy);
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SimulationSettingsInput);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
 				continue;
 			}
 
@@ -296,6 +297,26 @@ public class BehaviorGraphCompilerTests
 		var data = GraphNodePayload.FromNumber(1f, "hours per tick placeholder").ToJsonElement();
 		Assert.Equal(1f, data.GetProperty("value").GetSingle());
 		Assert.Equal("hours per tick placeholder", data.GetProperty("comment").GetString());
+	}
+
+	[Fact]
+	public void DefaultSpeciesConfiguration_IncludesLeafThickness()
+	{
+		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
+		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
+		Assert.Equal("Leaf thickness", leaf.Label);
+		Assert.Equal(AboveGroundAgent.LeafThickness, leaf.Value.GetSingle());
+	}
+
+	[Fact]
+	public void LifeSupportSubgraph_ReferencesLeafThicknessConfig()
+	{
+		var life = DefaultSpeciesGraphBuilder.BuildLifeSupportSubgraph();
+		var leafThick = life.Nodes.Find(n => n.Id == "ls-leaf-thick");
+		Assert.NotNull(leafThick);
+		Assert.Equal("Configuration Value Input", leafThick.Label);
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness,
+			leafThick.Data.GetProperty("configId").GetString());
 	}
 
 	[Fact]

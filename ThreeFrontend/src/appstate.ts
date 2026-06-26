@@ -820,11 +820,12 @@ const st = new State();
 export default st;
 //now that the singleton is exported push in the default seed
 st.seeds.value = [ new Seed(st.species.peek()[0].name.peek(), st.fieldSizeX.peek() * 0.5, -0.01, st.fieldSizeZ.peek() * 0.5, 0, false) ];
-fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graphs: { id: string; name: string; graph: ExportedGraph }[] }[]) => {
+fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graphs: { id: string; name: string; graph: ExportedGraph }[]; configuration?: SpeciesConfigurationWireEntry[] }[]) => {
     st.species.value = list.map(e => new Species().loadPredefined({
         name: e.name,
         aka: e.aka,
         graphs: (e.graphs ?? []).map(g => ({ id: g.id, name: g.name, graph: g.graph })),
+        configuration: e.configuration,
     }));
 });
 

@@ -27,6 +27,9 @@ public sealed class PredefinedSpeciesEntry
 
 	[JsonPropertyName("graphs")]
 	public required List<PredefinedSpeciesGraphEntry> Graphs { get; init; }
+
+	[JsonPropertyName("configuration")]
+	public List<BehaviorConfigUploadEntry>? Configuration { get; init; }
 }
 
 public static class PredefinedSpeciesCatalog
@@ -111,6 +114,9 @@ public static class PredefinedSpeciesCatalog
 							Graph = BuildMinimalGatedGraph(),
 						},
 					],
+				Configuration = s.Name == "Default"
+					? [.. BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultConfiguration()]
+					: null,
 			});
 		}
 
