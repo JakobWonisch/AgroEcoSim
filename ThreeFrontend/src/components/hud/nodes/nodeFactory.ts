@@ -10,6 +10,7 @@ import { PhaseInputNode } from "./input/PhaseInputNode";
 import { AgentStateInputNode } from "./input/AgentStateInputNode";
 import { ParentInputNode } from "./input/ParentInputNode";
 import { IrradianceInputNode } from "./input/IrradianceInputNode";
+import { SimulationSettingsInputNode } from "./input/SimulationSettingsInputNode";
 import { RandomChanceInputNode } from "./input/RandomChanceInputNode";
 import { AndNode } from "./util/boolean/AndNode";
 import { NotNode } from "./util/boolean/NotNode";
@@ -66,6 +67,7 @@ export const canonicalBehaviorNodeLabels = [
     "Agent State Input",
     "Parent Input",
     "Irradiance Input",
+    "Simulation Settings Input",
     "Random Chance Input",
     "Active",
     "Boolean Output",
@@ -137,6 +139,7 @@ const creators: Record<string, Creator> = {
     "Agent State Input": () => new AgentStateInputNode(),
     "Parent Input": () => new ParentInputNode(),
     "Irradiance Input": () => new IrradianceInputNode(),
+    "Simulation Settings Input": () => new SimulationSettingsInputNode(),
     "Random Chance Input": () => new RandomChanceInputNode(),
     Active: () => new ActiveOutputNode(),
     "Boolean Output": () => new BooleanOutputNode(),

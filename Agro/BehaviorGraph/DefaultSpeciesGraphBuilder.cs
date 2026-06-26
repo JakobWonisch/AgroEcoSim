@@ -39,12 +39,10 @@ public static class DefaultSpeciesGraphBuilder
 
 		var organ = b.Add("organ", "Agent Type Input", 0, 80);
 		var state = b.Add("state", "Agent State Input", 0, 140);
+		var sim = b.Add("sim", "Simulation Settings Input", 0, 200);
 
 		// AboveGroundAgent.LeafThickness
 		var cLeafThick = b.AddNum("leaf-thick", 0.0001f, 240, 80);
-		// MISSING: world.HoursPerTick — no simulation input node; AgroWorld default is 1
-		var cHoursPerTick = b.AddNum("hours-per-tick", 1f, 240, 120,
-			"Placeholder: AgroWorld.HoursPerTick (no simulation input node yet)");
 		var c0 = b.AddNum("c0", 0f, 240, 160);
 
 		var lr = b.Add("lr", "Multiply", 480, 100);
@@ -70,7 +68,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		var perTick = b.Add("per-tick", "Multiply", 1440, 100);
 		b.Connect(perHour, "out", perTick, "a");
-		b.Connect(cHoursPerTick, "num", perTick, "b");
+		b.Connect(sim, "hoursPerTick", perTick, "b");
 
 		var negTick = b.Add("neg-tick", "Subtract", 1680, 100);
 		b.Connect(c0, "num", negTick, "a");

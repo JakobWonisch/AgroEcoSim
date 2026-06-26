@@ -73,6 +73,9 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.IrradianceInput:
 				WriteIrradianceInput(ctx, outs, g);
 				break;
+			case GraphNodeKind.SimulationSettingsInput:
+				WriteSimulationSettingsInput(ctx, outs, g);
+				break;
 			case GraphNodeKind.RandomChanceInput:
 			{
 				var p = FirstFloat(node.Inputs, "p", outs);
@@ -383,6 +386,12 @@ public static class GraphTickInterpreter
 
 		var ir = ctx.Formation!.Plant.World.Irradiance.GetIrradiance(ctx.Formation, ctx.AgentId);
 		outs[(g, "irradiance")] = WireValue.OfFloat(ir);
+	}
+
+	static void WriteSimulationSettingsInput(TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
+	{
+		var hoursPerTick = ctx.HasFormation ? ctx.Formation!.Plant.World.HoursPerTick : 0f;
+		outs[(g, "hoursPerTick")] = WireValue.OfFloat(hoursPerTick);
 	}
 
 	static float ParentWoodCap(ref AboveGroundAgent agent, TickEvalContext ctx, float value)

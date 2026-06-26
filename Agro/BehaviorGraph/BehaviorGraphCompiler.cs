@@ -245,6 +245,9 @@ public static class BehaviorGraphCompiler
 			case "Irradiance Input":
 				kind = GraphNodeKind.IrradianceInput;
 				return true;
+			case "Simulation Settings Input":
+				kind = GraphNodeKind.SimulationSettingsInput;
+				return true;
 			case "Random Chance Input":
 				kind = GraphNodeKind.RandomChanceInput;
 				return true;

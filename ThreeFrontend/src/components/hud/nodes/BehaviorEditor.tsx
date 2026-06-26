@@ -21,6 +21,7 @@ import { PhaseInputNode } from './input/PhaseInputNode';
 import { AgentStateInputNode } from './input/AgentStateInputNode';
 import { ParentInputNode } from './input/ParentInputNode';
 import { IrradianceInputNode } from './input/IrradianceInputNode';
+import { SimulationSettingsInputNode } from './input/SimulationSettingsInputNode';
 import { RandomChanceInputNode } from './input/RandomChanceInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
@@ -145,6 +146,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Agent State Input', () => new AgentStateInputNode()],
                 ['Parent Input', () => new ParentInputNode()],
                 ['Irradiance Input', () => new IrradianceInputNode()],
+                ['Simulation Settings Input', () => new SimulationSettingsInputNode()],
                 ['Random Chance Input', () => new RandomChanceInputNode()],
             ]],
             ['output', [

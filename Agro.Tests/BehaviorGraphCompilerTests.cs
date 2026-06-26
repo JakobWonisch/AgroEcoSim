@@ -269,6 +269,7 @@ public class BehaviorGraphCompilerTests
 			if (name == "Life support")
 			{
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.DeltaEnergy);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SimulationSettingsInput);
 				continue;
 			}
 
@@ -301,15 +302,27 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesSubgraphs_IncludeEditorComments()
 	{
 		var life = DefaultSpeciesGraphBuilder.BuildLifeSupportSubgraph();
-		var hoursNode = life.Nodes.Find(n => n.Id == "ls-hours-per-tick");
-		Assert.NotNull(hoursNode);
-		Assert.Equal("Placeholder: AgroWorld.HoursPerTick (no simulation input node yet)",
-			hoursNode.Data.GetProperty("comment").GetString());
+		var simNode = life.Nodes.Find(n => n.Id == "ls-sim");
+		Assert.NotNull(simNode);
+		Assert.Equal("Simulation Settings Input", simNode.Label);
 
 		var photo = DefaultSpeciesGraphBuilder.BuildPhotosynthesisSubgraph();
 		var accProd = photo.Nodes.Find(n => n.Id == "photo-acc-prod");
 		Assert.NotNull(accProd);
 		Assert.True(accProd.Data.TryGetProperty("comment", out _));
+	}
+
+	[Fact]
+	public void TryCompile_SimulationSettingsInput_Ok()
+	{
+		var (gn, gc) = GatePair("sim");
+		var g = new ExportedGraph
+		{
+			Nodes = [..gn, N("n", "Simulation Settings Input", new { })],
+			Connections = [..gc],
+		};
+		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
+		Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.SimulationSettingsInput);
 	}
 
 	[Fact]
