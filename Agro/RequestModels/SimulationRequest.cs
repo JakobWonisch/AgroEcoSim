@@ -66,6 +66,12 @@ public class SimulationRequest
     [JsonPropertyName("SpeciesGraphs")]
     public Dictionary<string, List<SpeciesGraphUploadEntry>>? SpeciesGraphs { get; init; }
 
+    /// <summary>
+    /// Per-species shared behavior configuration values keyed by species name.
+    /// </summary>
+    [JsonPropertyName("SpeciesConfiguration")]
+    public Dictionary<string, List<BehaviorConfigUploadEntry>>? SpeciesConfiguration { get; init; }
+
     ///<summary>
     ///A list of seeds to be planted (default: a single centered plant)
     ///</summary>

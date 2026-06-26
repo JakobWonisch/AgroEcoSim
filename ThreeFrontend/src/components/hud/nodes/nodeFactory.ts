@@ -1,5 +1,6 @@
 import { NumberInputNode } from "./input/NumberInputNode";
 import { BooleanInputNode } from "./input/BooleanInputNode";
+import { ConfigurationValueInputNode } from "./input/ConfigurationValueInputNode";
 import { AgentTypeInputNode } from "./input/AgentTypeInputNode";
 import { ActiveOutputNode } from "./output/ActiveOutputNode";
 import { BooleanOutputNode } from "./output/BooleanOutputNode";
@@ -59,6 +60,7 @@ import {
 export const canonicalBehaviorNodeLabels = [
     "Number Input",
     "Boolean Input",
+    "Configuration Value Input",
     "Agent Type Input",
     "Phase Input",
     "Agent State Input",
@@ -123,6 +125,13 @@ function numberFromData(d: Record<string, unknown>): number {
 const creators: Record<string, Creator> = {
     "Number Input": (d) => new NumberInputNode(numberFromData(d)),
     "Boolean Input": (d) => new BooleanInputNode(typeof d.bool === "boolean" ? d.bool : false),
+    "Configuration Value Input": (d) => {
+        const configId = typeof d.configId === "string" ? d.configId : "";
+        const configType = d.configType === "boolean" ? "boolean" : "number";
+        const node = new ConfigurationValueInputNode(configId, configType);
+        if (configId) node.configId = configId;
+        return node;
+    },
     "Agent Type Input": () => new AgentTypeInputNode(),
     "Phase Input": () => new PhaseInputNode(),
     "Agent State Input": () => new AgentStateInputNode(),

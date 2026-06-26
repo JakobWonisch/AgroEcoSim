@@ -1,29 +1,13 @@
 import { ClassicPreset } from 'rete';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-
-export const graphUpdateTrigger = new EventTarget();
+import { BooleanToggleGroup } from './ConfigurationControls';
+import { graphUpdateTrigger } from './graphUpdate';
 
 export class SwitchControl extends ClassicPreset.Control {
     constructor(public value: boolean, public onChange: (val: boolean) => void) {
         super();
     }
-}
-
-function toggleButtonStyle(active: boolean, edge: 'left' | 'right'): preact.JSX.CSSProperties {
-    return {
-        flex: 1,
-        padding: '6px 12px',
-        border: '1px solid #555',
-        borderRight: edge === 'left' ? 'none' : '1px solid #555',
-        borderRadius: edge === 'left' ? '4px 0 0 4px' : '0 4px 4px 0',
-        background: active ? '#e67e22' : '#333',
-        color: active ? '#fff' : '#aaa',
-        cursor: 'pointer',
-        fontFamily: 'sans-serif',
-        fontSize: '13px',
-        fontWeight: active ? 600 : 400,
-    };
 }
 
 export function SwitchControlComponent(props: { data: SwitchControl }) {
@@ -36,23 +20,8 @@ export function SwitchControlComponent(props: { data: SwitchControl }) {
         graphUpdateTrigger.dispatchEvent(new Event('update'));
     };
 
-    const stopPropagation = (e: Event) => e.stopPropagation();
-
     return (
-        <div
-            role="group"
-            aria-label="Boolean value"
-            onPointerDown={stopPropagation}
-            onDblClick={stopPropagation}
-            style={{ display: 'flex', padding: '8px' }}
-        >
-            <button type="button" onClick={() => setValue(true)} style={toggleButtonStyle(val, 'left')}>
-                True
-            </button>
-            <button type="button" onClick={() => setValue(false)} style={toggleButtonStyle(!val, 'right')}>
-                False
-            </button>
-        </div>
+        <BooleanToggleGroup value={val} onChange={setValue} />
     );
 }
 

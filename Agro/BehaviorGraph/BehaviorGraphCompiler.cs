@@ -98,6 +98,7 @@ public static class BehaviorGraphCompiler
 			}
 
 			var p = payloads[idx];
+			var (configId, configIsBool) = ReadConfigurationBinding(n.Data);
 			compiledNodes[t] = new CompiledNode
 			{
 				GraphNodeIndex = idx,
@@ -107,6 +108,8 @@ public static class BehaviorGraphCompiler
 				NumberConst = p.num,
 				BoolConst = p.boo,
 				NumericInclusive = p.inclusive,
+				ConfigId = configId,
+				ConfigIsBoolean = configIsBool,
 			};
 		}
 
@@ -218,6 +221,14 @@ public static class BehaviorGraphCompiler
 			case "Boolean Input":
 				kind = GraphNodeKind.BooleanInput;
 				payload.boo = ReadBool(node.Data);
+				return true;
+			case "Configuration Value Input":
+				kind = GraphNodeKind.ConfigurationValueInput;
+				if (string.IsNullOrWhiteSpace(ReadConfigId(node.Data)))
+				{
+					error = $"Configuration Value Input node '{node.Id}' requires data.configId.";
+					return false;
+				}
 				return true;
 			case "Agent Type Input":
 				kind = GraphNodeKind.AgentTypeInput;
@@ -417,5 +428,21 @@ public static class BehaviorGraphCompiler
 		if (data.TryGetProperty("equal", out var e) && e.TryGetSingle(out var f))
 			return f > 0f;
 		return false;
+	}
+
+	static string? ReadConfigId(JsonElement data)
+	{
+		if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("configId", out var id))
+			return id.GetString();
+		return null;
+	}
+
+	static (string? ConfigId, bool IsBoolean) ReadConfigurationBinding(JsonElement data)
+	{
+		var configId = ReadConfigId(data);
+		var isBool = data.ValueKind == JsonValueKind.Object
+			&& data.TryGetProperty("configType", out var type)
+			&& string.Equals(type.GetString(), "boolean", StringComparison.OrdinalIgnoreCase);
+		return (configId, isBool);
 	}
 }

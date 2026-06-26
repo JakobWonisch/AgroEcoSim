@@ -11,6 +11,8 @@ public sealed class PlantSpeciesProfile
 
 	public required IReadOnlyList<CompiledBehaviorGraph> BehaviorGraphs { get; init; }
 
+	public required IReadOnlyDictionary<string, BehaviorConfigEntry> BehaviorConfiguration { get; init; }
+
 	public static PlantSpeciesProfile Resolve(string? speciesName, SimulationRequest? settings)
 	{
 		var morph = SpeciesMorphology.Resolve(speciesName, settings);
@@ -62,6 +64,11 @@ public sealed class PlantSpeciesProfile
 			}
 		}
 
-		return new PlantSpeciesProfile { Morphology = morph, BehaviorGraphs = graphs };
+		return new PlantSpeciesProfile
+		{
+			Morphology = morph,
+			BehaviorGraphs = graphs,
+			BehaviorConfiguration = BehaviorConfigurationCatalog.ParseSpeciesConfiguration(settings?.SpeciesConfiguration, speciesName),
+		};
 	}
 }

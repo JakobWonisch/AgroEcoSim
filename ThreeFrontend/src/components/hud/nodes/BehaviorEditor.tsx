@@ -9,6 +9,12 @@ import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-
 import { ContextMenuPlugin, Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
 import { Presets, ReactPlugin, useRete } from 'rete-react-plugin';
 import { CommentableNodeComponent } from './CommentableNode';
+import {
+    AddToConfigControl,
+    AddToConfigControlComponent,
+    ConfigSelectControl,
+    ConfigSelectControlComponent,
+} from './ConfigurationControls';
 import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
 import { AgentTypeInputNode } from './input/AgentTypeInputNode';
 import { PhaseInputNode } from './input/PhaseInputNode';
@@ -18,6 +24,7 @@ import { IrradianceInputNode } from './input/IrradianceInputNode';
 import { RandomChanceInputNode } from './input/RandomChanceInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
+import { ConfigurationValueInputNode } from './input/ConfigurationValueInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
 import { ActiveOutputNode } from './output/ActiveOutputNode';
 import { BooleanOutputNode } from './output/BooleanOutputNode';
@@ -72,6 +79,7 @@ import type { NamedGraph } from './Conversion';
 import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
 import { applyAutoLayout } from './autoLayout';
+import { setEditorContext } from './editorContext';
 
 function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
     // Avoid overwriting node positions with 0/0 snapshots before views are ready.
@@ -103,6 +111,12 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 return CommentableNodeComponent as any;
             },
             control(data) {
+                if (data.payload instanceof AddToConfigControl) {
+                    return AddToConfigControlComponent as any;
+                }
+                if (data.payload instanceof ConfigSelectControl) {
+                    return ConfigSelectControlComponent as any;
+                }
                 if (data.payload instanceof SwitchControl) {
                     return SwitchControlComponent as any;
                 }
@@ -124,6 +138,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
             ['input', [
                 ['Number', () => new NumberInputNode(0)],
                 ['Boolean', () => new BooleanInputNode(false)],
+                ['Configuration Value Input', () => new ConfigurationValueInputNode()],
                 ['Agent Type Input', () => new AgentTypeInputNode()],
                 ['Phase Input', () => new PhaseInputNode()],
                 ['Agent State Input', () => new AgentStateInputNode()],
@@ -322,7 +337,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         return context;
     });
 
-    import('./Controls').then(m => {
+    import('./graphUpdate').then(m => {
         m.graphUpdateTrigger.addEventListener('update', () => {
             setTimeout(() => {
                 pushSpeciesGraph(species, namedGraph, editor, area);
@@ -345,6 +360,13 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     const graphId = namedGraph.id;
     appstate.registerBehaviorGraphGetter(speciesName, graphId, () => toJSON(editor, area));
 
+    setEditorContext({
+        species,
+        editor,
+        area,
+        pushGraph: () => pushSpeciesGraph(species, namedGraph, editor, area),
+    });
+
     setTimeout(() => {
         const nodes = editor.getNodes();
         if (nodes.length > 0)
@@ -361,6 +383,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     return {
         destroy: () => {
+            setEditorContext(null);
             appstate.unregisterBehaviorGraphGetter(speciesName, graphId);
             window.removeEventListener('keydown', handleKeyDown);
             area.destroy();

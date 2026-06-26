@@ -67,6 +67,10 @@ function exportNodeData(node: any): Record<string, unknown> {
         out.value = node.valueControl.value;
     if (node?.switchControl && typeof node.switchControl.value === "boolean")
         out.bool = node.switchControl.value;
+    if (typeof node?.configId === "string" && node.configId)
+        out.configId = node.configId;
+    if (node?.configType === "boolean" || node?.configType === "number")
+        out.configType = node.configType;
     if (node && typeof node.data === "object" && node.data !== null)
         Object.assign(out, safeClone(node.data));
     exportNodeComment(node, out);

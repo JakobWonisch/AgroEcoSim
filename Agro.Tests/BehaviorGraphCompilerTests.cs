@@ -311,4 +311,17 @@ public class BehaviorGraphCompilerTests
 		Assert.NotNull(accProd);
 		Assert.True(accProd.Data.TryGetProperty("comment", out _));
 	}
+
+	[Fact]
+	public void TryCompile_ConfigurationValueInput_Ok()
+	{
+		var (gn, gc) = GatePair("cfg");
+		var g = new ExportedGraph
+		{
+			Nodes = [..gn, N("n", "Configuration Value Input", new { configId = "abc", configType = "number" })],
+			Connections = [..gc],
+		};
+		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
+		Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
+	}
 }

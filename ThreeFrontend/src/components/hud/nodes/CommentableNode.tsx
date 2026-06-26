@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
 import { Presets } from 'rete-react-plugin';
-import { graphUpdateTrigger } from './Controls';
+import { graphUpdateTrigger } from './graphUpdate';
 import type { Schemes } from './NodeTypes';
 
 type NodePayload = Schemes['Node'] & { width?: number; height?: number; comment?: string };

@@ -7,5 +7,7 @@ public readonly struct TickEvalContext
 	public int AgentId { get; init; }
 	public uint Timestep { get; init; }
 
+	public IReadOnlyDictionary<string, BehaviorConfigEntry>? BehaviorConfiguration { get; init; }
+
 	public bool HasFormation => Formation is not null;
 }

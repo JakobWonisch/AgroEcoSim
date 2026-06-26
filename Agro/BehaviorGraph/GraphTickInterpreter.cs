@@ -7,7 +7,13 @@ public static class GraphTickInterpreter
 {
 	public static void Execute(ref AboveGroundAgent agent, PlantSubFormation<AboveGroundAgent> formation, int agentId, uint timestep, CompiledBehaviorGraph graph)
 	{
-		var ctx = new TickEvalContext { Formation = formation, AgentId = agentId, Timestep = timestep };
+		var ctx = new TickEvalContext
+		{
+			Formation = formation,
+			AgentId = agentId,
+			Timestep = timestep,
+			BehaviorConfiguration = formation.Plant.BehaviorConfiguration,
+		};
 		var outs = new Dictionary<(int NodeIndex, string Socket), WireValue>();
 
 		for (var t = 0; t < graph.NodesInOrder.Length; t++)
@@ -39,6 +45,18 @@ public static class GraphTickInterpreter
 				break;
 			case GraphNodeKind.BooleanInput:
 				outs[(g, "bool")] = WireValue.OfBool(node.BoolConst);
+				break;
+			case GraphNodeKind.ConfigurationValueInput:
+				if (node.ConfigIsBoolean)
+				{
+					var b = ResolveConfigBool(node.ConfigId, ctx);
+					outs[(g, "bool")] = WireValue.OfBool(b);
+				}
+				else
+				{
+					var n = ResolveConfigNumber(node.ConfigId, ctx);
+					outs[(g, "num")] = WireValue.OfFloat(n);
+				}
 				break;
 			case GraphNodeKind.AgentTypeInput:
 				WriteAgentTypeInput(ref agent, outs, g);
@@ -377,6 +395,20 @@ public static class GraphTickInterpreter
 			? agent.WoodRatio()
 			: formation.GetWoodRatio(agent.Parent);
 		return value <= parentWood ? value : parentWood;
+	}
+
+	static float ResolveConfigNumber(string? configId, TickEvalContext ctx)
+	{
+		if (string.IsNullOrWhiteSpace(configId) || ctx.BehaviorConfiguration is null)
+			return 0f;
+		return ctx.BehaviorConfiguration.TryGetValue(configId, out var entry) ? entry.NumberValue : 0f;
+	}
+
+	static bool ResolveConfigBool(string? configId, TickEvalContext ctx)
+	{
+		if (string.IsNullOrWhiteSpace(configId) || ctx.BehaviorConfiguration is null)
+			return false;
+		return ctx.BehaviorConfiguration.TryGetValue(configId, out var entry) && entry.BoolValue;
 	}
 
 	static float FirstFloat(Dictionary<string, List<(int ProducerIndex, string ProducerSocket)>> inputs, string key, Dictionary<(int, string), WireValue> outs)
