@@ -94,6 +94,18 @@ function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: Node
         g.id === namedGraph.id ? { ...g, graph: snapshot } : g);
 }
 
+function schedulePushSpeciesGraph(
+    species: Species,
+    namedGraph: NamedGraph,
+    editor: NodeEditor<Schemes>,
+    area: AreaPlugin<Schemes, AreaExtra>,
+    suppressGraphPush: () => boolean,
+) {
+    if (suppressGraphPush())
+        return;
+    setTimeout(() => pushSpeciesGraph(species, namedGraph, editor, area), 0);
+}
+
 function measureNodeView(area: AreaPlugin<Schemes, AreaExtra>, nodeId: string) {
     const el = area.nodeViews.get(nodeId)?.element;
     if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
@@ -238,6 +250,9 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     connection.addPreset(ConnectionPresets.classic.setup());
 
     let pendingNodePosition: { x: number, y: number } | null = null;
+    let suppressGraphPush = false;
+    const isGraphPushSuppressed = () => suppressGraphPush;
+    const schedulePush = () => schedulePushSpeciesGraph(species, namedGraph, editor, area, isGraphPushSuppressed);
 
     area.addPipe(context => {
         const c = context as any;
@@ -247,6 +262,9 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         }
         if (c.type === 'pointerdown') {
             pendingNodePosition = null;
+        }
+        if (c.type === 'nodetranslated') {
+            schedulePush();
         }
         return context;
     });
@@ -314,22 +332,16 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         }
 
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
-            setTimeout(() => {
-                pushSpeciesGraph(species, namedGraph, editor, area);
-                if (context.type === 'connectioncreated' || context.type === 'connectionremoved')
-                    notifyGraphUiUpdate();
-            }, 0);
+            schedulePush();
+            if (context.type === 'connectioncreated' || context.type === 'connectionremoved')
+                setTimeout(() => notifyGraphUiUpdate(), 0);
         }
 
         return context;
     });
 
     import('./graphUpdate').then(m => {
-        m.graphUpdateTrigger.addEventListener('update', () => {
-            setTimeout(() => {
-                pushSpeciesGraph(species, namedGraph, editor, area);
-            }, 0);
-        });
+        m.graphUpdateTrigger.addEventListener('update', schedulePush);
     });
 
     editor.use(area);
@@ -340,8 +352,14 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     AreaExtensions.simpleNodesOrder(area);
 
     const initial = namedGraph.graph;
-    if (initial?.nodes?.length > 0)
-        await fromJSON(initial, editor, area, createNodeFromExport);
+    if (initial?.nodes?.length > 0) {
+        suppressGraphPush = true;
+        try {
+            await fromJSON(initial, editor, area, createNodeFromExport);
+        } finally {
+            suppressGraphPush = false;
+        }
+    }
 
     const speciesName = species.name.peek();
     const graphId = namedGraph.id;
@@ -370,13 +388,19 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     return {
         destroy: () => {
+            pushSpeciesGraph(species, namedGraph, editor, area);
             setEditorContext(null);
             appstate.unregisterBehaviorGraphGetter(speciesName, graphId);
             window.removeEventListener('keydown', handleKeyDown);
             area.destroy();
         },
         autoLayout: async () => {
-            await applyAutoLayout(editor, area);
+            suppressGraphPush = true;
+            try {
+                await applyAutoLayout(editor, area);
+            } finally {
+                suppressGraphPush = false;
+            }
             pushSpeciesGraph(species, namedGraph, editor, area);
             const nodes = editor.getNodes();
             if (nodes.length > 0)
