@@ -66,8 +66,10 @@ import { OrNode } from './util/boolean/OrNode';
 import { XorNode } from './util/boolean/XorNode';
 import { EqualToNode } from './util/logic/EqualToNode';
 import { GreaterThanNode } from './util/logic/GreaterThanNode';
+import { GreaterThanOrEqualNode } from './util/logic/GreaterThanOrEqualNode';
 import { IfElseNode } from './util/logic/IfElseNode';
 import { LessThanNode } from './util/logic/LessThanNode';
+import { LessThanOrEqualNode } from './util/logic/LessThanOrEqualNode';
 import { AddNode } from './util/numeric/AddNode';
 import { DivideNode } from './util/numeric/DivideNode';
 import { MultiplyNode } from './util/numeric/MultiplyNode';
@@ -217,8 +219,10 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Clamp Max', () => new ClampMaxNode()],
             ]],
             ['logic', [
-                ['Greater Than (or Equal)', () => new GreaterThanNode()],
-                ['Less Than (or Equal)', () => new LessThanNode()],
+                ['Greater Than', () => new GreaterThanNode()],
+                ['Greater Than or Equal', () => new GreaterThanOrEqualNode()],
+                ['Less Than', () => new LessThanNode()],
+                ['Less Than or Equal', () => new LessThanOrEqualNode()],
                 ['Equal To', () => new EqualToNode()],
                 ['If / Else', () => new IfElseNode()]
             ]]

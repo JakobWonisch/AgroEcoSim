@@ -3,10 +3,9 @@ import { numSocket, boolSocket } from '../../Sockets';
 
 export class GreaterThanNode extends ClassicPreset.Node {
     constructor() {
-        super('Greater Than (or Equal)');
+        super('Greater Than');
         this.addInput('a', new ClassicPreset.Input(numSocket, 'A'));
         this.addInput('b', new ClassicPreset.Input(numSocket, 'B'));
-        this.addControl('equal', new ClassicPreset.InputControl('number', { initial: 0 })); // 0 = false, 1 = true
         this.addOutput('out', new ClassicPreset.Output(boolSocket, 'Out'));
     }
 }

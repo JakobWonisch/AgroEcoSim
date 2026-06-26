@@ -99,11 +99,11 @@ public static class DefaultSpeciesGraphBuilder
 		var cSurface2 = b.AddNum("surface-2", 2f, 280, 120);
 
 		// Active: Organ == Leaf && Water_g > 0 && irradiance > 0.01
-		var hasWater = b.Add("has-water", "Greater Than (or Equal)", 520, 0);
+		var hasWater = b.Add("has-water", "Greater Than", 520, 0);
 		b.Connect(state, "water", hasWater, "a");
 		b.Connect(c0, "num", hasWater, "b");
 
-		var bright = b.Add("bright", "Greater Than (or Equal)", 520, 60);
+		var bright = b.Add("bright", "Greater Than", 520, 60);
 		b.Connect(ir, "irradiance", bright, "a");
 		b.Connect(c001, "num", bright, "b");
 
@@ -132,7 +132,7 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(byLight, "out", lightEff, "a");
 		b.Connect(cPhotoEff, "num", lightEff, "b");
 
-		var lightLeWater = b.Add("light-le-water", "Less Than (or Equal)", 1440, 240);
+		var lightLeWater = b.Add("light-le-water", "Less Than", 1440, 240);
 		b.Connect(lightEff, "out", lightLeWater, "a");
 		b.Connect(state, "water", lightLeWater, "b");
 
@@ -170,7 +170,7 @@ public static class DefaultSpeciesGraphBuilder
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var c36 = b.AddNum("c36", 36f, 280, 0);
 
-		var ageOk = b.Add("age-ok", "Greater Than (or Equal)", 520, 60);
+		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
 		b.Connect(state, "ageHours", ageOk, "a");
 		b.Connect(c36, "num", ageOk, "b");
 
@@ -288,7 +288,7 @@ public static class DefaultSpeciesGraphBuilder
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var c1 = b.AddNum("c1", 1f, 280, 0);
 
-		var woodLt1 = b.Add("wood-lt", "Less Than (or Equal)", 520, 60);
+		var woodLt1 = b.Add("wood-lt", "Less Than", 520, 60);
 		b.Connect(state, "wood", woodLt1, "a");
 		b.Connect(c1, "num", woodLt1, "b");
 
@@ -314,7 +314,7 @@ public static class DefaultSpeciesGraphBuilder
 
 		// MISSING: Length > LengthVar (no LengthVar agent input; placeholder 0 => length >= 0)
 		var cLengthVar = b.AddNum("c-length-var", 0f, 280, 60);
-		var lengthGt = b.Add("len-gt", "Greater Than (or Equal)", 520, 60);
+		var lengthGt = b.Add("len-gt", "Greater Than", 520, 60);
 		b.Connect(state, "length", lengthGt, "a");
 		b.Connect(cLengthVar, "num", lengthGt, "b");
 
@@ -360,7 +360,7 @@ public static class DefaultSpeciesGraphBuilder
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var c48 = b.AddNum("c48", 48f, 280, 0);
 
-		var ageOk = b.Add("age-ok", "Greater Than (or Equal)", 520, 60);
+		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
 		b.Connect(state, "ageHours", ageOk, "a");
 		b.Connect(c48, "num", ageOk, "b");
 
@@ -397,7 +397,7 @@ public static class DefaultSpeciesGraphBuilder
 		var state = b.Add("state", "Agent State Input", 0, 0);
 		var c0 = b.AddNum("c0", 0f, 280, 0);
 
-		var starved = b.Add("starved", "Less Than (or Equal)", 520, 0);
+		var starved = b.Add("starved", "Less Than or Equal", 520, 0);
 		b.Connect(state, "energy", starved, "a");
 		b.Connect(c0, "num", starved, "b");
 

@@ -16,8 +16,10 @@ import { OrNode } from "./util/boolean/OrNode";
 import { XorNode } from "./util/boolean/XorNode";
 import { EqualToNode } from "./util/logic/EqualToNode";
 import { GreaterThanNode } from "./util/logic/GreaterThanNode";
+import { GreaterThanOrEqualNode } from "./util/logic/GreaterThanOrEqualNode";
 import { IfElseNode } from "./util/logic/IfElseNode";
 import { LessThanNode } from "./util/logic/LessThanNode";
+import { LessThanOrEqualNode } from "./util/logic/LessThanOrEqualNode";
 import { AddNode } from "./util/numeric/AddNode";
 import { DivideNode } from "./util/numeric/DivideNode";
 import { MultiplyNode } from "./util/numeric/MultiplyNode";
@@ -72,8 +74,10 @@ export const canonicalBehaviorNodeLabels = [
     "Or",
     "Xor",
     "Not",
-    "Greater Than (or Equal)",
-    "Less Than (or Equal)",
+    "Greater Than",
+    "Greater Than or Equal",
+    "Less Than",
+    "Less Than or Equal",
     "Equal To",
     "If / Else",
     "Add",
@@ -142,8 +146,10 @@ const creators: Record<string, Creator> = {
     Or: () => new OrNode(),
     Xor: () => new XorNode(),
     Not: () => new NotNode(),
-    "Greater Than (or Equal)": () => new GreaterThanNode(),
-    "Less Than (or Equal)": () => new LessThanNode(),
+    "Greater Than": () => new GreaterThanNode(),
+    "Greater Than or Equal": () => new GreaterThanOrEqualNode(),
+    "Less Than": () => new LessThanNode(),
+    "Less Than or Equal": () => new LessThanOrEqualNode(),
     "Equal To": () => new EqualToNode(),
     "If / Else": () => new IfElseNode(),
     Add: () => new AddNode(),

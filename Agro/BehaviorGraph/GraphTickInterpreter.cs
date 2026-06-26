@@ -151,20 +151,32 @@ public static class GraphTickInterpreter
 				outs[(g, "out")] = WireValue.OfBool(!a);
 				break;
 			}
+			case GraphNodeKind.GreaterThan:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfBool(a > b);
+				break;
+			}
 			case GraphNodeKind.GreaterThanOrEqual:
 			{
 				var a = FirstFloat(node.Inputs, "a", outs);
 				var b = FirstFloat(node.Inputs, "b", outs);
-				var ok = node.NumericInclusive ? a >= b : a > b;
-				outs[(g, "out")] = WireValue.OfBool(ok);
+				outs[(g, "out")] = WireValue.OfBool(a >= b);
+				break;
+			}
+			case GraphNodeKind.LessThan:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfBool(a < b);
 				break;
 			}
 			case GraphNodeKind.LessThanOrEqual:
 			{
 				var a = FirstFloat(node.Inputs, "a", outs);
 				var b = FirstFloat(node.Inputs, "b", outs);
-				var ok = node.NumericInclusive ? a <= b : a < b;
-				outs[(g, "out")] = WireValue.OfBool(ok);
+				outs[(g, "out")] = WireValue.OfBool(a <= b);
 				break;
 			}
 			case GraphNodeKind.EqualTo:

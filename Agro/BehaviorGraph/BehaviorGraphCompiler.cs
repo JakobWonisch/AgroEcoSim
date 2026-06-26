@@ -63,7 +63,7 @@ public static class BehaviorGraphCompiler
 		}
 
 		var kinds = new GraphNodeKind[nodes.Count];
-		var payloads = new (float num, bool boo, bool inclusive)[nodes.Count];
+		var payloads = new (float num, bool boo)[nodes.Count];
 
 		for (var i = 0; i < nodes.Count; i++)
 		{
@@ -107,7 +107,6 @@ public static class BehaviorGraphCompiler
 				Inputs = inputs,
 				NumberConst = p.num,
 				BoolConst = p.boo,
-				NumericInclusive = p.inclusive,
 				ConfigId = configId,
 				ConfigIsBoolean = configIsBool,
 			};
@@ -206,9 +205,9 @@ public static class BehaviorGraphCompiler
 		return true;
 	}
 
-	static bool TryMapNode(global::GraphNode node, out GraphNodeKind kind, out (float num, bool boo, bool inclusive) payload, [NotNullWhen(false)] out string? error)
+	static bool TryMapNode(global::GraphNode node, out GraphNodeKind kind, out (float num, bool boo) payload, [NotNullWhen(false)] out string? error)
 	{
-		payload = (0f, false, false);
+		payload = (0f, false);
 		error = null;
 		var label = node.Label ?? "";
 
@@ -353,13 +352,17 @@ public static class BehaviorGraphCompiler
 			case "Not":
 				kind = GraphNodeKind.Not;
 				return true;
-			case "Greater Than (or Equal)":
-				kind = GraphNodeKind.GreaterThanOrEqual;
-				payload.inclusive = ReadInclusiveEqual(node.Data);
+			case "Greater Than":
+				kind = GraphNodeKind.GreaterThan;
 				return true;
-			case "Less Than (or Equal)":
+			case "Greater Than or Equal":
+				kind = GraphNodeKind.GreaterThanOrEqual;
+				return true;
+			case "Less Than":
+				kind = GraphNodeKind.LessThan;
+				return true;
+			case "Less Than or Equal":
 				kind = GraphNodeKind.LessThanOrEqual;
-				payload.inclusive = ReadInclusiveEqual(node.Data);
 				return true;
 			case "Equal To":
 				kind = GraphNodeKind.EqualTo;
@@ -415,15 +418,6 @@ public static class BehaviorGraphCompiler
 			};
 		}
 
-		return false;
-	}
-
-	static bool ReadInclusiveEqual(JsonElement data)
-	{
-		if (data.ValueKind != JsonValueKind.Object)
-			return false;
-		if (data.TryGetProperty("equal", out var e) && e.TryGetSingle(out var f))
-			return f > 0f;
 		return false;
 	}
 

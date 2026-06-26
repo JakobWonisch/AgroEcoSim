@@ -31,6 +31,4 @@ public sealed class CompiledNode
 	public string? ConfigId { get; init; }
 	/// <summary>For <see cref="GraphNodeKind.ConfigurationValueInput"/>.</summary>
 	public bool ConfigIsBoolean { get; init; }
-	/// <summary>For Greater/Less Than (or Equal): true means inclusive comparison.</summary>
-	public bool NumericInclusive { get; init; }
 }
