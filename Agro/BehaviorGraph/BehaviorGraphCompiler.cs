@@ -238,8 +238,8 @@ public static class BehaviorGraphCompiler
 			case "Agent State Input":
 				kind = GraphNodeKind.AgentStateInput;
 				return true;
-			case "Parent Input":
-				kind = GraphNodeKind.ParentInput;
+			case "Formation Input":
+				kind = GraphNodeKind.FormationInput;
 				return true;
 			case "Irradiance Input":
 				kind = GraphNodeKind.IrradianceInput;

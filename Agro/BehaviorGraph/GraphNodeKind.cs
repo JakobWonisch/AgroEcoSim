@@ -7,7 +7,7 @@ public enum GraphNodeKind : byte
 	AgentTypeInput,
 	PhaseInput,
 	AgentStateInput,
-	ParentInput,
+	FormationInput,
 	IrradianceInput,
 	SimulationSettingsInput,
 	RandomChanceInput,

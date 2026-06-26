@@ -212,12 +212,13 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(activeCond, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 461–467 — partial gate; RNG and parent organ type missing.</summary>
+	/// <summary>TickDefault lines 461–467 — partial; RNG missing.</summary>
 	public static global::ExportedGraph BuildPetioleAgeBudSubgraph()
 	{
 		var b = SubgraphBuilder.Create("pab");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 		var c36 = b.AddNum("c36", 36f, 280, 0);
 
 		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
@@ -228,14 +229,13 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(organ, "petiole", and1, "a");
 		b.Connect(ageOk, "out", and1, "b");
 
-		// MISSING: formation.GetOrgan(Parent) != Meristem
-		var missingParent = b.AddBoolStub("missing-parent", true,
-			"MISSING: parent organ type != Meristem (no formation.GetOrgan input)");
+		var notParentMeristem = b.Add("not-parent-mer", "Not", 1000, 20);
+		b.Connect(form, "parentMeristem", notParentMeristem, "a");
+
 		var and2 = b.Add("and2", "And", 1000, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingParent, "bool", and2, "b");
+		b.Connect(notParentMeristem, "out", and2, "b");
 
-		// MISSING: plant.RNG.NextFloatAccum(p*p, HoursPerTick)
 		var missingRng = b.AddBoolStub("missing-rng", true,
 			"MISSING: NextFloatAccum (Random Chance uses different semantics)");
 		var and3 = b.Add("and3", "And", 1240, 60);
@@ -245,18 +245,30 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(and3, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 473–481 — partial gate; dominance and RNG missing.</summary>
+	/// <summary>TickDefault lines 473–486 — partial; stem death probability and RNG missing.</summary>
 	public static global::ExportedGraph BuildStemDominanceDeathSubgraph()
 	{
 		var b = SubgraphBuilder.Create("sdd");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var c1 = b.AddNum("c1", 1f, 280, 0);
 
-		// MISSING: DominanceLevel > 1 && GetDominance(Parent) < DominanceLevel
-		var missingDom = b.AddBoolStub("missing-dom", true,
-			"MISSING: DominanceLevel and formation.GetDominance(Parent)");
-		var and1 = b.Add("and1", "And", 760, 20);
+		var domGt1 = b.Add("dom-gt1", "Greater Than", 520, 0);
+		b.Connect(state, "dominanceLevel", domGt1, "a");
+		b.Connect(c1, "num", domGt1, "b");
+
+		var parentDomLt = b.Add("parent-dom-lt", "Less Than", 520, 60);
+		b.Connect(form, "parentDominance", parentDomLt, "a");
+		b.Connect(state, "dominanceLevel", parentDomLt, "b");
+
+		var andDom = b.Add("and-dom", "And", 760, 20);
+		b.Connect(domGt1, "out", andDom, "a");
+		b.Connect(parentDomLt, "out", andDom, "b");
+
+		var and1 = b.Add("and1", "And", 760, 60);
 		b.Connect(organ, "stem", and1, "a");
-		b.Connect(missingDom, "bool", and1, "b");
+		b.Connect(andDom, "out", and1, "b");
 
 		var missingRng = b.AddBoolStub("missing-rng", true,
 			"MISSING: NextFloatAccum for stem death probability");
@@ -275,28 +287,26 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(organ, "meristem").Build();
 	}
 
-	/// <summary>TickDefault lines 494–519 — partial; auxin graph and energy gate missing.</summary>
+	/// <summary>TickDefault lines 494–548 — partial; energy gate and twig effects missing.</summary>
 	public static global::ExportedGraph BuildAuxinTwigSubgraph()
 	{
 		var b = SubgraphBuilder.Create("atw");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var form = b.Add("form", "Formation Input", 0, 60);
 
 		var petioleOrBud = b.Add("pet-or-bud", "Or", 400, 20);
 		b.Connect(organ, "petiole", petioleOrBud, "a");
 		b.Connect(organ, "bud", petioleOrBud, "b");
 
-		// MISSING: Energy > EnoughEnergy(lifeSupportPerHour * 320)
 		var missingEnergy = b.AddBoolStub("missing-energy", true,
 			"MISSING: Energy > EnoughEnergy (needs life support per hour * 320)");
 		var and1 = b.Add("and1", "And", 880, 20);
 		b.Connect(petioleOrBud, "out", and1, "a");
 		b.Connect(missingEnergy, "bool", and1, "b");
 
-		var missingAuxin = b.AddBoolStub("missing-auxin", true,
-			"MISSING: parentAuxins < threshold and local minimum traversal");
 		var and2 = b.Add("and2", "And", 1120, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingAuxin, "bool", and2, "b");
+		b.Connect(form, "auxinLocalMinimum", and2, "b");
 
 		return b.FinishWithActive(and2, "out").Build();
 	}
@@ -355,18 +365,16 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 632+ — partial; LengthVar and energy gate missing.</summary>
+	/// <summary>TickDefault lines 632+ — partial; energy gate and chain effects missing.</summary>
 	public static global::ExportedGraph BuildMeristemChainSubgraph()
 	{
 		var b = SubgraphBuilder.Create("mc");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
 
-		// MISSING: Length > LengthVar (no LengthVar agent input; placeholder 0 => length >= 0)
-		var cLengthVar = b.AddNum("c-length-var", 0f, 280, 60);
 		var lengthGt = b.Add("len-gt", "Greater Than", 520, 60);
 		b.Connect(state, "length", lengthGt, "a");
-		b.Connect(cLengthVar, "num", lengthGt, "b");
+		b.Connect(state, "lengthVar", lengthGt, "b");
 
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "meristem", and1, "a");
@@ -381,34 +389,44 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 686–687 — partial; formation reads missing.</summary>
+	/// <summary>TickDefault lines 686–687 — partial; energy gate and Make Bud effect missing.</summary>
 	public static global::ExportedGraph BuildPetioleCoverBudSubgraph()
 	{
 		var b = SubgraphBuilder.Create("pcb");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 
 		var missingEnergy = b.AddBoolStub("missing-energy", true,
 			"MISSING: Energy > EnoughEnergy and else-branch of Stem|Meristem block");
-		var missingCover = b.AddBoolStub("missing-cover", true,
-			"MISSING: ParentRadiusAtBirth + PetioleCoverThreshold < parent base radius");
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "petiole", and1, "a");
 		b.Connect(missingEnergy, "bool", and1, "b");
 
+		var coverSum = b.Add("cover-sum", "Add", 1000, 80);
+		b.Connect(state, "parentRadiusAtBirth", coverSum, "a");
+		var cThreshold = b.AddNum("c-threshold", 0f, 760, 80);
+		b.Connect(cThreshold, "num", coverSum, "b");
+		var coverLt = b.Add("cover-lt", "Less Than", 1000, 120);
+		b.Connect(coverSum, "out", coverLt, "a");
+		b.Connect(form, "parentBaseRadius", coverLt, "b");
+
 		var and2 = b.Add("and2", "And", 1000, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingCover, "bool", and2, "b");
+		b.Connect(coverLt, "out", and2, "b");
 
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 690–706 — partial; production sum and RNG missing.</summary>
+	/// <summary>TickDefault lines 690–706 — partial; production ratio and RNG missing.</summary>
 	public static global::ExportedGraph BuildPetioleUnproductiveDeathSubgraph()
 	{
 		var b = SubgraphBuilder.Create("pud");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 		var c48 = b.AddNum("c48", 48f, 280, 0);
+		var cHalf = b.AddNum("c-half", 0.5f, 1240, 120);
 
 		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
 		b.Connect(state, "ageHours", ageOk, "a");
@@ -418,26 +436,37 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(organ, "petiole", and1, "a");
 		b.Connect(ageOk, "out", and1, "b");
 
-		var missingParent = b.AddBoolStub("missing-parent", true,
-			"MISSING: parent organ != Meristem");
-		var missingChildren = b.AddBoolStub("missing-children", true,
-			"MISSING: children != null and production sum < 0.5");
-		var missingRng = b.AddBoolStub("missing-rng", true,
-			"MISSING: NextFloatAccum for unproductive petiole death");
+		var notParentMeristem = b.Add("not-parent-mer", "Not", 1000, 0);
+		b.Connect(form, "parentMeristem", notParentMeristem, "a");
+
+		var prodRatio = b.Add("prod-ratio", "Divide", 1000, 120);
+		b.Connect(form, "childrenProductionSum", prodRatio, "a");
+		b.Connect(form, "energyProductionMax", prodRatio, "b");
+
+		var prodLow = b.Add("prod-low", "Less Than", 1240, 120);
+		b.Connect(prodRatio, "out", prodLow, "a");
+		b.Connect(cHalf, "num", prodLow, "b");
 
 		var and2 = b.Add("and2", "And", 1000, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingParent, "bool", and2, "b");
+		b.Connect(notParentMeristem, "out", and2, "b");
 
 		var and3 = b.Add("and3", "And", 1240, 60);
 		b.Connect(and2, "out", and3, "a");
-		b.Connect(missingChildren, "bool", and3, "b");
+		b.Connect(form, "hasChildren", and3, "b");
 
 		var and4 = b.Add("and4", "And", 1480, 80);
 		b.Connect(and3, "out", and4, "a");
-		b.Connect(missingRng, "bool", and4, "b");
+		b.Connect(prodLow, "out", and4, "b");
 
-		return b.FinishWithActive(and4, "out").Build();
+		var missingRng = b.AddBoolStub("missing-rng", true,
+			"MISSING: NextFloatAccum for unproductive petiole death");
+
+		var and5 = b.Add("and5", "And", 1720, 100);
+		b.Connect(and4, "out", and5, "a");
+		b.Connect(missingRng, "bool", and5, "b");
+
+		return b.FinishWithActive(and5, "out").Build();
 	}
 
 	/// <summary>TickDefault lines 712–726 — Energy &lt;= 0.</summary>

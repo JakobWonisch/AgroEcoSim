@@ -19,7 +19,7 @@ import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchContr
 import { AgentTypeInputNode } from './input/AgentTypeInputNode';
 import { PhaseInputNode } from './input/PhaseInputNode';
 import { AgentStateInputNode } from './input/AgentStateInputNode';
-import { ParentInputNode } from './input/ParentInputNode';
+import { FormationInputNode } from './input/FormationInputNode';
 import { IrradianceInputNode } from './input/IrradianceInputNode';
 import { SimulationSettingsInputNode } from './input/SimulationSettingsInputNode';
 import { RandomChanceInputNode } from './input/RandomChanceInputNode';
@@ -177,7 +177,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Agent Type Input', () => new AgentTypeInputNode()],
                 ['Phase Input', () => new PhaseInputNode()],
                 ['Agent State Input', () => new AgentStateInputNode()],
-                ['Parent Input', () => new ParentInputNode()],
+                ['Formation Input', () => new FormationInputNode()],
                 ['Irradiance Input', () => new IrradianceInputNode()],
                 ['Simulation Settings Input', () => new SimulationSettingsInputNode()],
                 ['Random Chance Input', () => new RandomChanceInputNode()],

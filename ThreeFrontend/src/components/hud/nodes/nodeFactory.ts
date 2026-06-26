@@ -6,7 +6,7 @@ import { ActiveOutputNode } from "./output/ActiveOutputNode";
 import { GrowthNode } from "./output/GrowthNode";
 import { PhaseInputNode } from "./input/PhaseInputNode";
 import { AgentStateInputNode } from "./input/AgentStateInputNode";
-import { ParentInputNode } from "./input/ParentInputNode";
+import { FormationInputNode } from "./input/FormationInputNode";
 import { IrradianceInputNode } from "./input/IrradianceInputNode";
 import { SimulationSettingsInputNode } from "./input/SimulationSettingsInputNode";
 import { RandomChanceInputNode } from "./input/RandomChanceInputNode";
@@ -67,7 +67,7 @@ export const canonicalBehaviorNodeLabels = [
     "Agent Type Input",
     "Phase Input",
     "Agent State Input",
-    "Parent Input",
+    "Formation Input",
     "Irradiance Input",
     "Simulation Settings Input",
     "Random Chance Input",
@@ -141,7 +141,7 @@ const creators: Record<string, Creator> = {
     "Agent Type Input": () => new AgentTypeInputNode(),
     "Phase Input": () => new PhaseInputNode(),
     "Agent State Input": () => new AgentStateInputNode(),
-    "Parent Input": () => new ParentInputNode(),
+    "Formation Input": () => new FormationInputNode(),
     "Irradiance Input": () => new IrradianceInputNode(),
     "Simulation Settings Input": () => new SimulationSettingsInputNode(),
     "Random Chance Input": () => new RandomChanceInputNode(),

@@ -229,7 +229,7 @@ public class BehaviorGraphCompilerTests
 	[Theory]
 	[InlineData("Phase Input")]
 	[InlineData("Agent State Input")]
-	[InlineData("Parent Input")]
+	[InlineData("Formation Input")]
 	[InlineData("Irradiance Input")]
 	[InlineData("Random Chance Input")]
 	[InlineData("Delta Energy")]

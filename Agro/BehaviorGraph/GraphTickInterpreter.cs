@@ -12,7 +12,7 @@ public static class GraphTickInterpreter
 			Formation = formation,
 			AgentId = agentId,
 			Timestep = timestep,
-			BehaviorConfiguration = formation.Plant.BehaviorConfiguration,
+			BehaviorConfiguration = formation?.Plant.BehaviorConfiguration,
 		};
 		var outs = new Dictionary<(int NodeIndex, string Socket), WireValue>();
 
@@ -67,8 +67,8 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.AgentStateInput:
 				WriteAgentStateInput(ref agent, ctx, outs, g);
 				break;
-			case GraphNodeKind.ParentInput:
-				WriteParentInput(ref agent, ctx, outs, g);
+			case GraphNodeKind.FormationInput:
+				WriteFormationInput(ref agent, ctx, outs, g);
 				break;
 			case GraphNodeKind.IrradianceInput:
 				WriteIrradianceInput(ctx, outs, g);
@@ -384,20 +384,108 @@ public static class GraphTickInterpreter
 		outs[(g, "energyStorageCapacity")] = WireValue.OfFloat(agent.GraphEnergyStorageCapacity());
 	}
 
-	static void WriteParentInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
+	static void WriteFormationInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
 	{
 		if (!ctx.HasFormation || agent.Parent < 0)
 		{
 			outs[(g, "parentIsRhizome")] = WireValue.OfBool(false);
 			outs[(g, "parentWood")] = WireValue.OfFloat(agent.WoodRatio());
-			return;
+			outs[(g, "parentLeaf")] = WireValue.OfBool(false);
+			outs[(g, "parentStem")] = WireValue.OfBool(false);
+			outs[(g, "parentMeristem")] = WireValue.OfBool(false);
+			outs[(g, "parentPetiole")] = WireValue.OfBool(false);
+			outs[(g, "parentBud")] = WireValue.OfBool(false);
+			outs[(g, "parentAuxins")] = WireValue.OfFloat(0f);
+			outs[(g, "grandparentAuxins")] = WireValue.OfFloat(0f);
+			outs[(g, "parentDominance")] = WireValue.OfFloat(0f);
+			outs[(g, "parentBaseRadius")] = WireValue.OfFloat(0f);
+			outs[(g, "hasChildren")] = WireValue.OfBool(false);
+			outs[(g, "childrenProductionSum")] = WireValue.OfFloat(0f);
+			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(0f);
+			outs[(g, "auxinLocalMinimum")] = WireValue.OfBool(false);
+		}
+		else
+		{
+			var formation = ctx.Formation!;
+			var parent = agent.Parent;
+			var parentOrgan = formation.GetOrgan(parent);
+			var parentIsRhizome = formation.GetIsRizome(parent);
+			outs[(g, "parentIsRhizome")] = WireValue.OfBool(parentIsRhizome);
+			outs[(g, "parentWood")] = WireValue.OfFloat(
+				parentIsRhizome ? agent.WoodRatio() : formation.GetWoodRatio(parent));
+			outs[(g, "parentLeaf")] = WireValue.OfBool(parentOrgan == OrganTypes.Leaf);
+			outs[(g, "parentStem")] = WireValue.OfBool(parentOrgan == OrganTypes.Stem);
+			outs[(g, "parentMeristem")] = WireValue.OfBool(parentOrgan == OrganTypes.Meristem);
+			outs[(g, "parentPetiole")] = WireValue.OfBool(parentOrgan == OrganTypes.Petiole);
+			outs[(g, "parentBud")] = WireValue.OfBool(parentOrgan == OrganTypes.Bud);
+			outs[(g, "parentAuxins")] = WireValue.OfFloat(formation.GetAuxins(parent));
+			var grandparent = formation.GetParent(parent);
+			outs[(g, "grandparentAuxins")] = WireValue.OfFloat(
+				grandparent < 0 ? 0f : formation.GetAuxins(grandparent));
+			outs[(g, "parentDominance")] = WireValue.OfFloat(formation.GetDominance(parent));
+			outs[(g, "parentBaseRadius")] = WireValue.OfFloat(formation.GetBaseRadius(parent));
+			var children = formation.GetChildren(ctx.AgentId);
+			outs[(g, "hasChildren")] = WireValue.OfBool(children is { Count: > 0 });
+			var productionSum = 0f;
+			if (children is not null)
+			{
+				for (var i = 0; i < children.Count; i++)
+					productionSum += formation.GetDailyProductionInv(children[i]);
+			}
+			outs[(g, "childrenProductionSum")] = WireValue.OfFloat(productionSum);
+			var height = formation.Height;
+			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(
+				height > 1e-6f ? 5f * formation.GetBaseCenter(ctx.AgentId).Y / height : 0f);
+			outs[(g, "auxinLocalMinimum")] = WireValue.OfBool(
+				ComputeAuxinLocalMinimum(formation, ref agent));
 		}
 
-		var formation = ctx.Formation!;
-		var parentIsRhizome = formation.GetIsRizome(agent.Parent);
-		outs[(g, "parentIsRhizome")] = WireValue.OfBool(parentIsRhizome);
-		outs[(g, "parentWood")] = WireValue.OfFloat(
-			parentIsRhizome ? agent.WoodRatio() : formation.GetWoodRatio(agent.Parent));
+		if (ctx.HasFormation)
+		{
+			var formation = ctx.Formation!;
+			var plant = formation.Plant;
+			outs[(g, "dailyProductionMax")] = WireValue.OfFloat(formation.DailyProductionMax);
+			outs[(g, "dailyResourceMax")] = WireValue.OfFloat(formation.DailyResourceMax);
+			outs[(g, "dailyEfficiencyMax")] = WireValue.OfFloat(formation.DailyEfficiencyMax);
+			outs[(g, "waterBalance")] = WireValue.OfFloat(plant.WaterBalance);
+			outs[(g, "energyProductionMax")] = WireValue.OfFloat(plant.EnergyProductionMax);
+		}
+		else
+		{
+			outs[(g, "dailyProductionMax")] = WireValue.OfFloat(0f);
+			outs[(g, "dailyResourceMax")] = WireValue.OfFloat(0f);
+			outs[(g, "dailyEfficiencyMax")] = WireValue.OfFloat(0f);
+			outs[(g, "waterBalance")] = WireValue.OfFloat(0f);
+			outs[(g, "energyProductionMax")] = WireValue.OfFloat(0f);
+		}
+	}
+
+	static bool ComputeAuxinLocalMinimum(PlantSubFormation<AboveGroundAgent> formation, ref AboveGroundAgent agent)
+	{
+		if (agent.Parent < 0)
+			return false;
+
+		var species = formation.Plant.Parameters;
+		var parentAuxins = formation.GetAuxins(agent.Parent);
+		if (parentAuxins >= species.AuxinsThreshold)
+			return false;
+
+		var ascendantIndex = formation.GetParent(agent.Parent);
+		var localMinimum = ascendantIndex < 0 || formation.GetAuxins(ascendantIndex) >= parentAuxins;
+
+		if (localMinimum)
+		{
+			foreach (var child in formation.GetChildren(agent.Parent))
+			{
+				if (formation.GetOrgan(child) == OrganTypes.Stem && formation.GetAuxins(child) <= parentAuxins)
+				{
+					localMinimum = false;
+					break;
+				}
+			}
+		}
+
+		return localMinimum;
 	}
 
 	static void WriteIrradianceInput(TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
