@@ -10,6 +10,14 @@ export class AgentStateInputNode extends ClassicPreset.Node {
         this.addOutput("radius", new ClassicPreset.Output(numSocket, "Radius"));
         this.addOutput("wood", new ClassicPreset.Output(numSocket, "Wood"));
         this.addOutput("ageHours", new ClassicPreset.Output(numSocket, "Age (hours)"));
+        this.addOutput("lengthVar", new ClassicPreset.Output(numSocket, "Length var"));
+        this.addOutput("radiusVar", new ClassicPreset.Output(numSocket, "Radius var"));
+        this.addOutput("growthTimeVar", new ClassicPreset.Output(numSocket, "Growth time var"));
+        this.addOutput("dominanceLevel", new ClassicPreset.Output(numSocket, "Dominance level"));
+        this.addOutput("parentRadiusAtBirth", new ClassicPreset.Output(numSocket, "Parent radius at birth"));
+        this.addOutput("previousDayEnvResources", new ClassicPreset.Output(numSocket, "Prev day env resources"));
+        this.addOutput("previousDayProductionInv", new ClassicPreset.Output(numSocket, "Prev day production inv"));
+        this.addOutput("energyStorageCapacity", new ClassicPreset.Output(numSocket, "Energy storage capacity"));
         this.addOutput("isRizome", new ClassicPreset.Output(boolSocket, "Is rhizome"));
         this.addOutput("trySpawn", new ClassicPreset.Output(boolSocket, "Is try spawn"));
     }

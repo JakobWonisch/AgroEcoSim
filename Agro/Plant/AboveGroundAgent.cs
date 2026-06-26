@@ -872,6 +872,14 @@ public partial struct AboveGroundAgent : IPlantAgent
 	//public void IncCytokinins(float amount) => Cytokinins += amount;
 
 	#region Behavior graph mutations
+	[M(AI)] internal readonly float GraphLengthVar() => LengthVar;
+	[M(AI)] internal readonly float GraphRadiusVar() => RadiusVar;
+	[M(AI)] internal readonly float GraphGrowthTimeVar() => GrowthTimeVar;
+	[M(AI)] internal readonly float GraphDominanceLevel() => DominanceLevel;
+	[M(AI)] internal readonly float GraphParentRadiusAtBirth() => ParentRadiusAtBirth;
+	[M(AI)] internal readonly float GraphPreviousDayEnvResources() => PreviousDayEnvResources;
+	[M(AI)] internal readonly float GraphPreviousDayProductionInv() => PreviousDayProductionInvariant;
+	[M(AI)] internal readonly float GraphEnergyStorageCapacity() => EnergyStorageCapacity();
 	[M(AI)] internal void GraphDeltaWood(float amount) => WoodFactor += amount;
 	[M(AI)] internal void GraphSetWood(float value) => WoodFactor = value;
 	[M(AI)] internal void GraphSetGrowthTimeVar(float value) => GrowthTimeVar = value;

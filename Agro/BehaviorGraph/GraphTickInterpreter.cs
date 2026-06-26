@@ -374,6 +374,14 @@ public static class GraphTickInterpreter
 		outs[(g, "ageHours")] = WireValue.OfFloat(ageHours);
 		outs[(g, "isRizome")] = WireValue.OfBool(agent.isRizome);
 		outs[(g, "trySpawn")] = WireValue.OfBool(agent.trySpawn);
+		outs[(g, "lengthVar")] = WireValue.OfFloat(agent.GraphLengthVar());
+		outs[(g, "radiusVar")] = WireValue.OfFloat(agent.GraphRadiusVar());
+		outs[(g, "growthTimeVar")] = WireValue.OfFloat(agent.GraphGrowthTimeVar());
+		outs[(g, "dominanceLevel")] = WireValue.OfFloat(agent.GraphDominanceLevel());
+		outs[(g, "parentRadiusAtBirth")] = WireValue.OfFloat(agent.GraphParentRadiusAtBirth());
+		outs[(g, "previousDayEnvResources")] = WireValue.OfFloat(agent.GraphPreviousDayEnvResources());
+		outs[(g, "previousDayProductionInv")] = WireValue.OfFloat(agent.GraphPreviousDayProductionInv());
+		outs[(g, "energyStorageCapacity")] = WireValue.OfFloat(agent.GraphEnergyStorageCapacity());
 	}
 
 	static void WriteParentInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
