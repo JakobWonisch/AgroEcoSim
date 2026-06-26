@@ -1,4 +1,4 @@
-import { BaseAreaPlugin } from "rete-area-plugin";
+import { AreaPlugin } from "rete-area-plugin";
 import { NodeEditor } from "rete";
 import { AreaExtra, Schemes } from "./NodeTypes";
 
@@ -90,7 +90,7 @@ function assignColumns(topoOrder: string[], successors: Map<string, string[]>): 
 }
 
 function measureNode(
-    area: BaseAreaPlugin<Schemes, AreaExtra>,
+    area: AreaPlugin<Schemes, AreaExtra>,
     nodeId: string
 ): { width: number; height: number } {
     const view = area.nodeViews.get(nodeId);
@@ -106,7 +106,7 @@ function measureNode(
 
 export function computeAutoLayoutPositions(
     editor: NodeEditor<Schemes>,
-    area: BaseAreaPlugin<Schemes, AreaExtra>,
+    area: AreaPlugin<Schemes, AreaExtra>,
     rowMargin: number = AUTO_LAYOUT_ROW_MARGIN,
     columnMargin: number = AUTO_LAYOUT_COLUMN_MARGIN
 ): Map<string, Position> {
@@ -160,7 +160,7 @@ export function computeAutoLayoutPositions(
 
 export async function applyAutoLayout(
     editor: NodeEditor<Schemes>,
-    area: BaseAreaPlugin<Schemes, AreaExtra>
+    area: AreaPlugin<Schemes, AreaExtra>
 ): Promise<void> {
     const positions = computeAutoLayoutPositions(editor, area);
     for (const [id, pos] of positions)
