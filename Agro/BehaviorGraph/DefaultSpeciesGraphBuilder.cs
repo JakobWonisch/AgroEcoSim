@@ -12,20 +12,20 @@ public static class DefaultSpeciesGraphBuilder
 	[
 		("Life support", BuildLifeSupportSubgraph()),
 		("Photosynthesis", BuildPhotosynthesisSubgraph()),
-		("Petiole age bud", BuildPetioleAgeBudSubgraph()),
-		("Stem dominance death", BuildStemDominanceDeathSubgraph()),
-		("Meristem tick marker", BuildMeristemTickMarkerSubgraph()),
-		("Auxin twig", BuildAuxinTwigSubgraph()),
-		("Growth leaf", BuildGrowthLeafSubgraph()),
-		("Growth petiole", BuildGrowthPetioleSubgraph()),
-		("Growth meristem", BuildGrowthMeristemSubgraph()),
-		("Growth stem", BuildGrowthStemSubgraph()),
-		("Wood lignify", BuildWoodLignifySubgraph()),
-		("Meristem chain", BuildMeristemChainSubgraph()),
-		("Petiole cover bud", BuildPetioleCoverBudSubgraph()),
-		("Petiole unproductive death", BuildPetioleUnproductiveDeathSubgraph()),
-		("Energy depletion", BuildEnergyDepletionSubgraph()),
-		("Auxins update", BuildAuxinsUpdateSubgraph()),
+		// ("Petiole age bud", BuildPetioleAgeBudSubgraph()),
+		// ("Stem dominance death", BuildStemDominanceDeathSubgraph()),
+		// ("Meristem tick marker", BuildMeristemTickMarkerSubgraph()),
+		// ("Auxin twig", BuildAuxinTwigSubgraph()),
+		// ("Growth leaf", BuildGrowthLeafSubgraph()),
+		// ("Growth petiole", BuildGrowthPetioleSubgraph()),
+		// ("Growth meristem", BuildGrowthMeristemSubgraph()),
+		// ("Growth stem", BuildGrowthStemSubgraph()),
+		// ("Wood lignify", BuildWoodLignifySubgraph()),
+		// ("Meristem chain", BuildMeristemChainSubgraph()),
+		// ("Petiole cover bud", BuildPetioleCoverBudSubgraph()),
+		// ("Petiole unproductive death", BuildPetioleUnproductiveDeathSubgraph()),
+		// ("Energy depletion", BuildEnergyDepletionSubgraph()),
+		// ("Auxins update", BuildAuxinsUpdateSubgraph()),
 	];
 
 	/// <summary>
@@ -43,7 +43,8 @@ public static class DefaultSpeciesGraphBuilder
 		// AboveGroundAgent.LeafThickness
 		var cLeafThick = b.AddNum("leaf-thick", 0.0001f, 240, 80);
 		// MISSING: world.HoursPerTick — no simulation input node; AgroWorld default is 1
-		var cHoursPerTick = b.AddNum("hours-per-tick", 1f, 240, 120);
+		var cHoursPerTick = b.AddNum("hours-per-tick", 1f, 240, 120,
+			"Placeholder: AgroWorld.HoursPerTick (no simulation input node yet)");
 		var c0 = b.AddNum("c0", 0f, 240, 160);
 
 		var lr = b.Add("lr", "Multiply", 480, 100);
@@ -156,7 +157,8 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(photoAmt, "out", prodInv, "a");
 		b.Connect(surface, "out", prodInv, "b");
 
-		var accProd = b.Add("acc-prod", "Accumulate Production", 2160, 300);
+		var accProd = b.Add("acc-prod", "Accumulate Production", 2160, 300,
+			"MISSING: CurrentDayEnvResources += approxLight*surface (no effect node)");
 		b.Connect(prodInv, "out", accProd, "amount");
 
 		return b.FinishWithActive(activeCond, "out").Build();
@@ -437,28 +439,31 @@ public static class DefaultSpeciesGraphBuilder
 
 		string Pref(string id) => $"{_prefix}-{id}";
 
-		public string Add(string id, string label, float x, float y, JsonElement? data = null)
+		public string Add(string id, string label, float x, float y, GraphNodePayload? payload = null)
 		{
 			var fullId = Pref(id);
 			_nodes.Add(new global::GraphNode
 			{
 				Id = fullId,
 				Label = label,
-				Data = data ?? JsonSerializer.SerializeToElement(new { }),
+				Data = payload?.ToJsonElement() ?? JsonSerializer.SerializeToElement(new { }),
 				Position = new global::NodePosition { X = x, Y = y },
 			});
 			return fullId;
 		}
 
-		public string AddBool(string id, bool value, float x, float y) =>
-			Add(id, "Boolean Input", x, y, JsonSerializer.SerializeToElement(new Dictionary<string, bool> { ["bool"] = value }));
+		public string Add(string id, string label, float x, float y, string comment) =>
+			Add(id, label, x, y, GraphNodePayload.FromComment(comment));
 
-		/// <summary>Boolean stub for guards that cannot be wired yet; document in builder source comment.</summary>
-		public string AddBoolStub(string id, bool value, string missingCapabilityComment) =>
-			AddBool(id, value, 0, 0); // capability noted in caller / method XML
+		public string AddBool(string id, bool value, float x, float y, string? comment = null) =>
+			Add(id, "Boolean Input", x, y, GraphNodePayload.FromBool(value, comment));
 
-		public string AddNum(string id, float value, float x, float y) =>
-			Add(id, "Number Input", x, y, JsonSerializer.SerializeToElement(new Dictionary<string, float> { ["value"] = value }));
+		/// <summary>Boolean stub for guards that cannot be wired yet; comment is shown in the editor.</summary>
+		public string AddBoolStub(string id, bool value, string comment) =>
+			AddBool(id, value, 0, 0, comment);
+
+		public string AddNum(string id, float value, float x, float y, string? comment = null) =>
+			Add(id, "Number Input", x, y, GraphNodePayload.FromNumber(value, comment));
 
 		public void Connect(string source, string sourceOutput, string target, string targetInput)
 		{

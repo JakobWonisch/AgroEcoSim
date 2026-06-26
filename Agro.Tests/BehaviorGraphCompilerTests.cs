@@ -286,6 +286,29 @@ public class BehaviorGraphCompilerTests
 					or GraphNodeKind.AccumulateProduction);
 		}
 
-		Assert.Equal(16, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
+		Assert.Equal(2, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
+	}
+
+	[Fact]
+	public void GraphNodePayload_SerializesCommentWithValue()
+	{
+		var data = GraphNodePayload.FromNumber(1f, "hours per tick placeholder").ToJsonElement();
+		Assert.Equal(1f, data.GetProperty("value").GetSingle());
+		Assert.Equal("hours per tick placeholder", data.GetProperty("comment").GetString());
+	}
+
+	[Fact]
+	public void DefaultSpeciesSubgraphs_IncludeEditorComments()
+	{
+		var life = DefaultSpeciesGraphBuilder.BuildLifeSupportSubgraph();
+		var hoursNode = life.Nodes.Find(n => n.Id == "ls-hours-per-tick");
+		Assert.NotNull(hoursNode);
+		Assert.Equal("Placeholder: AgroWorld.HoursPerTick (no simulation input node yet)",
+			hoursNode.Data.GetProperty("comment").GetString());
+
+		var photo = DefaultSpeciesGraphBuilder.BuildPhotosynthesisSubgraph();
+		var accProd = photo.Nodes.Find(n => n.Id == "photo-acc-prod");
+		Assert.NotNull(accProd);
+		Assert.True(accProd.Data.TryGetProperty("comment", out _));
 	}
 }
