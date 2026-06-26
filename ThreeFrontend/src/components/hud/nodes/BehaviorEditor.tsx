@@ -203,41 +203,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     connection.addPreset(ConnectionPresets.classic.setup());
 
-    let lastPointerEvent: MouseEvent | undefined;
-    let pendingDropPosition: { x: number, y: number } | null = null;
-    let pendingDropConnection: { nodeId: string, side: 'input' | 'output', key: string } | null = null;
-
-    area.addPipe(context => {
-        const c = context as any;
-        if (['pointermove', 'pointerup'].includes(c.type)) {
-            if (c.data && c.data.event) {
-                lastPointerEvent = c.data.event;
-            }
-        }
-        if (c.type === 'pointerdown') {
-            pendingDropPosition = null;
-            pendingDropConnection = null;
-        }
-        return context;
-    });
-
-    connection.addPipe(context => {
-        const c = context as any;
-        if (c.type === 'connectiondrop') {
-            const ev = c.data.event || lastPointerEvent;
-            if (ev) {
-                // Record the exact projected SVG coordinates
-                pendingDropPosition = { ...area.area.pointer };
-                pendingDropConnection = c.data.initial;
-
-                setTimeout(() => {
-                    area.emit({ type: 'contextmenu', data: { event: ev, context: 'root' } } as any);
-                }, 10);
-            }
-        }
-        return context;
-    });
-
     let recentlyRemovedConnection: any = null;
     let removeTimeout: any = null;
 
@@ -277,39 +242,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 const actives = editor.getNodes().filter((n: any) => n.label === 'Active');
                 if (actives.length > 1)
                     setTimeout(() => editor.removeNode(c.data.id).catch(() => { }), 0);
-            }
-            if (pendingDropPosition) {
-                const pos = { ...pendingDropPosition };
-                pendingDropPosition = null;
-                setTimeout(() => area.translate(c.data.id, pos), 0);
-            }
-
-            if (pendingDropConnection) {
-                const src = pendingDropConnection;
-                pendingDropConnection = null;
-
-                const newNode = c.data;
-                setTimeout(() => {
-                    try {
-                        if (src.side === 'output') {
-                            const inputs = Object.entries(newNode.inputs);
-                            if (inputs.length > 0) {
-                                editor.addConnection(new ClassicPreset.Connection(
-                                    editor.getNode(src.nodeId), src.key,
-                                    newNode, inputs[0][0]
-                                )).catch(() => { });
-                            }
-                        } else if (src.side === 'input') {
-                            const outputs = Object.entries(newNode.outputs);
-                            if (outputs.length > 0) {
-                                editor.addConnection(new ClassicPreset.Connection(
-                                    newNode, outputs[0][0],
-                                    editor.getNode(src.nodeId), src.key
-                                )).catch(() => { });
-                            }
-                        }
-                    } catch (e) { }
-                }, 10);
             }
         }
 

@@ -122,6 +122,14 @@ async function replaceNodeInEditor(
         c => c.source === nodeId || c.target === nodeId,
     );
 
+    for (const c of connections) {
+        try {
+            await ctx.editor.removeConnection(c.id);
+        } catch {
+            // already removed with node
+        }
+    }
+
     const newNode = createNode();
     newNode.id = nodeId;
 
@@ -136,6 +144,16 @@ async function replaceNodeInEditor(
             const sourceNode = c.source === nodeId ? newNode : ctx.editor.getNode(c.source);
             const targetNode = c.target === nodeId ? newNode : ctx.editor.getNode(c.target);
             if (!sourceNode || !targetNode) continue;
+
+            const duplicate = ctx.editor.getConnections().some(
+                existing =>
+                    existing.source === sourceNode.id
+                    && existing.sourceOutput === c.sourceOutput
+                    && existing.target === targetNode.id
+                    && existing.targetInput === c.targetInput,
+            );
+            if (duplicate) continue;
+
             await ctx.editor.addConnection(new ClassicPreset.Connection(
                 sourceNode,
                 c.sourceOutput,
