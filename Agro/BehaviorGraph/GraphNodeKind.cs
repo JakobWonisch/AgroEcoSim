@@ -12,8 +12,6 @@ public enum GraphNodeKind : byte
 	SimulationSettingsInput,
 	RandomChanceInput,
 	Active,
-	BooleanOutput,
-	NumberOutput,
 	And,
 	Or,
 	Xor,

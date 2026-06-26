@@ -183,8 +183,6 @@ public static class GraphTickInterpreter
 				break;
 			}
 			case GraphNodeKind.Active:
-			case GraphNodeKind.BooleanOutput:
-			case GraphNodeKind.NumberOutput:
 				break;
 			case GraphNodeKind.Growth:
 			{

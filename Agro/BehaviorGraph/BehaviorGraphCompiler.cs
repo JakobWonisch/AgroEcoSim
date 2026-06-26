@@ -341,12 +341,6 @@ public static class BehaviorGraphCompiler
 			case "Active":
 				kind = GraphNodeKind.Active;
 				return true;
-			case "Boolean Output":
-				kind = GraphNodeKind.BooleanOutput;
-				return true;
-			case "Number Output":
-				kind = GraphNodeKind.NumberOutput;
-				return true;
 			case "And":
 				kind = GraphNodeKind.And;
 				return true;

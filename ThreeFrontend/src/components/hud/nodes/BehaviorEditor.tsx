@@ -28,8 +28,6 @@ import { NumberInputNode } from './input/NumberInputNode';
 import { ConfigurationValueInputNode } from './input/ConfigurationValueInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
 import { ActiveOutputNode } from './output/ActiveOutputNode';
-import { BooleanOutputNode } from './output/BooleanOutputNode';
-import { NumberOutputNode } from './output/NumberOutputNode';
 import { GrowthNode } from './output/GrowthNode';
 import { DeltaEnergyNode } from './output/DeltaEnergyNode';
 import { DeltaWaterNode } from './output/DeltaWaterNode';
@@ -154,10 +152,12 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     renderPlugin.addPreset(Presets.contextMenu.setup({ delay: 0 }));
 
     const behaviorGraphMenuItems = ContextMenuPresets.classic.setup([
-            ['input', [
-                ['Number', () => new NumberInputNode(0)],
-                ['Boolean', () => new BooleanInputNode(false)],
+            ['input constant', [
+                ['Number Input', () => new NumberInputNode(0)],
+                ['Boolean Input', () => new BooleanInputNode(false)],
                 ['Configuration Value Input', () => new ConfigurationValueInputNode()],
+            ]],
+            ['input dynamic', [
                 ['Agent Type Input', () => new AgentTypeInputNode()],
                 ['Phase Input', () => new PhaseInputNode()],
                 ['Agent State Input', () => new AgentStateInputNode()],
@@ -166,13 +166,13 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Simulation Settings Input', () => new SimulationSettingsInputNode()],
                 ['Random Chance Input', () => new RandomChanceInputNode()],
             ]],
-            ['output', [
-                ['Number', () => new NumberOutputNode()],
-                ['Boolean', () => new BooleanOutputNode()],
+            ['output delta', [
                 ['Growth', () => new GrowthNode()],
                 ['Delta Energy', () => new DeltaEnergyNode()],
                 ['Delta Water', () => new DeltaWaterNode()],
                 ['Delta Wood', () => new DeltaWoodNode()],
+            ]],
+            ['output set', [
                 ['Set Wood', () => new SetWoodNode()],
                 ['Multiply Energy', () => new MultiplyEnergyNode()],
                 ['Multiply Water', () => new MultiplyWaterNode()],
@@ -182,13 +182,12 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Accumulate Production', () => new AccumulateProductionNode()],
                 ['Make Bud', () => new MakeBudNode()],
                 ['Create Leaves', () => new CreateLeavesNode()],
-                ['Death', () => new DeathNode()],
-                ['Death Parent', () => new DeathParentNode()],
-                ['Death Children', () => new DeathChildrenNode()],
                 ['Become Meristem', () => new BecomeMeristemNode()],
                 ['Become Stem', () => new BecomeStemNode()],
                 ['Become Flower Stem', () => new BecomeFlowerStemNode()],
                 ['Become Flower Meristem', () => new BecomeFlowerMeristemNode()],
+            ]],
+            ['output spawn', [
                 ['Spawn Meristem', () => new SpawnMeristemNode()],
                 ['Spawn Bud', () => new SpawnBudNode()],
                 ['Spawn Stem', () => new SpawnStemNode()],
@@ -197,6 +196,11 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Spawn Flower Bud', () => new SpawnFlowerBudNode()],
                 ['Spawn Flower Padel', () => new SpawnFlowerPadelNode()],
                 ['Spawn Rhizome', () => new SpawnRhizomeNode()],
+            ]],
+            ['output death', [
+                ['Death', () => new DeathNode()],
+                ['Death Parent', () => new DeathParentNode()],
+                ['Death Children', () => new DeathChildrenNode()],
             ]],
             ['boolean', [
                 ['And', () => new AndNode()],

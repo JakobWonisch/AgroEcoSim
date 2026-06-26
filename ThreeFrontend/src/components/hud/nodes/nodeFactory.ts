@@ -3,8 +3,6 @@ import { BooleanInputNode } from "./input/BooleanInputNode";
 import { ConfigurationValueInputNode } from "./input/ConfigurationValueInputNode";
 import { AgentTypeInputNode } from "./input/AgentTypeInputNode";
 import { ActiveOutputNode } from "./output/ActiveOutputNode";
-import { BooleanOutputNode } from "./output/BooleanOutputNode";
-import { NumberOutputNode } from "./output/NumberOutputNode";
 import { GrowthNode } from "./output/GrowthNode";
 import { PhaseInputNode } from "./input/PhaseInputNode";
 import { AgentStateInputNode } from "./input/AgentStateInputNode";
@@ -70,8 +68,6 @@ export const canonicalBehaviorNodeLabels = [
     "Simulation Settings Input",
     "Random Chance Input",
     "Active",
-    "Boolean Output",
-    "Number Output",
     "And",
     "Or",
     "Xor",
@@ -142,8 +138,6 @@ const creators: Record<string, Creator> = {
     "Simulation Settings Input": () => new SimulationSettingsInputNode(),
     "Random Chance Input": () => new RandomChanceInputNode(),
     Active: () => new ActiveOutputNode(),
-    "Boolean Output": () => new BooleanOutputNode(),
-    "Number Output": () => new NumberOutputNode(),
     And: () => new AndNode(),
     Or: () => new OrNode(),
     Xor: () => new XorNode(),
