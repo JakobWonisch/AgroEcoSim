@@ -6,8 +6,4 @@ export class SetTrySpawnNode extends ClassicPreset.Node {
         super("Set trySpawn");
         this.addInput("value", new ClassicPreset.Input(boolSocket, "value"));
     }
-
-    data() {
-        return {};
-    }
 }

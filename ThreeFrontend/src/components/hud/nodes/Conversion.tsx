@@ -63,18 +63,12 @@ function exportNodeData(node: any): Record<string, unknown> {
     if (node && typeof node.data === "object" && node.data !== null)
         return safeClone(node.data);
 
-    // Rete nodes in this editor often expose `data()` as a function.
-    // Persist only primitive control values that can be reliably restored.
-    if (typeof node?.data === "function") {
-        const out: Record<string, unknown> = {};
-        if (node?.valueControl && typeof node.valueControl.value === "number")
-            out.value = node.valueControl.value;
-        if (node?.switchControl && typeof node.switchControl.value === "boolean")
-            out.bool = node.switchControl.value;
-        return out;
-    }
-
-    return {};
+    const out: Record<string, unknown> = {};
+    if (node?.valueControl && typeof node.valueControl.value === "number")
+        out.value = node.valueControl.value;
+    if (node?.switchControl && typeof node.switchControl.value === "boolean")
+        out.bool = node.switchControl.value;
+    return out;
 }
 
 export function toJSON<Schemes extends BaseSchemes>(

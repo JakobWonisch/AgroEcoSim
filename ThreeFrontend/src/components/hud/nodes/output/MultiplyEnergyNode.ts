@@ -6,8 +6,4 @@ export class MultiplyEnergyNode extends ClassicPreset.Node {
         super("Multiply Energy");
         this.addInput("factor", new ClassicPreset.Input(numSocket, "factor"));
     }
-
-    data() {
-        return {};
-    }
 }

@@ -72,8 +72,6 @@ import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
 import { applyAutoLayout } from './autoLayout';
 
-export const DEBUG_SHOW_VALUES = true;
-
 function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
     // Avoid overwriting node positions with 0/0 snapshots before views are ready.
     const nodes = editor.getNodes();
@@ -83,62 +81,6 @@ function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: Node
     const snapshot = toJSON(editor, area);
     species.behaviorGraphs.value = species.behaviorGraphs.peek().map(g =>
         g.id === namedGraph.id ? { ...g, graph: snapshot } : g);
-}
-
-async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
-    const cache = new Map<string, any>();
-
-    async function evaluateNode(nodeId: string): Promise<any> {
-        if (cache.has(nodeId)) return cache.get(nodeId);
-
-        const node = editor.getNode(nodeId);
-        const inputsData: Record<string, any[]> = {};
-
-        const cons = editor.getConnections().filter(c => c.target === nodeId);
-        for (const c of cons) {
-            const outData = await evaluateNode(c.source);
-            if (!inputsData[c.targetInput]) inputsData[c.targetInput] = [];
-            if (outData && outData[c.sourceOutput] !== undefined) {
-                inputsData[c.targetInput].push(outData[c.sourceOutput]);
-            }
-        }
-
-        const data = ('data' in node && typeof (node as any).data === 'function')
-            ? (node as any).data(inputsData)
-            : {};
-
-        // Debug labeling
-        let updated = false;
-        if (node.inputs) {
-            for (const [key, input] of Object.entries(node.inputs)) {
-                if (!input) continue;
-                const baseLabel = input.label.split(' [')[0];
-                let newLabel = baseLabel;
-
-                if (DEBUG_SHOW_VALUES && inputsData[key] && inputsData[key].length > 0) {
-                    const val = inputsData[key][0];
-                    const valStr = typeof val === 'boolean' ? (val ? 'True' : 'False') : (typeof val === 'number' ? Number(val).toFixed(2) : String(val));
-                    newLabel = `${baseLabel} [${valStr}]`;
-                }
-
-                if (input.label !== newLabel) {
-                    input.label = newLabel;
-                    updated = true;
-                }
-            }
-        }
-
-        cache.set(nodeId, data);
-        if (updated) {
-            area.update('node', nodeId);
-        }
-        return data;
-    }
-
-    // Evaluate all nodes
-    for (const node of editor.getNodes()) {
-        await evaluateNode(node.id);
-    }
 }
 
 export async function createEditor(container: HTMLElement, species: Species, namedGraph: NamedGraph) {
@@ -361,7 +303,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                         const node = new ActiveOutputNode();
                         await editor.addNode(node);
                         await area.translate(node.id, { x: 120, y: 120 });
-                        processGraph(editor, area);
                         pushSpeciesGraph(species, namedGraph, editor, area);
                     }, 0);
                 }
@@ -370,7 +311,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
             setTimeout(() => {
-                processGraph(editor, area);
                 pushSpeciesGraph(species, namedGraph, editor, area);
             }, 0);
         }
@@ -381,7 +321,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     import('./Controls').then(m => {
         m.graphUpdateTrigger.addEventListener('update', () => {
             setTimeout(() => {
-                processGraph(editor, area);
                 pushSpeciesGraph(species, namedGraph, editor, area);
             }, 0);
         });
@@ -406,7 +345,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         const nodes = editor.getNodes();
         if (nodes.length > 0)
             AreaExtensions.zoomAt(area, nodes);
-        processGraph(editor, area);
         pushSpeciesGraph(species, namedGraph, editor, area);
     }, 10);
 
@@ -425,7 +363,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         },
         autoLayout: async () => {
             await applyAutoLayout(editor, area);
-            await processGraph(editor, area);
             pushSpeciesGraph(species, namedGraph, editor, area);
             const nodes = editor.getNodes();
             if (nodes.length > 0)

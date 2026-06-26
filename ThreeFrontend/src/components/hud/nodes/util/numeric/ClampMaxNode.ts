@@ -8,8 +8,4 @@ export class ClampMaxNode extends ClassicPreset.Node {
         this.addInput("max", new ClassicPreset.Input(numSocket, "max"));
         this.addOutput("out", new ClassicPreset.Output(numSocket, "out"));
     }
-
-    data() {
-        return { out: 0 };
-    }
 }

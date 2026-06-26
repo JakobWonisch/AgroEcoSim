@@ -6,8 +6,4 @@ export class DeltaEnergyNode extends ClassicPreset.Node {
         super("Delta Energy");
         this.addInput("amount", new ClassicPreset.Input(numSocket, "amount"));
     }
-
-    data() {
-        return {};
-    }
 }

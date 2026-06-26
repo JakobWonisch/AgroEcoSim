@@ -6,8 +6,4 @@ export class DeltaWaterNode extends ClassicPreset.Node {
         super("Delta Water");
         this.addInput("amount", new ClassicPreset.Input(numSocket, "amount"));
     }
-
-    data() {
-        return {};
-    }
 }

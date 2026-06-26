@@ -6,8 +6,4 @@ export class BooleanOutputNode extends ClassicPreset.Node {
         super('Boolean Output');
         this.addInput('bool', new ClassicPreset.Input(boolSocket, 'Boolean'));
     }
-
-    data() {
-        return {};
-    }
 }

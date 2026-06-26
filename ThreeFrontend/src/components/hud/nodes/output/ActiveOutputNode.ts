@@ -6,8 +6,4 @@ export class ActiveOutputNode extends ClassicPreset.Node {
         super('Active');
         this.addInput('isActive', new ClassicPreset.Input(boolSocket, 'Is Active'));
     }
-
-    data() {
-        return {};
-    }
 }

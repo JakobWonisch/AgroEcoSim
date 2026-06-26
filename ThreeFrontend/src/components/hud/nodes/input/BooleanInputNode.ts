@@ -15,8 +15,4 @@ export class BooleanInputNode extends ClassicPreset.Node {
         this.addControl('switch', this.switchControl);
         this.addOutput('bool', new ClassicPreset.Output(boolSocket, 'Boolean'));
     }
-
-    data() {
-        return { bool: this.switchControl.value };
-    }
 }

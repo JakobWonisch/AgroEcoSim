@@ -6,8 +6,4 @@ export class SetWoodNode extends ClassicPreset.Node {
         super("Set Wood");
         this.addInput("value", new ClassicPreset.Input(numSocket, "value"));
     }
-
-    data() {
-        return {};
-    }
 }

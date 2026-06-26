@@ -7,9 +7,4 @@ export class NotNode extends ClassicPreset.Node {
         this.addInput('a', new ClassicPreset.Input(boolSocket, 'A'));
         this.addOutput('out', new ClassicPreset.Output(boolSocket, 'Out'));
     }
-
-    data(inputs: { a?: boolean[] }) {
-        const a = inputs.a ? inputs.a[0] : false;
-        return { out: !a };
-    }
 }

@@ -6,8 +6,4 @@ export class CreateLeavesNode extends ClassicPreset.Node {
         super("Create Leaves");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

@@ -9,13 +9,4 @@ export class PhaseInputNode extends ClassicPreset.Node {
         this.addOutput("postFlower", new ClassicPreset.Output(boolSocket, "Is post-flower"));
         this.addOutput("resetPending", new ClassicPreset.Output(boolSocket, "Is reset pending"));
     }
-
-    data() {
-        return {
-            preFlower: false,
-            flowering: false,
-            postFlower: false,
-            resetPending: false,
-        };
-    }
 }

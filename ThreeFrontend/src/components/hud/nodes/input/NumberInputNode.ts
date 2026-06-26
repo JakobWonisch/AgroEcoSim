@@ -14,9 +14,4 @@ export class NumberInputNode extends ClassicPreset.Node {
         this.addControl('value', this.valueControl);
         this.addOutput('num', new ClassicPreset.Output(numSocket, 'Number'));
     }
-
-    /* Used by rete-engine if we add processing later */
-    data() {
-        return { num: this.valueControl.value };
-    }
 }

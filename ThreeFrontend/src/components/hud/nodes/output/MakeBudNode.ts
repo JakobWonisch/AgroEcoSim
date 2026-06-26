@@ -6,8 +6,4 @@ export class MakeBudNode extends ClassicPreset.Node {
         super("Make Bud");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

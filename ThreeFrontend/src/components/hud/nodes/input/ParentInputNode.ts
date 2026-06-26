@@ -7,11 +7,4 @@ export class ParentInputNode extends ClassicPreset.Node {
         this.addOutput("parentIsRhizome", new ClassicPreset.Output(boolSocket, "Is parent rhizome"));
         this.addOutput("parentWood", new ClassicPreset.Output(numSocket, "Parent wood"));
     }
-
-    data() {
-        return {
-            parentIsRhizome: false,
-            parentWood: 0,
-        };
-    }
 }

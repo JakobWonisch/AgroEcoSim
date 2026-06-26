@@ -6,8 +6,4 @@ export class SetEnergyNode extends ClassicPreset.Node {
         super("Set Energy");
         this.addInput("value", new ClassicPreset.Input(numSocket, "value"));
     }
-
-    data() {
-        return {};
-    }
 }

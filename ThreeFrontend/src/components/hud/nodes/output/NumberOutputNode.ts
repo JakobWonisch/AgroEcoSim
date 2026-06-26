@@ -6,8 +6,4 @@ export class NumberOutputNode extends ClassicPreset.Node {
         super('Number Output');
         this.addInput('num', new ClassicPreset.Input(numSocket, 'Number'));
     }
-
-    data() {
-        return {};
-    }
 }

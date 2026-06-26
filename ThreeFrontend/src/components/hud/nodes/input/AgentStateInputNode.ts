@@ -13,17 +13,4 @@ export class AgentStateInputNode extends ClassicPreset.Node {
         this.addOutput("isRizome", new ClassicPreset.Output(boolSocket, "Is rhizome"));
         this.addOutput("trySpawn", new ClassicPreset.Output(boolSocket, "Is try spawn"));
     }
-
-    data() {
-        return {
-            energy: 0,
-            water: 0,
-            length: 0,
-            radius: 0,
-            wood: 0,
-            ageHours: 0,
-            isRizome: false,
-            trySpawn: false,
-        };
-    }
 }

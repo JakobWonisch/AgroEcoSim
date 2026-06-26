@@ -6,8 +6,4 @@ export class AccumulateProductionNode extends ClassicPreset.Node {
         super("Accumulate Production");
         this.addInput("amount", new ClassicPreset.Input(numSocket, "amount"));
     }
-
-    data() {
-        return {};
-    }
 }

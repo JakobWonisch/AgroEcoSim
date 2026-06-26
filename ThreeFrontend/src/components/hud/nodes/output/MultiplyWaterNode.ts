@@ -6,8 +6,4 @@ export class MultiplyWaterNode extends ClassicPreset.Node {
         super("Multiply Water");
         this.addInput("factor", new ClassicPreset.Input(numSocket, "factor"));
     }
-
-    data() {
-        return {};
-    }
 }
