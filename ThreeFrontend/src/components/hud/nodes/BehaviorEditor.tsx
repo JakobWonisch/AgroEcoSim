@@ -70,6 +70,7 @@ import appstate from '../../../appstate';
 import type { NamedGraph } from './Conversion';
 import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
+import { applyAutoLayout } from './autoLayout';
 
 export const DEBUG_SHOW_VALUES = true;
 
@@ -421,7 +422,15 @@ export async function createEditor(container: HTMLElement, species: Species, nam
             appstate.unregisterBehaviorGraphGetter(speciesName, graphId);
             window.removeEventListener('keydown', handleKeyDown);
             area.destroy();
-        }
+        },
+        autoLayout: async () => {
+            await applyAutoLayout(editor, area);
+            await processGraph(editor, area);
+            pushSpeciesGraph(species, namedGraph, editor, area);
+            const nodes = editor.getNodes();
+            if (nodes.length > 0)
+                AreaExtensions.zoomAt(area, nodes);
+        },
     };
 }
 
@@ -430,11 +439,21 @@ export default function BehaviorEditor({ species, namedGraph }: { species: Speci
         () => (container: HTMLElement) => createEditor(container, species, namedGraph),
         [species.name.value, namedGraph.id]
     );
-    const [ref] = useRete(factory);
+    const [ref, editorApi] = useRete(factory);
 
     return (
-        <div style={{ width: '100%', height: '100%', background: 'rgba(0,0,0,0.1)' }}>
-            <div ref={ref} style={{ width: '100%', height: '100%' }} />
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.1)' }}>
+            <div style={{ flexShrink: 0, padding: '4px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                    type="button"
+                    title="Arrange nodes left-to-right by connections"
+                    disabled={!editorApi}
+                    onClick={() => editorApi?.autoLayout()}
+                >
+                    Auto-layout
+                </button>
+            </div>
+            <div ref={ref} style={{ flex: 1, minHeight: 0, width: '100%' }} />
         </div>
     );
 }
