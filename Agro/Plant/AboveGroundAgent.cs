@@ -389,6 +389,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 		var graphs = formation.Plant.BehaviorGraphs;
 		if (graphs.Count > 0)
 		{
+			graphWasMeristemThisTick = false;
 			foreach (var graph in graphs)
 				GraphTickInterpreter.Execute(ref this, formation, agentID, timestep, graph);
 			return;
@@ -886,6 +887,14 @@ public partial struct AboveGroundAgent : IPlantAgent
 	[M(AI)] internal void GraphAccumulateProduction(float amount) => CurrentDayProductionInv += amount;
 	[M(AI)] internal void GraphAccumulateEnvResources(float amount) => CurrentDayEnvResources += amount;
 	[M(AI)] internal void GraphAccumulateEnvResourcesInv(float amount) => CurrentDayEnvResourcesInv += amount;
+	[M(AI)] internal void GraphClearWasMeristemThisTick() => graphWasMeristemThisTick = false;
+	[M(AI)] internal readonly bool GraphWasMeristemThisTick() => graphWasMeristemThisTick;
+	[M(AI)] internal void GraphSetWasMeristemThisTick(bool value) => graphWasMeristemThisTick = value;
+	[M(AI)] internal void GraphSetLateralAngle(float value) => LateralAngle = value;
+	[M(AI)] internal void GraphDeltaDominance(float count) => DominanceLevel += (byte)MathF.Max(0f, count);
+	[M(AI)] internal void GraphSetLengthVar(float value) => LengthVar = value;
+	[M(AI)] internal void GraphTurnUpwards() => Orientation = TurnUpwards(Orientation);
+	bool graphWasMeristemThisTick;
 	#endregion
 
 	[M(AI)]

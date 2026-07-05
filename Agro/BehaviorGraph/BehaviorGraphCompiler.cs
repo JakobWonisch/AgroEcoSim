@@ -250,6 +250,12 @@ public static class BehaviorGraphCompiler
 			case "Random Chance Input":
 				kind = GraphNodeKind.RandomChanceInput;
 				return true;
+			case "Random Accum Chance Input":
+				kind = GraphNodeKind.RandomAccumChanceInput;
+				return true;
+			case "Random Float Var Input":
+				kind = GraphNodeKind.RandomFloatVarInput;
+				return true;
 			case "Parent Wood Cap":
 				kind = GraphNodeKind.ParentWoodCap;
 				return true;
@@ -309,6 +315,21 @@ public static class BehaviorGraphCompiler
 				return true;
 			case "Become Meristem":
 				kind = GraphNodeKind.BecomeMeristem;
+				return true;
+			case "Set Lateral Angle":
+				kind = GraphNodeKind.SetLateralAngle;
+				return true;
+			case "Delta Dominance":
+				kind = GraphNodeKind.DeltaDominance;
+				return true;
+			case "Set Length Var":
+				kind = GraphNodeKind.SetLengthVar;
+				return true;
+			case "Turn Upwards":
+				kind = GraphNodeKind.TurnUpwards;
+				return true;
+			case "Set Was Meristem":
+				kind = GraphNodeKind.SetWasMeristem;
 				return true;
 			case "Become Stem":
 				kind = GraphNodeKind.BecomeStem;

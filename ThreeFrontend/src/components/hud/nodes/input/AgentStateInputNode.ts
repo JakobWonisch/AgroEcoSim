@@ -18,6 +18,7 @@ export class AgentStateInputNode extends ClassicPreset.Node {
         this.addOutput("previousDayEnvResources", new ClassicPreset.Output(numSocket, "Prev day env resources"));
         this.addOutput("previousDayProductionInv", new ClassicPreset.Output(numSocket, "Prev day production inv"));
         this.addOutput("energyStorageCapacity", new ClassicPreset.Output(numSocket, "Energy storage capacity"));
+        this.addOutput("wasMeristemThisTick", new ClassicPreset.Output(boolSocket, "Was meristem this tick"));
         this.addOutput("isRizome", new ClassicPreset.Output(boolSocket, "Is rhizome"));
         this.addOutput("trySpawn", new ClassicPreset.Output(boolSocket, "Is try spawn"));
     }

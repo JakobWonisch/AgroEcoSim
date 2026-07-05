@@ -1,11 +1,11 @@
 import { ClassicPreset } from "rete";
 import { boolSocket, numSocket } from "../Sockets";
 
-export class CreateLeavesNode extends ClassicPreset.Node {
+export class SetLateralAngleNode extends ClassicPreset.Node {
     constructor() {
-        super("Create Leaves");
+        super("Set Lateral Angle");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
-        this.addInput("meristemId", new ClassicPreset.Input(numSocket, "meristem id"));
+        this.addInput("value", new ClassicPreset.Input(numSocket, "value"));
         this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }

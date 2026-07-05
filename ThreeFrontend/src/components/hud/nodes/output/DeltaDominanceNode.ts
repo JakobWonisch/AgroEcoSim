@@ -1,11 +1,11 @@
 import { ClassicPreset } from "rete";
 import { boolSocket, numSocket } from "../Sockets";
 
-export class CreateLeavesNode extends ClassicPreset.Node {
+export class DeltaDominanceNode extends ClassicPreset.Node {
     constructor() {
-        super("Create Leaves");
+        super("Delta Dominance");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
-        this.addInput("meristemId", new ClassicPreset.Input(numSocket, "meristem id"));
+        this.addInput("count", new ClassicPreset.Input(numSocket, "count"));
         this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }

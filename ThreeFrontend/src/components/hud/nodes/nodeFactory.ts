@@ -10,6 +10,8 @@ import { FormationInputNode } from "./input/FormationInputNode";
 import { IrradianceInputNode } from "./input/IrradianceInputNode";
 import { SimulationSettingsInputNode } from "./input/SimulationSettingsInputNode";
 import { RandomChanceInputNode } from "./input/RandomChanceInputNode";
+import { RandomAccumChanceInputNode } from "./input/RandomAccumChanceInputNode";
+import { RandomFloatVarInputNode } from "./input/RandomFloatVarInputNode";
 import { AndNode } from "./util/boolean/AndNode";
 import { NotNode } from "./util/boolean/NotNode";
 import { OrNode } from "./util/boolean/OrNode";
@@ -44,6 +46,11 @@ import { DeathNode } from "./output/DeathNode";
 import { DeathParentNode } from "./output/DeathParentNode";
 import { DeathChildrenNode } from "./output/DeathChildrenNode";
 import { BecomeMeristemNode } from "./output/BecomeMeristemNode";
+import { SetLateralAngleNode } from "./output/SetLateralAngleNode";
+import { DeltaDominanceNode } from "./output/DeltaDominanceNode";
+import { SetLengthVarNode } from "./output/SetLengthVarNode";
+import { TurnUpwardsNode } from "./output/TurnUpwardsNode";
+import { SetWasMeristemNode } from "./output/SetWasMeristemNode";
 import { BecomeStemNode } from "./output/BecomeStemNode";
 import { BecomeFlowerStemNode } from "./output/BecomeFlowerStemNode";
 import { BecomeFlowerMeristemNode } from "./output/BecomeFlowerMeristemNode";
@@ -71,6 +78,8 @@ export const canonicalBehaviorNodeLabels = [
     "Irradiance Input",
     "Simulation Settings Input",
     "Random Chance Input",
+    "Random Accum Chance Input",
+    "Random Float Var Input",
     "Active",
     "And",
     "Or",
@@ -107,6 +116,11 @@ export const canonicalBehaviorNodeLabels = [
     "Death Parent",
     "Death Children",
     "Become Meristem",
+    "Set Lateral Angle",
+    "Delta Dominance",
+    "Set Length Var",
+    "Turn Upwards",
+    "Set Was Meristem",
     "Become Stem",
     "Become Flower Stem",
     "Become Flower Meristem",
@@ -145,6 +159,8 @@ const creators: Record<string, Creator> = {
     "Irradiance Input": () => new IrradianceInputNode(),
     "Simulation Settings Input": () => new SimulationSettingsInputNode(),
     "Random Chance Input": () => new RandomChanceInputNode(),
+    "Random Accum Chance Input": () => new RandomAccumChanceInputNode(),
+    "Random Float Var Input": () => new RandomFloatVarInputNode(),
     Active: () => new ActiveOutputNode(),
     And: () => new AndNode(),
     Or: () => new OrNode(),
@@ -181,6 +197,11 @@ const creators: Record<string, Creator> = {
     "Death Parent": () => new DeathParentNode(),
     "Death Children": () => new DeathChildrenNode(),
     "Become Meristem": () => new BecomeMeristemNode(),
+    "Set Lateral Angle": () => new SetLateralAngleNode(),
+    "Delta Dominance": () => new DeltaDominanceNode(),
+    "Set Length Var": () => new SetLengthVarNode(),
+    "Turn Upwards": () => new TurnUpwardsNode(),
+    "Set Was Meristem": () => new SetWasMeristemNode(),
     "Become Stem": () => new BecomeStemNode(),
     "Become Flower Stem": () => new BecomeFlowerStemNode(),
     "Become Flower Meristem": () => new BecomeFlowerMeristemNode(),

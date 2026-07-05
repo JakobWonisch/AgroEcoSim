@@ -20,7 +20,10 @@ public static class GraphTickInterpreter
 		{
 			if (!graph.ActiveSubtreeMask[t])
 				continue;
-			EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
+			var node = graph.NodesInOrder[t];
+			if (IsDeferredRandomKind(node.Kind))
+				continue;
+			EvaluateNode(node, ref agent, ctx, outs);
 		}
 
 		var gateNode = graph.NodesInOrder[graph.ActiveGateTopoIndex];
@@ -29,11 +32,24 @@ public static class GraphTickInterpreter
 
 		for (var t = 0; t < graph.NodesInOrder.Length; t++)
 		{
+			if (!graph.ActiveSubtreeMask[t])
+				continue;
+			var node = graph.NodesInOrder[t];
+			if (!IsDeferredRandomKind(node.Kind))
+				continue;
+			EvaluateNode(node, ref agent, ctx, outs);
+		}
+
+		for (var t = 0; t < graph.NodesInOrder.Length; t++)
+		{
 			if (graph.ActiveSubtreeMask[t])
 				continue;
 			EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
 		}
 	}
+
+	static bool IsDeferredRandomKind(GraphNodeKind kind) =>
+		kind is GraphNodeKind.RandomChanceInput or GraphNodeKind.RandomAccumChanceInput or GraphNodeKind.RandomFloatVarInput;
 
 	static void EvaluateNode(CompiledNode node, ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int NodeIndex, string Socket), WireValue> outs)
 	{
@@ -81,6 +97,21 @@ public static class GraphTickInterpreter
 				var p = FirstFloat(node.Inputs, "p", outs);
 				var hit = ctx.HasFormation && ctx.Formation!.Plant.RNG.NextFloat(0f, 1f) < p;
 				outs[(g, "out")] = WireValue.OfBool(hit);
+				break;
+			}
+			case GraphNodeKind.RandomAccumChanceInput:
+			{
+				var p = FirstFloat(node.Inputs, "p", outs);
+				var hoursPerTick = ctx.HasFormation ? ctx.Formation!.Plant.World.HoursPerTick : 1;
+				var hit = ctx.HasFormation && ctx.Formation!.Plant.RNG.NextFloatAccum(p, hoursPerTick);
+				outs[(g, "out")] = WireValue.OfBool(hit);
+				break;
+			}
+			case GraphNodeKind.RandomFloatVarInput:
+			{
+				var variance = FirstFloat(node.Inputs, "variance", outs);
+				var value = ctx.HasFormation ? ctx.Formation!.Plant.RNG.NextFloatVar(variance) : 0f;
+				outs[(g, "out")] = WireValue.OfFloat(value);
 				break;
 			}
 			case GraphNodeKind.ParentWoodCap:
@@ -252,8 +283,14 @@ public static class GraphTickInterpreter
 				{
 					var plant = ctx.Formation!.Plant;
 					var lateral = agent.LateralAngle + plant.Parameters.LateralRoll;
-					agent.CreateLeaves(agent, plant, lateral, ctx.AgentId);
+					var meristemId = node.Inputs.ContainsKey("meristemId")
+						? (int)FirstFloat(node.Inputs, "meristemId", outs)
+						: ctx.AgentId;
+					agent.CreateLeaves(agent, plant, lateral, meristemId);
+					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			case GraphNodeKind.Death:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
@@ -268,11 +305,59 @@ public static class GraphTickInterpreter
 				{
 					foreach (var child in ctx.Formation!.GetChildren(ctx.AgentId))
 						ctx.Formation.Death(child);
+					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			case GraphNodeKind.BecomeMeristem:
 				if (FirstBool(node.Inputs, "trigger", outs))
+				{
 					agent.Organ = OrganTypes.Meristem;
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.SetLateralAngle:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetLateralAngle(FirstFloat(node.Inputs, "value", outs));
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.DeltaDominance:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphDeltaDominance(FirstFloat(node.Inputs, "count", outs));
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.SetLengthVar:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetLengthVar(FirstFloat(node.Inputs, "value", outs));
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.TurnUpwards:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphTurnUpwards();
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.SetWasMeristem:
+				if (FirstBool(node.Inputs, "value", outs))
+					agent.GraphSetWasMeristemThisTick(true);
 				break;
 			case GraphNodeKind.BecomeStem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
@@ -294,7 +379,16 @@ public static class GraphTickInterpreter
 				break;
 			case GraphNodeKind.SpawnMeristem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem);
+				{
+					var childId = SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem);
+					outs[(g, "childId")] = WireValue.OfFloat(childId);
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+				{
+					outs[(g, "childId")] = WireValue.OfFloat(-1f);
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				}
 				break;
 			case GraphNodeKind.SpawnBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
@@ -382,6 +476,7 @@ public static class GraphTickInterpreter
 		outs[(g, "previousDayEnvResources")] = WireValue.OfFloat(agent.GraphPreviousDayEnvResources());
 		outs[(g, "previousDayProductionInv")] = WireValue.OfFloat(agent.GraphPreviousDayProductionInv());
 		outs[(g, "energyStorageCapacity")] = WireValue.OfFloat(agent.GraphEnergyStorageCapacity());
+		outs[(g, "wasMeristemThisTick")] = WireValue.OfBool(agent.GraphWasMeristemThisTick());
 	}
 
 	static void WriteFormationInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
