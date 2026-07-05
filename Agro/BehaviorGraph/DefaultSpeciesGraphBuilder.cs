@@ -26,6 +26,14 @@ public static class DefaultSpeciesGraphBuilder
 		public const string StemDeathHeightCoeff = "default-config-stem-death-height-coeff";
 		public const string StemDeathEfficiencyCoeff = "default-config-stem-death-efficiency-coeff";
 		public const string StemDeathRadiusCoeff = "default-config-stem-death-radius-coeff";
+		public const string LeafLength = "default-config-leaf-length";
+		public const string LeafRadius = "default-config-leaf-radius";
+		public const string PetioleLength = "default-config-petiole-length";
+		public const string PetioleRadius = "default-config-petiole-radius";
+		public const string MeristemGrowthLength = "default-config-meristem-growth-length";
+		public const string MeristemGrowthRadius = "default-config-meristem-growth-radius";
+		public const string StemGrowthRadius = "default-config-stem-growth-radius";
+		public const string DominanceFactor = "default-config-dominance-factor";
 	}
 
 	static float DefaultPetioleCoverThreshold()
@@ -156,6 +164,70 @@ public static class DefaultSpeciesGraphBuilder
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(20f),
 		},
+		new()
+		{
+			Id = ConfigIds.LeafLength,
+			Key = "Leaf length",
+			Label = "Leaf length",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.LeafLength),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafRadius,
+			Key = "Leaf radius",
+			Label = "Leaf radius",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.LeafRadius),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleLength,
+			Key = "Petiole length",
+			Label = "Petiole length",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.PetioleLength),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleRadius,
+			Key = "Petiole radius",
+			Label = "Petiole radius",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.PetioleRadius),
+		},
+		new()
+		{
+			Id = ConfigIds.MeristemGrowthLength,
+			Key = "Meristem growth length",
+			Label = "Meristem growth length",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(1e-3f),
+		},
+		new()
+		{
+			Id = ConfigIds.MeristemGrowthRadius,
+			Key = "Meristem growth radius",
+			Label = "Meristem growth radius",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(2e-5f),
+		},
+		new()
+		{
+			Id = ConfigIds.StemGrowthRadius,
+			Key = "Stem growth radius",
+			Label = "Stem growth radius",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(2e-5f),
+		},
+		new()
+		{
+			Id = ConfigIds.DominanceFactor,
+			Key = "Dominance factor",
+			Label = "Dominance factor",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(1f),
+		},
 	];
 
 	public static IReadOnlyList<(string Name, global::ExportedGraph Graph)> BuildDefaultSpeciesSubgraphs() =>
@@ -166,10 +238,10 @@ public static class DefaultSpeciesGraphBuilder
 		// ("Stem dominance death", BuildStemDominanceDeathSubgraph()),
 		// ("Meristem tick marker", BuildMeristemTickMarkerSubgraph()),
 		// ("Auxin twig", BuildAuxinTwigSubgraph()),
-		// ("Growth leaf", BuildGrowthLeafSubgraph()),
-		// ("Growth petiole", BuildGrowthPetioleSubgraph()),
-		// ("Growth meristem", BuildGrowthMeristemSubgraph()),
-		// ("Growth stem", BuildGrowthStemSubgraph()),
+		("Growth leaf", BuildGrowthLeafSubgraph()),
+		("Growth petiole", BuildGrowthPetioleSubgraph()),
+		("Growth meristem", BuildGrowthMeristemSubgraph()),
+		("Growth stem", BuildGrowthStemSubgraph()),
 		// ("Wood lignify", BuildWoodLignifySubgraph()),
 		// ("Meristem chain", BuildMeristemChainSubgraph()),
 		// ("Petiole cover bud", BuildPetioleCoverBudSubgraph()),
@@ -418,34 +490,94 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	static global::ExportedGraph BuildGrowthOrganSubgraph(string prefix, string organSocket)
+	/// <summary>
+	/// TickDefault lines 558–573 — Partial: production-based growth; size-limit guards deferred.
+	/// </summary>
+	public static global::ExportedGraph BuildGrowthLeafSubgraph()
 	{
-		var b = SubgraphBuilder.Create(prefix);
+		var b = SubgraphBuilder.Create("gr-leaf");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 
-		var notBud = b.Add("not-bud", "Not", 400, 40);
-		b.Connect(organ, "bud", notBud, "a");
+		var activeGate = b.WireGrowthActiveGate(organ, state, "leaf");
+		var (deltaLen, deltaRad) = b.WireLeafPetioleGrowthDeltas(
+			state, form,
+			ConfigIds.LeafLength, ConfigIds.LeafRadius,
+			capRadiusToParent: false);
 
-		var missingEnergy = b.AddBoolStub("missing-energy", true,
-			"MISSING: Energy > EnoughEnergy; Organ != Bud (partial: Not bud only)");
-		var and1 = b.Add("and1", "And", 640, 0);
-		b.Connect(organ, organSocket, and1, "a");
-		b.Connect(missingEnergy, "bool", and1, "b");
+		var growth = b.Add("growth", "Growth", 1200, 200);
+		b.Connect(deltaLen, "out", growth, "Length");
+		b.Connect(deltaRad, "out", growth, "Radius");
 
-		var and2 = b.Add("and2", "And", 880, 20);
-		b.Connect(notBud, "out", and2, "a");
-		b.Connect(and1, "out", and2, "b");
-
-		return b.FinishWithActive(and2, "out").Build();
+		return b.FinishWithActive(activeGate, "out").Build();
 	}
 
-	public static global::ExportedGraph BuildGrowthLeafSubgraph() => BuildGrowthOrganSubgraph("gr-leaf", "leaf");
+	/// <summary>
+	/// TickDefault lines 575–592 — Partial: production-based growth; parent-radius cap deferred.
+	/// </summary>
+	public static global::ExportedGraph BuildGrowthPetioleSubgraph()
+	{
+		var b = SubgraphBuilder.Create("gr-pet");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 
-	public static global::ExportedGraph BuildGrowthPetioleSubgraph() => BuildGrowthOrganSubgraph("gr-pet", "petiole");
+		var activeGate = b.WireGrowthActiveGate(organ, state, "petiole");
+		var (deltaLen, deltaRad) = b.WireLeafPetioleGrowthDeltas(
+			state, form,
+			ConfigIds.PetioleLength, ConfigIds.PetioleRadius,
+			capRadiusToParent: false);
 
-	public static global::ExportedGraph BuildGrowthMeristemSubgraph() => BuildGrowthOrganSubgraph("gr-mer", "meristem");
+		var growth = b.Add("growth", "Growth", 1200, 200);
+		b.Connect(deltaLen, "out", growth, "Length");
+		b.Connect(deltaRad, "out", growth, "Radius");
 
-	public static global::ExportedGraph BuildGrowthStemSubgraph() => BuildGrowthOrganSubgraph("gr-stem", "stem");
+		return b.FinishWithActive(activeGate, "out").Build();
+	}
+
+	/// <summary>
+	/// TickDefault lines 594–606 — Partial: tier-1 meristem growth; dominance index deferred.
+	/// </summary>
+	public static global::ExportedGraph BuildGrowthMeristemSubgraph()
+	{
+		var b = SubgraphBuilder.Create("gr-mer");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var sim = b.Add("sim", "Simulation Settings Input", 0, 180);
+
+		var activeGate = b.WireGrowthActiveGate(organ, state, "meristem");
+		var (deltaLen, deltaRad) = b.WireMeristemGrowthDeltas(state, form, sim);
+
+		var growth = b.Add("growth", "Growth", 1200, 200);
+		b.Connect(deltaLen, "out", growth, "Length");
+		b.Connect(deltaRad, "out", growth, "Radius");
+
+		return b.FinishWithActive(activeGate, "out").Build();
+	}
+
+	/// <summary>
+	/// TickDefault lines 608–618 — Partial: tier-1 stem radius growth.
+	/// </summary>
+	public static global::ExportedGraph BuildGrowthStemSubgraph()
+	{
+		var b = SubgraphBuilder.Create("gr-stem");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var sim = b.Add("sim", "Simulation Settings Input", 0, 180);
+
+		var activeGate = b.WireGrowthActiveGate(organ, state, "stem");
+		var deltaRad = b.WireStemGrowthDelta(state, form, sim);
+		var c0 = b.AddNum("c0", 0f, 1200, 160);
+
+		var growth = b.Add("growth", "Growth", 1200, 200);
+		b.Connect(c0, "num", growth, "Length");
+		b.Connect(deltaRad, "out", growth, "Radius");
+
+		return b.FinishWithActive(activeGate, "out").Build();
+	}
 
 	/// <summary>TickDefault lines 623–628 — partial; energy and branch context missing.</summary>
 	public static global::ExportedGraph BuildWoodLignifySubgraph()
@@ -665,6 +797,245 @@ public static class DefaultSpeciesGraphBuilder
 				Target = target,
 				TargetInput = targetInput,
 			});
+		}
+
+		/// <summary>lifeSupportPerHour = length*radius*(leaf ? leafThickness : radius*wood).</summary>
+		public string WireLifeSupportPerHour(string organId, string stateId)
+		{
+			var leafThick = AddConfig("leaf-thick", ConfigIds.LeafThickness, false, 240, 200,
+				"AboveGroundAgent.LeafThickness");
+
+			var lr = Add("lr", "Multiply", 480, 200);
+			Connect(stateId, "length", lr, "a");
+			Connect(stateId, "radius", lr, "b");
+
+			var leafHour = Add("leaf-hour", "Multiply", 720, 180);
+			Connect(lr, "out", leafHour, "a");
+			Connect(leafThick, "num", leafHour, "b");
+
+			var rw = Add("rw", "Multiply", 720, 220);
+			Connect(stateId, "radius", rw, "a");
+			Connect(stateId, "wood", rw, "b");
+
+			var nonLeafHour = Add("nonleaf-hour", "Multiply", 960, 200);
+			Connect(lr, "out", nonLeafHour, "a");
+			Connect(rw, "out", nonLeafHour, "b");
+
+			var perHour = Add("per-hour", "If / Else", 1200, 200);
+			Connect(organId, "leaf", perHour, "condition");
+			Connect(leafHour, "out", perHour, "trueValue");
+			Connect(nonLeafHour, "out", perHour, "falseValue");
+
+			return perHour;
+		}
+
+		/// <summary>Energy &gt; lifeSupportPerHour * EnoughEnergyFactor.</summary>
+		public string WireEnoughEnergy(string organId, string stateId)
+		{
+			var perHour = WireLifeSupportPerHour(organId, stateId);
+			var factor = AddConfig("enough-factor", ConfigIds.EnoughEnergyFactor, false, 240, 280,
+				"AboveGroundAgent.EnoughEnergy factor (320)");
+			var threshold = Add("threshold", "Multiply", 1440, 280);
+			Connect(perHour, "out", threshold, "a");
+			Connect(factor, "num", threshold, "b");
+
+			var enough = Add("enough", "Greater Than", 1680, 280);
+			Connect(stateId, "energy", enough, "a");
+			Connect(threshold, "out", enough, "b");
+			return enough;
+		}
+
+		/// <summary>organ + Not(bud) + enoughEnergy.</summary>
+		public string WireGrowthActiveGate(string organId, string stateId, string organSocket)
+		{
+			var notBud = Add("not-bud", "Not", 400, 40);
+			Connect(organId, "bud", notBud, "a");
+
+			var enough = WireEnoughEnergy(organId, stateId);
+			var andOrgan = Add("and-organ", "And", 640, 0);
+			Connect(organId, organSocket, andOrgan, "a");
+			Connect(enough, "out", andOrgan, "b");
+
+			var andGate = Add("and-gate", "And", 880, 20);
+			Connect(notBud, "out", andGate, "a");
+			Connect(andOrgan, "out", andGate, "b");
+			return andGate;
+		}
+
+		/// <summary>Math.Min(1f, value).</summary>
+		public string WireMinOne(string valueNodeId, string valueOutput, string id)
+		{
+			var one = AddNum($"{id}-one", 1f, 480, 320);
+			var gt = Add($"{id}-gt", "Greater Than", 720, 320);
+			Connect(valueNodeId, valueOutput, gt, "a");
+			Connect(one, "num", gt, "b");
+
+			var min = Add($"{id}-min", "If / Else", 960, 320);
+			Connect(gt, "out", min, "condition");
+			Connect(one, "num", min, "trueValue");
+			Connect(valueNodeId, valueOutput, min, "falseValue");
+			return min;
+		}
+
+		/// <summary>Math.Min(a, b).</summary>
+		public string WireMinFloat(string aNodeId, string aOutput, string bNodeId, string bOutput, string id)
+		{
+			var lt = Add($"{id}-lt", "Less Than", 720, 360);
+			Connect(aNodeId, aOutput, lt, "a");
+			Connect(bNodeId, bOutput, lt, "b");
+
+			var min = Add($"{id}-min", "If / Else", 960, 360);
+			Connect(lt, "out", min, "condition");
+			Connect(aNodeId, aOutput, min, "trueValue");
+			Connect(bNodeId, bOutput, min, "falseValue");
+			return min;
+		}
+
+		public string WireProdRatio(string stateId, string formId)
+		{
+			var prodRatio = Add("prod-ratio", "Divide", 720, 400);
+			Connect(stateId, "previousDayProductionInv", prodRatio, "a");
+			Connect(formId, "dailyProductionMax", prodRatio, "b");
+			return prodRatio;
+		}
+
+		/// <summary>Math.Clamp(energy / capacity, 0, 1) — upper clamp only (tier 1).</summary>
+		public string WireEnergyReserve(string stateId)
+		{
+			var ratio = Add("energy-ratio", "Divide", 480, 400);
+			Connect(stateId, "energy", ratio, "a");
+			Connect(stateId, "energyStorageCapacity", ratio, "b");
+
+			var one = AddNum("one", 1f, 480, 440);
+			var reserve = Add("energy-reserve", "Clamp Max", 720, 400);
+			Connect(ratio, "out", reserve, "value");
+			Connect(one, "num", reserve, "max");
+			return reserve;
+		}
+
+		public (string deltaLen, string deltaRad) WireLeafPetioleGrowthDeltas(
+			string stateId, string formId,
+			string configLengthId, string configRadiusId,
+			bool capRadiusToParent)
+		{
+			var configLen = AddConfig("cfg-len", configLengthId, false, 240, 400,
+				"Species size limit (length)");
+			var configRad = AddConfig("cfg-rad", configRadiusId, false, 240, 440,
+				"Species size limit (radius)");
+
+			var sizeLimitL = Add("size-lim-l", "Add", 480, 400);
+			Connect(configLen, "num", sizeLimitL, "a");
+			Connect(stateId, "lengthVar", sizeLimitL, "b");
+
+			var sizeLimitR = Add("size-lim-r", "Add", 480, 440);
+			Connect(configRad, "num", sizeLimitR, "a");
+			Connect(stateId, "radiusVar", sizeLimitR, "b");
+
+			var waterClamped = WireMinOne(formId, "waterBalance", "water");
+			var prodRatio = WireProdRatio(stateId, formId);
+
+			var m1L = Add("m1-l", "Multiply", 960, 400);
+			Connect(waterClamped, "out", m1L, "a");
+			Connect(sizeLimitL, "out", m1L, "b");
+
+			var m2L = Add("m2-l", "Multiply", 1200, 400);
+			Connect(m1L, "out", m2L, "a");
+			Connect(stateId, "growthTimeVar", m2L, "b");
+
+			var deltaLen = Add("delta-l", "Multiply", 1440, 400);
+			Connect(m2L, "out", deltaLen, "a");
+			Connect(prodRatio, "out", deltaLen, "b");
+
+			var m1R = Add("m1-r", "Multiply", 960, 440);
+			Connect(waterClamped, "out", m1R, "a");
+			Connect(sizeLimitR, "out", m1R, "b");
+
+			var m2R = Add("m2-r", "Multiply", 1200, 440);
+			Connect(m1R, "out", m2R, "a");
+			Connect(stateId, "growthTimeVar", m2R, "b");
+
+			var deltaRad = Add("delta-r", "Multiply", 1440, 440);
+			Connect(m2R, "out", deltaRad, "a");
+			Connect(prodRatio, "out", deltaRad, "b");
+
+			if (capRadiusToParent)
+			{
+				var parentCap = Add("parent-cap", "Subtract", 1680, 440);
+				Connect(formId, "parentBaseRadius", parentCap, "a");
+				Connect(stateId, "radius", parentCap, "b");
+
+				var capped = Add("delta-r-cap", "Clamp Max", 1920, 440);
+				Connect(deltaRad, "out", capped, "value");
+				Connect(parentCap, "out", capped, "max");
+				deltaRad = capped;
+			}
+
+			return (deltaLen, deltaRad);
+		}
+
+		public (string deltaLen, string deltaRad) WireMeristemGrowthDeltas(string stateId, string formId, string simId)
+		{
+			var cfgLen = AddConfig("mer-len", ConfigIds.MeristemGrowthLength, false, 240, 480);
+			var cfgRad = AddConfig("mer-rad", ConfigIds.MeristemGrowthRadius, false, 240, 520);
+			var dominance = AddConfig("dominance", ConfigIds.DominanceFactor, false, 240, 560);
+
+			var energyReserve = WireEnergyReserve(stateId);
+			var waterReserve = WireMinOne(formId, "waterBalance", "water-res");
+			var prodRatio = WireProdRatio(stateId, formId);
+
+			string WireAxisDelta(string cfgNodeId, float y, string suffix)
+			{
+				var m1 = Add($"m1-{suffix}", "Multiply", 720, y);
+				Connect(cfgNodeId, "num", m1, "a");
+				Connect(dominance, "num", m1, "b");
+
+				var m2 = Add($"m2-{suffix}", "Multiply", 960, y);
+				Connect(m1, "out", m2, "a");
+				Connect(energyReserve, "out", m2, "b");
+
+				var m3 = Add($"m3-{suffix}", "Multiply", 1200, y);
+				Connect(m2, "out", m3, "a");
+				Connect(waterReserve, "out", m3, "b");
+
+				var m4 = Add($"m4-{suffix}", "Multiply", 1440, y);
+				Connect(m3, "out", m4, "a");
+				Connect(simId, "hoursPerTick", m4, "b");
+
+				var delta = Add($"delta-{suffix}", "Multiply", 1680, y);
+				Connect(m4, "out", delta, "a");
+				Connect(prodRatio, "out", delta, "b");
+				return delta;
+			}
+
+			var deltaLen = WireAxisDelta(cfgLen, 480, "len");
+			var deltaRad = WireAxisDelta(cfgRad, 520, "rad");
+			return (deltaLen, deltaRad);
+		}
+
+		public string WireStemGrowthDelta(string stateId, string formId, string simId)
+		{
+			var cfgRad = AddConfig("stem-rad", ConfigIds.StemGrowthRadius, false, 240, 480);
+			var dominance = AddConfig("dominance", ConfigIds.DominanceFactor, false, 240, 520);
+
+			var energyReserve = WireEnergyReserve(stateId);
+			var waterMinReserve = WireMinFloat(formId, "waterBalance", energyReserve, "out", "stem-water");
+
+			var m1 = Add("m1", "Multiply", 720, 480);
+			Connect(cfgRad, "num", m1, "a");
+			Connect(dominance, "num", m1, "b");
+
+			var m2 = Add("m2", "Multiply", 960, 480);
+			Connect(m1, "out", m2, "a");
+			Connect(energyReserve, "out", m2, "b");
+
+			var m3 = Add("m3", "Multiply", 1200, 480);
+			Connect(m2, "out", m3, "a");
+			Connect(waterMinReserve, "out", m3, "b");
+
+			var deltaRad = Add("delta-r", "Multiply", 1440, 480);
+			Connect(m3, "out", deltaRad, "a");
+			Connect(simId, "hoursPerTick", deltaRad, "b");
+			return deltaRad;
 		}
 	}
 }

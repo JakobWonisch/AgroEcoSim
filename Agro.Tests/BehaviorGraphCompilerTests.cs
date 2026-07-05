@@ -258,6 +258,10 @@ public class BehaviorGraphCompilerTests
 		{
 			"Life support",
 			"Photosynthesis",
+			"Growth leaf",
+			"Growth petiole",
+			"Growth meristem",
+			"Growth stem",
 		};
 
 		foreach (var (name, graph) in DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs())
@@ -285,6 +289,13 @@ public class BehaviorGraphCompilerTests
 				continue;
 			}
 
+			if (withEffects.Contains(name))
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.Growth);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
+				continue;
+			}
+
 			Assert.DoesNotContain(compiled.NodesInOrder, n =>
 				n.Kind is GraphNodeKind.DeltaEnergy or GraphNodeKind.DeltaWater or GraphNodeKind.Growth
 					or GraphNodeKind.Death or GraphNodeKind.MakeBud or GraphNodeKind.SetAuxins
@@ -292,7 +303,7 @@ public class BehaviorGraphCompilerTests
 					or GraphNodeKind.AccumulateEnvResourcesInv);
 		}
 
-		Assert.Equal(2, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
+		Assert.Equal(6, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
 	}
 
 	[Fact]
@@ -307,7 +318,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(15, entries.Count);
+		Assert.Equal(23, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -337,6 +348,26 @@ public class BehaviorGraphCompilerTests
 		var s = SpeciesSettings.Default;
 		var expectedCover = MathF.Cos(MathF.PI * 0.5f - s.LateralPitch) * s.PetioleLength * 0.25f;
 		Assert.Equal(expectedCover, cover.Value.GetSingle(), 6);
+
+		Assert.Equal(s.LeafLength, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafLength).Value.GetSingle());
+		Assert.Equal(s.LeafRadius, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius).Value.GetSingle());
+		Assert.Equal(s.PetioleLength, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength).Value.GetSingle());
+		Assert.Equal(s.PetioleRadius, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius).Value.GetSingle());
+		Assert.Equal(1e-3f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthLength).Value.GetSingle());
+		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius).Value.GetSingle());
+		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
+		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
+	}
+
+	[Fact]
+	public void GrowthLeafSubgraph_ReferencesSizeLimitConfig()
+	{
+		var leaf = DefaultSpeciesGraphBuilder.BuildGrowthLeafSubgraph();
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.LeafLength,
+			leaf.Nodes.Find(n => n.Id == "gr-leaf-cfg-len")!.Data.GetProperty("configId").GetString());
+		Assert.Equal(DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius,
+			leaf.Nodes.Find(n => n.Id == "gr-leaf-cfg-rad")!.Data.GetProperty("configId").GetString());
+		Assert.Contains(leaf.Nodes, n => n.Label == "Growth");
 	}
 
 	[Fact]
