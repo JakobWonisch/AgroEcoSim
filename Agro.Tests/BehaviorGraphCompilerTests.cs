@@ -414,6 +414,12 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
 		Assert.Equal(0.7f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
 		Assert.Equal(40f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
+		Assert.Equal(
+			"Each meristem node generates this amount of auxins (given in unspecified units).",
+			Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Usage);
+		Assert.Equal(
+			"Reduces the growth of lateral branches. Multiplies with each recursion level.",
+			Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Usage);
 		Assert.Equal(0.04f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance).Value.GetSingle());
 		Assert.Equal(0.01f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar).Value.GetSingle());
 		Assert.Equal(MathF.PI * 0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.TwigLateralAngle).Value.GetSingle(), 5);

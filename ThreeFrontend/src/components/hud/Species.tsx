@@ -95,15 +95,6 @@ export function SpeciesList() {
   );
 }
 
-const dominanceFactorTooltip =
-  "Reduces the growth of lateral branches. Multiplies with each recursion level.";
-const auxinsProductionTooltip =
-  "Each meristem node generates this amount of auxins (given in unspecified units).";
-const auxinsReachTooltip =
-  "Auxines propagate this far within the plant with a linear falloff.";
-const maxLeafLevelTooltip =
-  "Limits the level of branches that support petioles. Technically it coresponds to the maximum possible level of descendants.";
-
 export function SpeciesItem() {
   const inputList = appstate.species.value;
   const index = inputList.findIndex(

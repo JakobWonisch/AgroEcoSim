@@ -119,6 +119,7 @@ public class SpeciesSettings
     ///<summary>
     /// Maximum branch level that supports leaves (here level denotes the max. subtree depth)
     ///</summary>
+    // TODO(config): migrate to behavior configuration MaxLeafLevel (see DefaultSpeciesGraphBuilder.ConfigIds TODO).
     // public int LeafLevel { get; init; } = 2;
 
     ///<summary>
@@ -200,7 +201,7 @@ public class SpeciesSettings
     public float AuxinsProduction { get; init; } = 40;
     public float CytokininsProduction { get; init; } = 40;
 
-    public float AuxinsReach { get; init; } = 1;
+    public float AuxinsReach { get; init; } = 1; // TODO(config): migrate to behavior configuration (see DefaultSpeciesGraphBuilder.ConfigIds TODO).
 
     public float CytokininsReach { get; init; } = 1;
 

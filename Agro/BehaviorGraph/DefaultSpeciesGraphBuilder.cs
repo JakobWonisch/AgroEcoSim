@@ -56,6 +56,9 @@ public static class DefaultSpeciesGraphBuilder
 		public const string RizomeRadius = "default-config-rizome-radius";
 		public const string FloweringStartAgeHours = "default-config-flowering-start-age-hours";
 		public const string FloweringEndAgeHours = "default-config-flowering-end-age-hours";
+
+		// TODO(config): Add AuxinsReach — Usage: "Auxines propagate this far within the plant with a linear falloff."
+		// TODO(config): Add MaxLeafLevel — Usage: "Limits the level of branches that support petioles. Technically it corresponds to the maximum possible level of descendants."
 	}
 
 	/// <summary>TickDefault reference literals for bootstrap configuration (not <see cref="SpeciesSettings"/>).</summary>
@@ -278,6 +281,7 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.DominanceFactor,
 			Key = "Dominance factor",
 			Label = "Dominance factor",
+			Usage = "Reduces the growth of lateral branches. Multiplies with each recursion level.",
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.DominanceFactor),
 		},
@@ -286,6 +290,7 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.AuxinsProduction,
 			Key = "Auxins production",
 			Label = "Auxins production",
+			Usage = "Each meristem node generates this amount of auxins (given in unspecified units).",
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.AuxinsProduction),
 		},

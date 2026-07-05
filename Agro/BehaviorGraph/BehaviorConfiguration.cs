@@ -15,6 +15,10 @@ public sealed class BehaviorConfigUploadEntry
 	[JsonPropertyName("Label")]
 	public required string Label { get; init; }
 
+	/// <summary>Editor-only documentation; not used by simulation or behavior nodes.</summary>
+	[JsonPropertyName("Usage")]
+	public string? Usage { get; init; }
+
 	[JsonPropertyName("Type")]
 	public required string Type { get; init; }
 
