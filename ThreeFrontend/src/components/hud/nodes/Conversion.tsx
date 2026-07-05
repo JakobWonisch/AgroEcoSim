@@ -70,7 +70,7 @@ function exportNodeData(node: any): Record<string, unknown> {
         out.bool = node.switchControl.value;
     if (typeof node?.configId === "string" && node.configId)
         out.configId = node.configId;
-    if (node?.configType === "boolean" || node?.configType === "number")
+    if (node?.configType === "boolean" || node?.configType === "number" || node?.configType === "number[]")
         out.configType = node.configType;
     if (node && typeof node.data === "object" && node.data !== null)
         Object.assign(out, safeClone(node.data));

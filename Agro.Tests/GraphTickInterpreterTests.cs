@@ -308,4 +308,38 @@ public class GraphTickInterpreterTests
 		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
 		Assert.NotEqual(before, agent.Orientation);
 	}
+
+	[Fact]
+	public void ArrayElement_ClampsIndexAndFloors()
+	{
+		var config = new Dictionary<string, BehaviorConfigEntry>
+		{
+			["arr"] = new BehaviorConfigEntry
+			{
+				Id = "arr",
+				Key = "arr",
+				Label = "arr",
+				IsNumberArray = true,
+				FloatArrayValue = [1f, 2f, 3f],
+			},
+		};
+		Assert.Equal(1f, BehaviorGraphConfig.ArrayElement(config, "arr", 0f));
+		Assert.Equal(3f, BehaviorGraphConfig.ArrayElement(config, "arr", 2.9f));
+		Assert.Equal(3f, BehaviorGraphConfig.ArrayElement(config, "arr", 99f));
+		Assert.Equal(1f, BehaviorGraphConfig.ArrayElement(config, "arr", -1f));
+		Assert.Equal(0f, BehaviorGraphConfig.ArrayElement(config, "missing", 0f));
+		Assert.Equal(0f, BehaviorGraphConfig.ArrayElement(null, "arr", 0f));
+	}
+
+	[Fact]
+	public void BuildDominanceFactorsTable_MatchesLegacySetter()
+	{
+		var table = DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(0.7f);
+		Assert.Equal(17, table.Length);
+		Assert.Equal(1f, table[0]);
+		Assert.Equal(1f, table[1]);
+		Assert.Equal(0.7f, table[2]);
+		Assert.Equal(MathF.Pow(0.7f, 3), table[3], 5);
+		Assert.Equal(0f, table[16]);
+	}
 }

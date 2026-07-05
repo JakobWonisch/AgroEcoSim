@@ -10,6 +10,7 @@ import {
     type BehaviorConfigType,
 } from './behaviorConfiguration';
 import type { ConfigurationValueInputNode } from './input/ConfigurationValueInputNode';
+import type { ConfigurationArrayInputNode } from './input/ConfigurationArrayInputNode';
 import { getEditorContext } from './editorContext';
 import { isConfigurationInputConnected, rebindConfigurationInput, replaceConstantWithConfigInput } from './configurationBridge';
 import { isDuplicateConfigLabel } from './behaviorConfiguration';
@@ -264,6 +265,139 @@ export function ConfigSelectControlComponent(props: { data: ConfigSelectControl 
                                 },
                             },
                             'No configuration values yet',
+                        )
+                      : entries.map(e =>
+                            h(
+                                'button',
+                                {
+                                    type: 'button',
+                                    key: e.id,
+                                    onClick: () => pick(e),
+                                    style: {
+                                        display: 'block',
+                                        width: '100%',
+                                        padding: '6px 8px',
+                                        border: 'none',
+                                        borderBottom: '1px solid #444',
+                                        background: e.id === configId ? 'rgba(80,160,120,0.35)' : 'transparent',
+                                        color: '#fff',
+                                        cursor: 'pointer',
+                                        fontFamily: 'sans-serif',
+                                        fontSize: '13px',
+                                        textAlign: 'left',
+                                    },
+                                },
+                                e.label || e.key,
+                            ),
+                        ),
+              )
+            : null,
+    );
+}
+
+export class ConfigArraySelectControl extends ClassicPreset.Control {
+    constructor(
+        public configId: string,
+        public readonly getNode: () => ConfigurationArrayInputNode,
+        public readonly onBindingChange: (configId: string) => void,
+    ) {
+        super();
+    }
+}
+
+export function ConfigArraySelectControlComponent(props: { data: ConfigArraySelectControl }) {
+    const ctx = getEditorContext();
+    const [open, setOpen] = useState(false);
+    const [configId, setConfigId] = useState(props.data.configId);
+    const [revision, setRevision] = useState(0);
+
+    useEffect(() => {
+        setConfigId(props.data.configId);
+    }, [props.data.configId]);
+
+    useEffect(() => {
+        const onUpdate = () => setRevision(r => r + 1);
+        graphUpdateTrigger.addEventListener('update', onUpdate);
+        return () => graphUpdateTrigger.removeEventListener('update', onUpdate);
+    }, []);
+
+    void revision;
+    const allEntries = ctx?.species.behaviorConfiguration.peek() ?? [];
+    const entries = sortConfigEntries(allEntries.filter(e => e.type === 'number[]'));
+
+    const selected = entries.find(e => e.id === configId)
+        ?? allEntries.find(e => e.id === configId);
+    const label = selected?.label?.trim() || '(select configuration array)';
+
+    const pick = (entry: BehaviorConfigEntry) => {
+        setConfigId(entry.id);
+        props.data.configId = entry.id;
+        props.data.getNode().configId = entry.id;
+        setOpen(false);
+        props.data.onBindingChange(entry.id);
+        notifyGraphUiUpdate();
+    };
+
+    return h(
+        'div',
+        {
+            style: { padding: '8px', position: 'relative' },
+            onPointerDown: stopPropagation,
+            onDblClick: stopPropagation,
+        },
+        h(
+            'button',
+            {
+                type: 'button',
+                onClick: () => {
+                    setRevision(r => r + 1);
+                    setOpen(v => !v);
+                },
+                style: {
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #555',
+                    background: '#222',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontFamily: 'sans-serif',
+                    fontSize: '13px',
+                    textAlign: 'left',
+                },
+            },
+            label,
+        ),
+        open
+            ? h(
+                  'div',
+                  {
+                      style: {
+                          position: 'absolute',
+                          left: 8,
+                          right: 8,
+                          top: '100%',
+                          zIndex: 20,
+                          background: '#2a2a2a',
+                          border: '1px solid #555',
+                          borderRadius: '4px',
+                          maxHeight: 160,
+                          overflowY: 'auto',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                      },
+                  },
+                  entries.length === 0
+                      ? h(
+                            'div',
+                            {
+                                style: {
+                                    padding: '8px',
+                                    color: '#999',
+                                    fontSize: '12px',
+                                    fontFamily: 'sans-serif',
+                                },
+                            },
+                            'No number[] configuration values yet',
                         )
                       : entries.map(e =>
                             h(

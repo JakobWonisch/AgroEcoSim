@@ -33,8 +33,10 @@ public sealed class BehaviorConfigEntry
 	public required string Key { get; init; }
 	public required string Label { get; init; }
 	public bool IsBoolean { get; init; }
+	public bool IsNumberArray { get; init; }
 	public float NumberValue { get; init; }
 	public bool BoolValue { get; init; }
+	public float[] FloatArrayValue { get; init; } = [];
 }
 
 public static class BehaviorConfigurationCatalog
@@ -60,14 +62,17 @@ public static class BehaviorConfigurationCatalog
 			if (string.IsNullOrWhiteSpace(entry.Id))
 				continue;
 			var isBool = string.Equals(entry.Type, "boolean", StringComparison.OrdinalIgnoreCase);
+			var isArray = string.Equals(entry.Type, "number[]", StringComparison.OrdinalIgnoreCase);
 			result[entry.Id] = new BehaviorConfigEntry
 			{
 				Id = entry.Id,
 				Key = string.IsNullOrWhiteSpace(entry.Key) ? entry.Id : entry.Key.Trim(),
 				Label = entry.Label ?? "",
 				IsBoolean = isBool,
-				NumberValue = isBool ? 0f : ReadNumberValue(entry.Value),
+				IsNumberArray = isArray,
+				NumberValue = isBool || isArray ? 0f : ReadNumberValue(entry.Value),
 				BoolValue = isBool && ReadBoolValue(entry.Value),
+				FloatArrayValue = isArray ? ReadFloatArrayValue(entry.Value) : [],
 			};
 		}
 
@@ -91,4 +96,22 @@ public static class BehaviorConfigurationCatalog
 			JsonValueKind.Number => Math.Abs(value.GetSingle()) > 1e-6f,
 			_ => false,
 		};
+
+	static float[] ReadFloatArrayValue(JsonElement value)
+	{
+		if (value.ValueKind != JsonValueKind.Array)
+			return [];
+		var list = new List<float>();
+		foreach (var el in value.EnumerateArray())
+		{
+			list.Add(el.ValueKind switch
+			{
+				JsonValueKind.Number => el.TryGetSingle(out var f) ? f : 0f,
+				JsonValueKind.True => 1f,
+				JsonValueKind.False => 0f,
+				_ => 0f,
+			});
+		}
+		return list.ToArray();
+	}
 }

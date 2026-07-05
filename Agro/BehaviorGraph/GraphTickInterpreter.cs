@@ -74,6 +74,13 @@ public static class GraphTickInterpreter
 					outs[(g, "num")] = WireValue.OfFloat(n);
 				}
 				break;
+			case GraphNodeKind.ConfigurationArrayInput:
+			{
+				var index = FirstFloat(node.Inputs, "index", outs);
+				var value = BehaviorGraphConfig.ArrayElement(ctx.BehaviorConfiguration, node.ConfigId ?? "", index);
+				outs[(g, "out")] = WireValue.OfFloat(value);
+				break;
+			}
 			case GraphNodeKind.AgentTypeInput:
 				WriteAgentTypeInput(ref agent, outs, g);
 				break;

@@ -229,6 +229,14 @@ public static class BehaviorGraphCompiler
 					return false;
 				}
 				return true;
+			case "Configuration Array Input":
+				kind = GraphNodeKind.ConfigurationArrayInput;
+				if (string.IsNullOrWhiteSpace(ReadConfigId(node.Data)))
+				{
+					error = $"Configuration Array Input node '{node.Id}' requires data.configId.";
+					return false;
+				}
+				return true;
 			case "Agent Type Input":
 				kind = GraphNodeKind.AgentTypeInput;
 				return true;

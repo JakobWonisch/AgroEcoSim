@@ -27,6 +27,14 @@ public sealed class GraphNodePayload
 			Comment = comment,
 		};
 
+	public static GraphNodePayload FromConfigArray(string configId, string? comment = null) =>
+		new()
+		{
+			ConfigId = configId,
+			ConfigType = "number[]",
+			Comment = comment,
+		};
+
 	public JsonElement ToJsonElement()
 	{
 		var dict = new Dictionary<string, object>();

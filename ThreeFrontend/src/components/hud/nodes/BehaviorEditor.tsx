@@ -14,6 +14,8 @@ import {
     AddToConfigControlComponent,
     ConfigSelectControl,
     ConfigSelectControlComponent,
+    ConfigArraySelectControl,
+    ConfigArraySelectControlComponent,
 } from './ConfigurationControls';
 import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
 import { AgentTypeInputNode } from './input/AgentTypeInputNode';
@@ -26,6 +28,7 @@ import { RandomChanceInputNode } from './input/RandomChanceInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
 import { ConfigurationValueInputNode } from './input/ConfigurationValueInputNode';
+import { ConfigurationArrayInputNode } from './input/ConfigurationArrayInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
 import { ActiveOutputNode } from './output/ActiveOutputNode';
 import { GrowthNode } from './output/GrowthNode';
@@ -153,6 +156,9 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 if (data.payload instanceof ConfigSelectControl) {
                     return ConfigSelectControlComponent as any;
                 }
+                if (data.payload instanceof ConfigArraySelectControl) {
+                    return ConfigArraySelectControlComponent as any;
+                }
                 if (data.payload instanceof SwitchControl) {
                     return SwitchControlComponent as any;
                 }
@@ -174,6 +180,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Number Input', () => new NumberInputNode(0)],
                 ['Boolean Input', () => new BooleanInputNode(false)],
                 ['Configuration Value Input', () => new ConfigurationValueInputNode()],
+                ['Configuration Array Input', () => new ConfigurationArrayInputNode()],
             ]],
             ['input dynamic', [
                 ['Agent Type Input', () => new AgentTypeInputNode()],

@@ -34,6 +34,7 @@ public static class DefaultSpeciesGraphBuilder
 		public const string MeristemGrowthRadius = "default-config-meristem-growth-radius";
 		public const string StemGrowthRadius = "default-config-stem-growth-radius";
 		public const string DominanceFactor = "default-config-dominance-factor";
+		public const string DominanceFactors = "default-config-dominance-factors";
 		public const string AuxinsProduction = "default-config-auxins-production";
 		public const string NodeDistance = "default-config-node-distance";
 		public const string NodeDistanceVar = "default-config-node-distance-var";
@@ -97,6 +98,19 @@ public static class DefaultSpeciesGraphBuilder
 	}
 
 	static float DefaultPetioleCoverThreshold() => DefaultTickConstants.PetioleCoverThreshold;
+
+	/// <summary>Matches legacy <see cref="SpeciesSettings.DominanceFactor"/> setter table.</summary>
+	public static float[] BuildDominanceFactorsTable(float baseFactor, int length = 17)
+	{
+		var arr = new float[length];
+		arr[0] = 1f;
+		arr[1] = 1f;
+		arr[2] = baseFactor;
+		const int factors = 16;
+		for (var i = 3; i < factors && i < length; ++i)
+			arr[i] = MathF.Pow(baseFactor, i);
+		return arr;
+	}
 
 	public static IReadOnlyList<BehaviorConfigUploadEntry> BuildDefaultConfiguration() =>
 	[
@@ -284,6 +298,15 @@ public static class DefaultSpeciesGraphBuilder
 			Usage = "Reduces the growth of lateral branches. Multiplies with each recursion level.",
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.DominanceFactor),
+		},
+		new()
+		{
+			Id = ConfigIds.DominanceFactors,
+			Key = "Dominance factors",
+			Label = "Dominance factors",
+			Usage = "Per-level growth multiplier indexed by dominance level (legacy DominanceFactors table).",
+			Type = "number[]",
+			Value = JsonSerializer.SerializeToElement(BuildDominanceFactorsTable(DefaultTickConstants.DominanceFactor)),
 		},
 		new()
 		{
@@ -1169,6 +1192,18 @@ public static class DefaultSpeciesGraphBuilder
 
 		public string AddConfig(string id, string configId, bool isBoolean, float x, float y, string? comment = null) =>
 			Add(id, "Configuration Value Input", x, y, GraphNodePayload.FromConfig(configId, isBoolean, comment));
+
+		public string AddConfigArray(string id, string configId, float x, float y, string? comment = null) =>
+			Add(id, "Configuration Array Input", x, y, GraphNodePayload.FromConfigArray(configId, comment));
+
+		/// <summary>dominanceLevel → Configuration Array Input (DominanceFactors) → out.</summary>
+		public string WireDominanceLookup(string stateId, string configArrayId, float x, float y, string suffix = "dom")
+		{
+			var arr = AddConfigArray($"dominance-arr-{suffix}", configArrayId, x, y,
+				"DominanceFactors[dominanceLevel]");
+			Connect(stateId, "dominanceLevel", arr, "index");
+			return arr;
+		}
 
 		public void Connect(string source, string sourceOutput, string target, string targetInput)
 		{

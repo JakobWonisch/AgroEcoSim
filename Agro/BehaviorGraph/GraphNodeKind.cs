@@ -68,4 +68,5 @@ public enum GraphNodeKind : byte
 	SpawnFlowerPadel,
 	SpawnRhizome,
 	ConfigurationValueInput,
+	ConfigurationArrayInput,
 }

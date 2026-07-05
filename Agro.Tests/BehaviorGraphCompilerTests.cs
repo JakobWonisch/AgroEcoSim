@@ -533,4 +533,26 @@ public class BehaviorGraphCompilerTests
 		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
 		Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
 	}
+
+	[Fact]
+	public void TryCompile_ConfigurationArrayInput_Ok()
+	{
+		var (gn, gc) = GatePair("arr");
+		var g = new ExportedGraph
+		{
+			Nodes =
+			[
+				..gn,
+				N("idx", "Number Input", new Dictionary<string, object> { ["value"] = 2f }),
+				N("arr", "Configuration Array Input", new { configId = "dom-factors", configType = "number[]" }),
+			],
+			Connections =
+			[
+				..gc,
+				C("ic", "idx", "num", "arr", "index"),
+			],
+		};
+		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
+		Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationArrayInput);
+	}
 }

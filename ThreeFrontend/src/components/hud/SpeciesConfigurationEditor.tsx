@@ -100,7 +100,7 @@ function ConfigRow({
     allEntries: BehaviorConfigEntry[];
     onSaveLabel: (label: string) => void;
     onSaveUsage: (usage: string) => void;
-    onChangeValue: (value: number | boolean) => void;
+    onChangeValue: (value: number | boolean | number[]) => void;
     onDelete: () => void;
 }) {
     const [editingLabel, setEditingLabel] = useState(false);
@@ -176,6 +176,19 @@ function ConfigRow({
                   onChange: (v: boolean) => onChangeValue(v),
                   compact: true,
               })
+            : entry.type === 'number[]'
+                ? h('input', {
+                      type: 'text',
+                      value: Array.isArray(entry.value) ? entry.value.join(', ') : '',
+                      title: 'Comma-separated numbers',
+                      onInput: (e: Event) => {
+                          const raw = (e.target as HTMLInputElement).value;
+                          const parts = raw.split(',').map(s => parseFloat(s.trim())).filter(n => !Number.isNaN(n));
+                          onChangeValue(parts);
+                      },
+                      onPointerDown: stopPropagation,
+                      style: { ...valueInputStyle, width: 160, maxWidth: 160 },
+                  })
             : h('input', {
                   type: 'number',
                   value: Number(entry.value),
@@ -261,7 +274,7 @@ export default function SpeciesConfigurationEditor({ species }: { species: Speci
         graphUpdateTrigger.dispatchEvent(new Event('update'));
     };
 
-    const setValue = (id: string, value: number | boolean) => {
+    const setValue = (id: string, value: number | boolean | number[]) => {
         species.behaviorConfiguration.value = species.behaviorConfiguration.peek().map(e =>
             e.id === id ? { ...e, value } : e);
         graphUpdateTrigger.dispatchEvent(new Event('update'));
@@ -325,7 +338,7 @@ export default function SpeciesConfigurationEditor({ species }: { species: Speci
                       allEntries: entries,
                       onSaveLabel: (label: string) => saveLabel(entry.id, label),
                       onSaveUsage: (usage: string) => saveUsage(entry.id, usage),
-                      onChangeValue: (value: number | boolean) => setValue(entry.id, value),
+                      onChangeValue: (value: number | boolean | number[]) => setValue(entry.id, value),
                       onDelete: () => deleteEntry(entry.id),
                   }),
               ),
