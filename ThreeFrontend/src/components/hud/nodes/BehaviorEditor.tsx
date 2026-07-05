@@ -83,8 +83,9 @@ import type { NamedGraph } from './Conversion';
 import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
 import { applyAutoLayout } from './autoLayout';
-import { setEditorContext } from './editorContext';
+import { setEditorContext, getEditorContext } from './editorContext';
 import { notifyGraphUiUpdate } from './graphUpdate';
+import { setAllNodesCollapsed, refreshNodeAfterCollapse, isNodeCollapsed, type CollapsibleNode } from './nodeCollapse';
 
 function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
     // Avoid overwriting node positions with 0/0 snapshots before views are ready.
@@ -339,8 +340,19 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
             schedulePush();
-            if (context.type === 'connectioncreated' || context.type === 'connectionremoved')
-                setTimeout(() => notifyGraphUiUpdate(), 0);
+            if (context.type === 'connectioncreated' || context.type === 'connectionremoved') {
+                const conn = c.data as { source?: string; target?: string };
+                setTimeout(async () => {
+                    notifyGraphUiUpdate();
+                    const affected = new Set<string>();
+                    if (conn?.source) affected.add(conn.source);
+                    if (conn?.target) affected.add(conn.target);
+                    for (const node of editor.getNodes()) {
+                        if (isNodeCollapsed(node as CollapsibleNode) && affected.has(node.id))
+                            await refreshNodeAfterCollapse(area, editor, node.id);
+                    }
+                }, 0);
+            }
         }
 
         return context;
@@ -412,6 +424,16 @@ export async function createEditor(container: HTMLElement, species: Species, nam
             if (nodes.length > 0)
                 AreaExtensions.zoomAt(area, nodes);
         },
+        collapseAll: async () => {
+            const ctx = getEditorContext();
+            if (ctx)
+                await setAllNodesCollapsed(ctx, true);
+        },
+        expandAll: async () => {
+            const ctx = getEditorContext();
+            if (ctx)
+                await setAllNodesCollapsed(ctx, false);
+        },
     };
 }
 
@@ -432,6 +454,22 @@ export default function BehaviorEditor({ species, namedGraph }: { species: Speci
                     onClick={() => editorApi?.autoLayout()}
                 >
                     Auto-layout
+                </button>
+                <button
+                    type="button"
+                    title="Collapse all nodes to connected ports only"
+                    disabled={!editorApi}
+                    onClick={() => void editorApi?.collapseAll()}
+                >
+                    Collapse all
+                </button>
+                <button
+                    type="button"
+                    title="Expand all nodes"
+                    disabled={!editorApi}
+                    onClick={() => void editorApi?.expandAll()}
+                >
+                    Expand all
                 </button>
             </div>
             <div ref={ref} style={{ flex: 1, minHeight: 0, width: '100%' }} />

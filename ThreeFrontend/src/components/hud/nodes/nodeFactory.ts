@@ -56,6 +56,7 @@ import { BecomeStemNode } from "./output/BecomeStemNode";
 import { BecomeFlowerStemNode } from "./output/BecomeFlowerStemNode";
 import { BecomeFlowerMeristemNode } from "./output/BecomeFlowerMeristemNode";
 import { applyNodeComment } from "./nodeComment";
+import { applyNodeCollapsed } from "./nodeCollapse";
 import {
     SpawnMeristemNode,
     SpawnBudNode,
@@ -231,6 +232,9 @@ export async function createNodeFromExport(data: { id: string; label: string; da
         return null;
     }
     const node = create(d);
-    if (node) applyNodeComment(node, d);
+    if (node) {
+        applyNodeComment(node, d);
+        applyNodeCollapsed(node, d);
+    }
     return node;
 }

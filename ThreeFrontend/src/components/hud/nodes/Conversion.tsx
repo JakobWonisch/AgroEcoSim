@@ -56,6 +56,7 @@ export function createDefaultNamedGraph(displayName: string): NamedGraph {
 }
 
 import { exportNodeComment } from "./nodeComment";
+import { exportNodeCollapsed } from "./nodeCollapse";
 
 function safeClone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value));
@@ -74,6 +75,7 @@ function exportNodeData(node: any): Record<string, unknown> {
     if (node && typeof node.data === "object" && node.data !== null)
         Object.assign(out, safeClone(node.data));
     exportNodeComment(node, out);
+    exportNodeCollapsed(node, out);
     return out;
 }
 
