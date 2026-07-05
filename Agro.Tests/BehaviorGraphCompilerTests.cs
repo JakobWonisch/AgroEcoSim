@@ -555,4 +555,29 @@ public class BehaviorGraphCompilerTests
 		Assert.True(BehaviorGraphCompiler.TryCompile(g, out var compiled, out var err), err);
 		Assert.Contains(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationArrayInput);
 	}
+
+	[Fact]
+	public void TryCompile_AllPerseaSubgraphs_Ok()
+	{
+		foreach (var (name, graph) in PerseaSpeciesGraphBuilder.BuildSpeciesSubgraphs())
+			Assert.True(BehaviorGraphCompiler.TryCompile(graph, out _, out var err),
+				$"Subgraph '{name}' failed: {err}");
+	}
+
+	[Theory]
+	[InlineData("Geranium Macrorrhizum")]
+	[InlineData("Geranium × Cantabrigiense")]
+	[InlineData("Bergenia Cordifolia")]
+	public void TryCompile_AllBerganiaSubgraphs_Ok(string species)
+	{
+		var opt = species switch
+		{
+			"Geranium Macrorrhizum" => BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumMacrorrhizum,
+			"Geranium × Cantabrigiense" => BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumCantabrigiense,
+			_ => BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia,
+		};
+		foreach (var (name, graph) in BerganiaTickGraphBuilder.BuildSpeciesSubgraphs(opt))
+			Assert.True(BehaviorGraphCompiler.TryCompile(graph, out _, out var err),
+				$"Subgraph '{name}' failed: {err}");
+	}
 }

@@ -38,10 +38,11 @@ public static class PredefinedSpeciesCatalog
 
 	public static IReadOnlyList<PredefinedSpeciesEntry> All => Lazy.Value;
 
-	static List<PredefinedSpeciesGraphEntry> BuildDefaultSpeciesGraphEntries()
+	static List<PredefinedSpeciesGraphEntry> BuildGraphEntries(
+		IReadOnlyList<(string Name, global::ExportedGraph Graph)> subgraphs)
 	{
 		var entries = new List<PredefinedSpeciesGraphEntry>();
-		foreach (var (name, graph) in BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs())
+		foreach (var (name, graph) in subgraphs)
 		{
 			entries.Add(new PredefinedSpeciesGraphEntry
 			{
@@ -53,6 +54,16 @@ public static class PredefinedSpeciesCatalog
 
 		return entries;
 	}
+
+	static List<PredefinedSpeciesGraphEntry> BuildDefaultSpeciesGraphEntries() =>
+		BuildGraphEntries(BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs());
+
+	static List<PredefinedSpeciesGraphEntry> BuildPerseaGraphEntries() =>
+		BuildGraphEntries(BehaviorGraph.PerseaSpeciesGraphBuilder.BuildSpeciesSubgraphs());
+
+	static List<PredefinedSpeciesGraphEntry> BuildBerganiaGraphEntries(
+		BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions options) =>
+		BuildGraphEntries(BehaviorGraph.BerganiaTickGraphBuilder.BuildSpeciesSubgraphs(options));
 
 	static global::ExportedGraph BuildMinimalGatedGraph()
 	{
@@ -99,13 +110,27 @@ public static class PredefinedSpeciesCatalog
 		var list = new List<PredefinedSpeciesEntry>();
 		foreach (var s in SpeciesSettings.Predefined)
 		{
-			list.Add(new PredefinedSpeciesEntry
+			var (graphs, configuration) = s.Name switch
 			{
-				Name = s.Name,
-				Aka = s.Aka,
-				Graphs = s.Name == "Default"
-					? BuildDefaultSpeciesGraphEntries()
-					:
+				"Default" => (
+					BuildDefaultSpeciesGraphEntries(),
+					(List<BehaviorConfigUploadEntry>?)[.. BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultConfiguration()]),
+				"Persea americana" => (
+					BuildPerseaGraphEntries(),
+					(List<BehaviorConfigUploadEntry>?)[.. BehaviorGraph.PerseaSpeciesGraphBuilder.BuildConfiguration()]),
+				"Geranium Macrorrhizum" => (
+					BuildBerganiaGraphEntries(BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumMacrorrhizum),
+					(List<BehaviorConfigUploadEntry>?)[.. BehaviorGraph.BerganiaTickGraphBuilder.BuildConfiguration(
+						BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumMacrorrhizum)]),
+				"Geranium × Cantabrigiense" => (
+					BuildBerganiaGraphEntries(BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumCantabrigiense),
+					(List<BehaviorConfigUploadEntry>?)[.. BehaviorGraph.BerganiaTickGraphBuilder.BuildConfiguration(
+						BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumCantabrigiense)]),
+				"Bergenia Cordifolia" => (
+					BuildBerganiaGraphEntries(BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia),
+					(List<BehaviorConfigUploadEntry>?)[.. BehaviorGraph.BerganiaTickGraphBuilder.BuildConfiguration(
+						BehaviorGraph.BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia)]),
+				_ => (
 					[
 						new PredefinedSpeciesGraphEntry
 						{
@@ -114,9 +139,15 @@ public static class PredefinedSpeciesCatalog
 							Graph = BuildMinimalGatedGraph(),
 						},
 					],
-				Configuration = s.Name == "Default"
-					? [.. BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultConfiguration()]
-					: null,
+					(List<BehaviorConfigUploadEntry>?)null),
+			};
+
+			list.Add(new PredefinedSpeciesEntry
+			{
+				Name = s.Name,
+				Aka = s.Aka,
+				Graphs = graphs,
+				Configuration = configuration,
 			});
 		}
 
