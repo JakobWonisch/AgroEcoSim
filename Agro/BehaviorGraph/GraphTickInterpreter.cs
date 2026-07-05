@@ -294,11 +294,14 @@ public static class GraphTickInterpreter
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
 					var plant = ctx.Formation!.Plant;
-					var lateral = agent.LateralAngle + plant.Parameters.LateralRoll;
+					var lateral = node.Inputs.ContainsKey("lateralAngle") && node.Inputs["lateralAngle"].Count > 0
+						? FirstFloat(node.Inputs, "lateralAngle", outs)
+						: agent.LateralAngle + BehaviorGraphConfig.Number(
+							ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
 					var meristemId = node.Inputs.ContainsKey("meristemId")
 						? (int)FirstFloat(node.Inputs, "meristemId", outs)
 						: ctx.AgentId;
-					agent.CreateLeaves(agent, plant, lateral, meristemId);
+					AboveGroundAgent.GraphCreateLeaves(ref agent, plant, ctx.BehaviorConfiguration, lateral, meristemId);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else
@@ -375,10 +378,15 @@ public static class GraphTickInterpreter
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
 					var plant = ctx.Formation!.Plant;
-					var species = plant.Parameters;
 					var world = plant.World;
+					var woodTime = BehaviorGraphConfig.Number(
+						ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime,
+						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTime);
+					var woodTimeVar = BehaviorGraphConfig.Number(
+						ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar,
+						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTimeVar);
 					agent.Organ = OrganTypes.Stem;
-					agent.GraphSetGrowthTimeVar(world.HoursPerTick / (species.WoodGrowthTime + plant.RNG.NextFloatVar(species.WoodGrowthTimeVar)));
+					agent.GraphSetGrowthTimeVar(world.HoursPerTick / (woodTime + plant.RNG.NextFloatVar(woodTimeVar)));
 				}
 				break;
 			case GraphNodeKind.BecomeFlowerStem:
@@ -392,7 +400,8 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.SpawnMeristem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
-					var childId = SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem);
+					var childId = SpawnEffects.SpawnChild(
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem, ctx.BehaviorConfiguration);
 					outs[(g, "childId")] = WireValue.OfFloat(childId);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
@@ -402,33 +411,51 @@ public static class GraphTickInterpreter
 					outs[(g, "seq")] = WireValue.OfBool(false);
 				}
 				break;
+			case GraphNodeKind.SpawnDichotomousMeristems:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
+					var (m1, m2, pitch) = SpawnEffects.SpawnDichotomousMeristems(
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, ctx.BehaviorConfiguration);
+					outs[(g, "childId1")] = WireValue.OfFloat(m1);
+					outs[(g, "childId2")] = WireValue.OfFloat(m2);
+					outs[(g, "lateralPitch")] = WireValue.OfFloat(pitch);
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+				{
+					outs[(g, "childId1")] = WireValue.OfFloat(-1f);
+					outs[(g, "childId2")] = WireValue.OfFloat(-1f);
+					outs[(g, "lateralPitch")] = WireValue.OfFloat(0f);
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				}
+				break;
 			case GraphNodeKind.SpawnBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Bud);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Bud, ctx.BehaviorConfiguration);
 				break;
 			case GraphNodeKind.SpawnStem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Stem);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Stem, ctx.BehaviorConfiguration);
 				break;
 			case GraphNodeKind.SpawnFlowerStem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerStem);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerStem, ctx.BehaviorConfiguration);
 				break;
 			case GraphNodeKind.SpawnFlowerMeristem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerMeristem);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerMeristem, ctx.BehaviorConfiguration);
 				break;
 			case GraphNodeKind.SpawnFlowerBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerBud);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerBud, ctx.BehaviorConfiguration);
 				break;
 			case GraphNodeKind.SpawnFlowerPadel:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerPadel);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerPadel, ctx.BehaviorConfiguration);
 				break;
 			case GraphNodeKind.SpawnRhizome:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnRhizome(ref agent, ctx.Formation!, ctx.AgentId, agent.Orientation);
+					SpawnEffects.SpawnRhizome(ref agent, ctx.Formation!, ctx.AgentId, agent.Orientation, ctx.BehaviorConfiguration);
 				break;
 			default:
 				break;
@@ -461,7 +488,26 @@ public static class GraphTickInterpreter
 			return;
 		}
 
-		var phase = ctx.Formation!.GetPhase(ctx.Formation.Plant.Parameters, ctx.Timestep);
+		var plant = ctx.Formation!.Plant;
+		var ageHours = ctx.Timestep * plant.World.HoursPerTick;
+		var ageTemp = ageHours % (365f * 24f);
+		var floweringStart = BehaviorGraphConfig.Number(
+			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.FloweringStartAgeHours,
+			DefaultSpeciesGraphBuilder.DefaultTickConstants.FloweringStartAgeHours);
+		var floweringEnd = BehaviorGraphConfig.Number(
+			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.FloweringEndAgeHours,
+			DefaultSpeciesGraphBuilder.DefaultTickConstants.FloweringEndAgeHours);
+
+		SeasonalPhase phase;
+		if (ageTemp < floweringStart)
+			phase = SeasonalPhase.PreFlower;
+		else if (ageTemp <= floweringEnd)
+			phase = SeasonalPhase.Flowering;
+		else if (ageTemp < floweringEnd + 24f * 100f)
+			phase = SeasonalPhase.PostFlower;
+		else
+			phase = SeasonalPhase.ResetPending;
+
 		outs[(g, "preFlower")] = WireValue.OfBool(phase == SeasonalPhase.PreFlower);
 		outs[(g, "flowering")] = WireValue.OfBool(phase == SeasonalPhase.Flowering);
 		outs[(g, "postFlower")] = WireValue.OfBool(phase == SeasonalPhase.PostFlower);
@@ -505,7 +551,7 @@ public static class GraphTickInterpreter
 			outs[(g, "parentAuxins")] = WireValue.OfFloat(0f);
 			outs[(g, "grandparentAuxins")] = WireValue.OfFloat(0f);
 			outs[(g, "parentDominance")] = WireValue.OfFloat(0f);
-			outs[(g, "parentBaseRadius")] = WireValue.OfFloat(0f);
+			outs[(g, "parentBaseRadius")] = WireValue.OfFloat(float.MaxValue);
 			outs[(g, "hasChildren")] = WireValue.OfBool(false);
 			outs[(g, "childrenProductionSum")] = WireValue.OfFloat(0f);
 			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(0f);
@@ -518,8 +564,7 @@ public static class GraphTickInterpreter
 			var parentOrgan = formation.GetOrgan(parent);
 			var parentIsRhizome = formation.GetIsRizome(parent);
 			outs[(g, "parentIsRhizome")] = WireValue.OfBool(parentIsRhizome);
-			outs[(g, "parentWood")] = WireValue.OfFloat(
-				parentIsRhizome ? agent.WoodRatio() : formation.GetWoodRatio(parent));
+			outs[(g, "parentWood")] = WireValue.OfFloat(formation.GetWoodRatio(parent));
 			outs[(g, "parentLeaf")] = WireValue.OfBool(parentOrgan == OrganTypes.Leaf);
 			outs[(g, "parentStem")] = WireValue.OfBool(parentOrgan == OrganTypes.Stem);
 			outs[(g, "parentMeristem")] = WireValue.OfBool(parentOrgan == OrganTypes.Meristem);
@@ -544,7 +589,7 @@ public static class GraphTickInterpreter
 			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(
 				height > 1e-6f ? 5f * formation.GetBaseCenter(ctx.AgentId).Y / height : 0f);
 			outs[(g, "auxinLocalMinimum")] = WireValue.OfBool(
-				ComputeAuxinLocalMinimum(formation, ref agent));
+				ComputeAuxinLocalMinimum(formation, ref agent, ctx));
 		}
 
 		if (ctx.HasFormation)
@@ -567,14 +612,19 @@ public static class GraphTickInterpreter
 		}
 	}
 
-	static bool ComputeAuxinLocalMinimum(PlantSubFormation<AboveGroundAgent> formation, ref AboveGroundAgent agent)
+	static bool ComputeAuxinLocalMinimum(
+		PlantSubFormation<AboveGroundAgent> formation,
+		ref AboveGroundAgent agent,
+		TickEvalContext ctx)
 	{
 		if (agent.Parent < 0)
 			return false;
 
-		var species = formation.Plant.Parameters;
+		var auxinsThreshold = BehaviorGraphConfig.Number(
+			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.AuxinsThreshold,
+			DefaultSpeciesGraphBuilder.DefaultTickConstants.AuxinsThreshold);
 		var parentAuxins = formation.GetAuxins(agent.Parent);
-		if (parentAuxins >= species.AuxinsThreshold)
+		if (parentAuxins >= auxinsThreshold)
 			return false;
 
 		var ascendantIndex = formation.GetParent(agent.Parent);
@@ -613,24 +663,18 @@ public static class GraphTickInterpreter
 		outs[(g, "hoursPerTick")] = WireValue.OfFloat(hoursPerTick);
 	}
 
+	/// <summary>Caps a post-increment value to parent wood (utility node; lignify uses min-then-add in graph).</summary>
 	static float ParentWoodCap(ref AboveGroundAgent agent, TickEvalContext ctx, float value)
 	{
 		if (!ctx.HasFormation || agent.Parent < 0)
 			return value;
 
-		var formation = ctx.Formation!;
-		var parentWood = formation.GetIsRizome(agent.Parent)
-			? agent.WoodRatio()
-			: formation.GetWoodRatio(agent.Parent);
+		var parentWood = ctx.Formation!.GetWoodRatio(agent.Parent);
 		return value <= parentWood ? value : parentWood;
 	}
 
-	static float ResolveConfigNumber(string? configId, TickEvalContext ctx)
-	{
-		if (string.IsNullOrWhiteSpace(configId) || ctx.BehaviorConfiguration is null)
-			return 0f;
-		return ctx.BehaviorConfiguration.TryGetValue(configId, out var entry) ? entry.NumberValue : 0f;
-	}
+	static float ResolveConfigNumber(string? configId, TickEvalContext ctx) =>
+		BehaviorGraphConfig.Number(ctx.BehaviorConfiguration, configId ?? "");
 
 	static bool ResolveConfigBool(string? configId, TickEvalContext ctx)
 	{

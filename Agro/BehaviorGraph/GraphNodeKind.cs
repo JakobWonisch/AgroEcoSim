@@ -59,6 +59,7 @@ public enum GraphNodeKind : byte
 	BecomeFlowerStem,
 	BecomeFlowerMeristem,
 	SpawnMeristem,
+	SpawnDichotomousMeristems,
 	SpawnBud,
 	SpawnStem,
 	SpawnFlowerStem,

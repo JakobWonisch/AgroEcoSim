@@ -846,6 +846,7 @@ public partial class PlantSubFormation<T> : IPlantSubFormation<T> where T: struc
 	{
 		path.Clear();
 
+		// TODO(config): read AuxinsReach from behavior configuration (see DefaultSpeciesGraphBuilder.ConfigIds TODO).
 		var auxinsReach = Plant.Parameters.AuxinsReach;
 		var bufferSrc = new List<(int, float)>();
 		var bufferDst = new List<(int, float)>();

@@ -242,6 +242,7 @@ public class BehaviorGraphCompilerTests
 	[InlineData("Integer Divide")]
 	[InlineData("Make Bud")]
 	[InlineData("Spawn Meristem")]
+	[InlineData("Spawn Dichotomous Meristems")]
 	[InlineData("Death")]
 	public void TryCompile_NewNodeLabels_Ok(string label)
 	{
@@ -321,6 +322,7 @@ public class BehaviorGraphCompilerTests
 			{
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.BecomeStem);
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SpawnMeristem);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SpawnDichotomousMeristems);
 				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SetWasMeristem);
 				continue;
 			}
@@ -373,7 +375,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(27, entries.Count);
+		Assert.Equal(45, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -400,22 +402,31 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(20f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemDeathRadiusCoeff).Value.GetSingle());
 
 		var cover = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold);
-		var s = SpeciesSettings.Default;
-		var expectedCover = MathF.Cos(MathF.PI * 0.5f - s.LateralPitch) * s.PetioleLength * 0.25f;
+		var expectedCover = MathF.Cos(MathF.PI * 0.5f - 45f * MathF.PI / 180f) * 0.04f * 0.25f;
 		Assert.Equal(expectedCover, cover.Value.GetSingle(), 6);
 
-		Assert.Equal(s.LeafLength, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafLength).Value.GetSingle());
-		Assert.Equal(s.LeafRadius, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius).Value.GetSingle());
-		Assert.Equal(s.PetioleLength, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength).Value.GetSingle());
-		Assert.Equal(s.PetioleRadius, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius).Value.GetSingle());
+		Assert.Equal(0.12f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafLength).Value.GetSingle());
+		Assert.Equal(0.04f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius).Value.GetSingle());
+		Assert.Equal(0.04f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength).Value.GetSingle());
+		Assert.Equal(0.0025f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius).Value.GetSingle());
 		Assert.Equal(1e-3f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthLength).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
-		Assert.Equal(SpeciesSettings.Default.DominanceFactors[0], Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
-		Assert.Equal(s.AuxinsProduction, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
-		Assert.Equal(s.NodeDistance, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance).Value.GetSingle());
-		Assert.Equal(s.NodeDistanceVar, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar).Value.GetSingle());
+		Assert.Equal(0.7f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
+		Assert.Equal(40f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
+		Assert.Equal(
+			"Each meristem node generates this amount of auxins (given in unspecified units).",
+			Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Usage);
+		Assert.Equal(
+			"Reduces the growth of lateral branches. Multiplies with each recursion level.",
+			Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Usage);
+		Assert.Equal(0.04f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance).Value.GetSingle());
+		Assert.Equal(0.01f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar).Value.GetSingle());
 		Assert.Equal(MathF.PI * 0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.TwigLateralAngle).Value.GetSingle(), 5);
+		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MonopodialFactor).Value.GetSingle());
+		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsThreshold).Value.GetSingle());
+		Assert.Equal(100f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime).Value.GetSingle());
+		Assert.Equal(2f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode).Value.GetSingle());
 	}
 
 	[Fact]

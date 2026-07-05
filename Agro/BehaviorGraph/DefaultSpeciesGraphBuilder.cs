@@ -38,13 +38,65 @@ public static class DefaultSpeciesGraphBuilder
 		public const string NodeDistance = "default-config-node-distance";
 		public const string NodeDistanceVar = "default-config-node-distance-var";
 		public const string TwigLateralAngle = "default-config-twig-lateral-angle";
+		public const string MonopodialFactor = "default-config-monopodial-factor";
+		public const string LateralRoll = "default-config-lateral-roll";
+		public const string LateralRollVar = "default-config-lateral-roll-var";
+		public const string LateralPitch = "default-config-lateral-pitch";
+		public const string LateralPitchVar = "default-config-lateral-pitch-var";
+		public const string LeafPitch = "default-config-leaf-pitch";
+		public const string AuxinsThreshold = "default-config-auxins-threshold";
+		public const string WoodGrowthTime = "default-config-wood-growth-time";
+		public const string WoodGrowthTimeVar = "default-config-wood-growth-time-var";
+		public const string LateralsPerNode = "default-config-laterals-per-node";
+		public const string TwigsBending = "default-config-twig-bending";
+		public const string TwigsBendingLevel = "default-config-twig-bending-level";
+		public const string TwigsBendingApical = "default-config-twig-bending-apical";
+		public const string ShootsGravitaxis = "default-config-shoots-gravitaxis";
+		public const string RizomeLength = "default-config-rizome-length";
+		public const string RizomeRadius = "default-config-rizome-radius";
+		public const string FloweringStartAgeHours = "default-config-flowering-start-age-hours";
+		public const string FloweringEndAgeHours = "default-config-flowering-end-age-hours";
+
+		// TODO(config): Add AuxinsReach — Usage: "Auxines propagate this far within the plant with a linear falloff."
+		// TODO(config): Add MaxLeafLevel — Usage: "Limits the level of branches that support petioles. Technically it corresponds to the maximum possible level of descendants."
 	}
 
-	static float DefaultPetioleCoverThreshold()
+	/// <summary>TickDefault reference literals for bootstrap configuration (not <see cref="SpeciesSettings"/>).</summary>
+	public static class DefaultTickConstants
 	{
-		var s = SpeciesSettings.Default;
-		return MathF.Cos(MathF.PI * 0.5f - s.LateralPitch) * s.PetioleLength * 0.25f;
+		public const float LeafLength = 0.12f;
+		public const float LeafRadius = 0.04f;
+		public const float PetioleLength = 0.04f;
+		public const float PetioleRadius = 0.0025f;
+		public const float DominanceFactor = 0.7f;
+		public const float AuxinsProduction = 40f;
+		public const float NodeDistance = 0.04f;
+		public const float NodeDistanceVar = 0.01f;
+		public const float MonopodialFactor = 1f;
+		public const float LateralRoll = 0f;
+		public const float LateralRollVar = 5f * MathF.PI / 180f;
+		public const float LateralPitch = 45f * MathF.PI / 180f;
+		public const float LateralPitchVar = 5f * MathF.PI / 180f;
+		public const float LeafPitch = 20f * MathF.PI / 180f;
+		public const float AuxinsThreshold = 1f;
+		public const float WoodGrowthTime = 100f;
+		public const float WoodGrowthTimeVar = 10f;
+		public const int LateralsPerNode = 2;
+		public const float TwigsBending = 0.5f;
+		public const float TwigsBendingLevel = 1f;
+		public const float TwigsBendingApical = 0.02f;
+		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 × 0.4).</summary>
+		public const float ShootsGravitaxis = 0.08f;
+		public const float RizomeLength = 0.01f;
+		public const float RizomeRadius = 0.0025f;
+		public const float FloweringStartAgeHours = 24f * 45f;
+		public const float FloweringEndAgeHours = 24f * 90f;
+
+		public static float PetioleCoverThreshold =>
+			MathF.Cos(MathF.PI * 0.5f - LateralPitch) * PetioleLength * 0.25f;
 	}
+
+	static float DefaultPetioleCoverThreshold() => DefaultTickConstants.PetioleCoverThreshold;
 
 	public static IReadOnlyList<BehaviorConfigUploadEntry> BuildDefaultConfiguration() =>
 	[
@@ -174,7 +226,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf length",
 			Label = "Leaf length",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.LeafLength),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LeafLength),
 		},
 		new()
 		{
@@ -182,7 +234,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf radius",
 			Label = "Leaf radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.LeafRadius),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LeafRadius),
 		},
 		new()
 		{
@@ -190,7 +242,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole length",
 			Label = "Petiole length",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.PetioleLength),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.PetioleLength),
 		},
 		new()
 		{
@@ -198,7 +250,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole radius",
 			Label = "Petiole radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.PetioleRadius),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.PetioleRadius),
 		},
 		new()
 		{
@@ -229,18 +281,18 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.DominanceFactor,
 			Key = "Dominance factor",
 			Label = "Dominance factor",
+			Usage = "Reduces the growth of lateral branches. Multiplies with each recursion level.",
 			Type = "number",
-			// Default species never sets DominanceFactor init; DominanceFactors stays [0.7f] and
-			// TickDefault falls back to index 0 for DominanceLevel >= 1.
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.DominanceFactors[0]),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.DominanceFactor),
 		},
 		new()
 		{
 			Id = ConfigIds.AuxinsProduction,
 			Key = "Auxins production",
 			Label = "Auxins production",
+			Usage = "Each meristem node generates this amount of auxins (given in unspecified units).",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.AuxinsProduction),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.AuxinsProduction),
 		},
 		new()
 		{
@@ -248,7 +300,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Node distance",
 			Label = "Node distance",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.NodeDistance),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.NodeDistance),
 		},
 		new()
 		{
@@ -256,7 +308,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Node distance var",
 			Label = "Node distance var",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.NodeDistanceVar),
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.NodeDistanceVar),
 		},
 		new()
 		{
@@ -265,6 +317,150 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Twig lateral angle",
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(MathF.PI * 0.5f),
+		},
+		new()
+		{
+			Id = ConfigIds.MonopodialFactor,
+			Key = "Monopodial factor",
+			Label = "Monopodial factor",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.MonopodialFactor),
+		},
+		new()
+		{
+			Id = ConfigIds.LateralRoll,
+			Key = "Lateral roll",
+			Label = "Lateral roll",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralRoll),
+		},
+		new()
+		{
+			Id = ConfigIds.LateralRollVar,
+			Key = "Lateral roll var",
+			Label = "Lateral roll var",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralRollVar),
+		},
+		new()
+		{
+			Id = ConfigIds.LateralPitch,
+			Key = "Lateral pitch",
+			Label = "Lateral pitch",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralPitch),
+		},
+		new()
+		{
+			Id = ConfigIds.LateralPitchVar,
+			Key = "Lateral pitch var",
+			Label = "Lateral pitch var",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralPitchVar),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafPitch,
+			Key = "Leaf pitch",
+			Label = "Leaf pitch",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LeafPitch),
+		},
+		new()
+		{
+			Id = ConfigIds.AuxinsThreshold,
+			Key = "Auxins threshold",
+			Label = "Auxins threshold",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.AuxinsThreshold),
+		},
+		new()
+		{
+			Id = ConfigIds.WoodGrowthTime,
+			Key = "Wood growth time",
+			Label = "Wood growth time (hours)",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.WoodGrowthTime),
+		},
+		new()
+		{
+			Id = ConfigIds.WoodGrowthTimeVar,
+			Key = "Wood growth time var",
+			Label = "Wood growth time var (hours)",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.WoodGrowthTimeVar),
+		},
+		new()
+		{
+			Id = ConfigIds.LateralsPerNode,
+			Key = "Laterals per node",
+			Label = "Laterals per node",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement((float)DefaultTickConstants.LateralsPerNode),
+		},
+		new()
+		{
+			Id = ConfigIds.TwigsBending,
+			Key = "Twig bending",
+			Label = "Twig bending",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.TwigsBending),
+		},
+		new()
+		{
+			Id = ConfigIds.TwigsBendingLevel,
+			Key = "Twig bending level",
+			Label = "Twig bending level",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.TwigsBendingLevel),
+		},
+		new()
+		{
+			Id = ConfigIds.TwigsBendingApical,
+			Key = "Twig bending apical",
+			Label = "Twig bending apical",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.TwigsBendingApical),
+		},
+		new()
+		{
+			Id = ConfigIds.ShootsGravitaxis,
+			Key = "Shoot gravitaxis",
+			Label = "Shoot gravitaxis",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.ShootsGravitaxis),
+		},
+		new()
+		{
+			Id = ConfigIds.RizomeLength,
+			Key = "Rhizome length",
+			Label = "Rhizome length",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.RizomeLength),
+		},
+		new()
+		{
+			Id = ConfigIds.RizomeRadius,
+			Key = "Rhizome radius",
+			Label = "Rhizome radius",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.RizomeRadius),
+		},
+		new()
+		{
+			Id = ConfigIds.FloweringStartAgeHours,
+			Key = "Flowering start age (hours)",
+			Label = "Flowering start age (hours)",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.FloweringStartAgeHours),
+		},
+		new()
+		{
+			Id = ConfigIds.FloweringEndAgeHours,
+			Key = "Flowering end age (hours)",
+			Label = "Flowering end age (hours)",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.FloweringEndAgeHours),
 		},
 	];
 
@@ -641,12 +837,13 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(activeGate, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 623–628.</summary>
+	/// <summary>TickDefault lines 623–628: min(wood, parentWood) + GrowthTimeVar, capped at 1.</summary>
 	public static global::ExportedGraph BuildWoodLignifySubgraph()
 	{
 		var b = SubgraphBuilder.Create("wl");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 		var c1 = b.AddNum("c1", 1f, 280, 0);
 
 		var woodLt1 = b.Add("wood-lt", "Less Than", 520, 60);
@@ -662,16 +859,15 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and1, "out", and2, "a");
 		b.Connect(enough, "out", and2, "b");
 
-		var newWood = b.Add("new-wood", "Add", 1480, 200);
-		b.Connect(state, "wood", newWood, "a");
-		b.Connect(state, "growthTimeVar", newWood, "b");
+		var baseWood = b.WireMinFloat(state, "wood", form, "parentWood", "base");
 
-		var capped = b.Add("capped", "Parent Wood Cap", 1720, 200);
-		b.Connect(newWood, "out", capped, "value");
+		var newWood = b.Add("new-wood", "Add", 1480, 200);
+		b.Connect(baseWood, "out", newWood, "a");
+		b.Connect(state, "growthTimeVar", newWood, "b");
 
 		var one = b.AddNum("one", 1f, 1720, 240);
 		var clamped = b.Add("clamped", "Clamp Max", 1960, 200);
-		b.Connect(capped, "out", clamped, "value");
+		b.Connect(newWood, "out", clamped, "value");
 		b.Connect(one, "num", clamped, "max");
 
 		var setWood = b.Add("set-wood", "Set Wood", 2200, 200);
@@ -680,7 +876,7 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 632+ — monopodial meristem chain (dichotomous deferred).</summary>
+	/// <summary>TickDefault lines 632–681 — monopodial and dichotomous meristem chain.</summary>
 	public static global::ExportedGraph BuildMeristemChainSubgraph()
 	{
 		var b = SubgraphBuilder.Create("mc");
@@ -707,20 +903,60 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and2, "out", and3, "a");
 		b.Connect(enough, "out", and3, "b");
 
-		var chainTrig = b.AddBool("chain-trig", true, 1480, 200);
-		var becomeStem = b.Add("become-stem", "Become Stem", 1720, 160);
+		var chainTrig = b.AddBool("chain-trig", true, 1480, 120);
+		var becomeStem = b.Add("become-stem", "Become Stem", 1720, 120);
 		b.Connect(chainTrig, "bool", becomeStem, "trigger");
 
-		var wasTrue = b.AddBool("was-true", true, 1720, 200);
-		var setWas = b.Add("set-was", "Set Was Meristem", 1960, 200);
+		var wasTrue = b.AddBool("was-true", true, 1720, 160);
+		var setWas = b.Add("set-was", "Set Was Meristem", 1960, 160);
 		b.Connect(wasTrue, "bool", setWas, "value");
 
-		var spawn = b.Add("spawn", "Spawn Meristem", 1720, 240);
-		b.Connect(chainTrig, "bool", spawn, "trigger");
+		var monoFactor = b.AddConfig("mono-factor", ConfigIds.MonopodialFactor, false, 1480, 200,
+			"1 = monopodial meristem chain, &lt;1 = dichotomous");
+		var one = b.AddNum("one", 1f, 1480, 240);
+		var isMono = b.Add("is-mono", "Greater Than or Equal", 1720, 220);
+		b.Connect(monoFactor, "num", isMono, "a");
+		b.Connect(one, "num", isMono, "b");
 
-		var createLeaves = b.Add("create-leaves", "Create Leaves", 1960, 240);
-		b.Connect(spawn, "seq", createLeaves, "trigger");
-		b.Connect(spawn, "childId", createLeaves, "meristemId");
+		var domMax = b.AddNum("dom-max", 255f, 1480, 280);
+		var domLt = b.Add("dom-lt", "Less Than", 1720, 280);
+		b.Connect(state, "dominanceLevel", domLt, "a");
+		b.Connect(domMax, "num", domLt, "b");
+
+		var notMono = b.Add("not-mono", "Not", 1960, 220);
+		b.Connect(isMono, "out", notMono, "a");
+
+		var dichoGate = b.Add("dicho-gate", "And", 2200, 260);
+		b.Connect(notMono, "out", dichoGate, "a");
+		b.Connect(domLt, "out", dichoGate, "b");
+
+		var monoTrig = b.Add("mono-trig", "And", 2200, 200);
+		b.Connect(isMono, "out", monoTrig, "a");
+		b.Connect(chainTrig, "bool", monoTrig, "b");
+
+		var dichoTrig = b.Add("dicho-trig", "And", 2440, 260);
+		b.Connect(dichoGate, "out", dichoTrig, "a");
+		b.Connect(chainTrig, "bool", dichoTrig, "b");
+
+		var spawnMono = b.Add("spawn-mono", "Spawn Meristem", 2440, 200);
+		b.Connect(monoTrig, "out", spawnMono, "trigger");
+
+		var leavesMono = b.Add("leaves-mono", "Create Leaves", 2680, 200);
+		b.Connect(spawnMono, "seq", leavesMono, "trigger");
+		b.Connect(spawnMono, "childId", leavesMono, "meristemId");
+
+		var spawnDicho = b.Add("spawn-dicho", "Spawn Dichotomous Meristems", 2680, 280);
+		b.Connect(dichoTrig, "out", spawnDicho, "trigger");
+
+		var leavesDicho1 = b.Add("leaves-d1", "Create Leaves", 2920, 280);
+		b.Connect(spawnDicho, "seq", leavesDicho1, "trigger");
+		b.Connect(spawnDicho, "childId1", leavesDicho1, "meristemId");
+		b.Connect(spawnDicho, "lateralPitch", leavesDicho1, "lateralAngle");
+
+		var leavesDicho2 = b.Add("leaves-d2", "Create Leaves", 3160, 280);
+		b.Connect(leavesDicho1, "seq", leavesDicho2, "trigger");
+		b.Connect(spawnDicho, "childId2", leavesDicho2, "meristemId");
+		b.Connect(spawnDicho, "lateralPitch", leavesDicho2, "lateralAngle");
 
 		return b.FinishWithActive(and3, "out").Build();
 	}
@@ -741,7 +977,7 @@ public static class DefaultSpeciesGraphBuilder
 		var coverSum = b.Add("cover-sum", "Add", 1000, 80);
 		b.Connect(state, "parentRadiusAtBirth", coverSum, "a");
 		var coverThreshold = b.AddConfig("cover-threshold", ConfigIds.PetioleCoverThreshold, false, 760, 80,
-			"species.PetioleCoverThreshold");
+			"Petiole cover threshold (TickDefault derived)");
 		b.Connect(coverThreshold, "num", coverSum, "b");
 		var coverLt = b.Add("cover-lt", "Less Than", 1000, 120);
 		b.Connect(coverSum, "out", coverLt, "a");
@@ -860,7 +1096,7 @@ public static class DefaultSpeciesGraphBuilder
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var auxinsProd = b.AddConfig("auxins", ConfigIds.AuxinsProduction, false, 280, 0,
-			"SpeciesSettings.Default.AuxinsProduction");
+			"Auxins production for meristem/stem agents");
 		var c0 = b.AddNum("c0", 0f, 280, 40);
 
 		var meristemOrWas = b.Add("mer-or-was", "Or", 520, 20);
@@ -1155,7 +1391,7 @@ public static class DefaultSpeciesGraphBuilder
 			}
 
 			var deltaLen = WireAxisDelta(cfgLen, 480, "len");
-			var deltaRad = WireAxisDelta(cfgRad, 520, "rad");
+			var deltaRad = WireCapRadiusDeltaToParent(stateId, formId, WireAxisDelta(cfgRad, 520, "rad"), "mer");
 			return (deltaLen, deltaRad);
 		}
 
@@ -1182,7 +1418,20 @@ public static class DefaultSpeciesGraphBuilder
 			var deltaRad = Add("delta-r", "Multiply", 1440, 480);
 			Connect(m3, "out", deltaRad, "a");
 			Connect(simId, "hoursPerTick", deltaRad, "b");
-			return deltaRad;
+			return WireCapRadiusDeltaToParent(stateId, formId, deltaRad, "stem");
+		}
+
+		/// <summary>TickDefault: growth.Y = min(growth.Y, parentRadius - radius).</summary>
+		public string WireCapRadiusDeltaToParent(string stateId, string formId, string deltaRadId, string suffix)
+		{
+			var parentCap = Add($"parent-cap-{suffix}", "Subtract", 1680, 520);
+			Connect(formId, "parentBaseRadius", parentCap, "a");
+			Connect(stateId, "radius", parentCap, "b");
+
+			var capped = Add($"delta-r-cap-{suffix}", "Clamp Max", 1920, 520);
+			Connect(deltaRadId, "out", capped, "value");
+			Connect(parentCap, "out", capped, "max");
+			return capped;
 		}
 
 		/// <summary>NextFloatAccum(p, hoursPerTick) — returns RNG node id (out socket).</summary>

@@ -10,6 +10,16 @@ export class SpawnMeristemNode extends SpawnTriggerNode {
     }
 }
 
+export class SpawnDichotomousMeristemsNode extends SpawnTriggerNode {
+    constructor() {
+        super("Spawn Dichotomous Meristems");
+        this.addOutput("childId1", new ClassicPreset.Output(numSocket, "child id 1"));
+        this.addOutput("childId2", new ClassicPreset.Output(numSocket, "child id 2"));
+        this.addOutput("lateralPitch", new ClassicPreset.Output(numSocket, "lateral pitch"));
+        this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
+    }
+}
+
 export class SpawnBudNode extends SpawnTriggerNode {
     constructor() {
         super("Spawn Bud");

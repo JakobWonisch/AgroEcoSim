@@ -36,6 +36,17 @@ const labelTextStyle: h.JSX.CSSProperties = {
     fontFamily: 'sans-serif',
 };
 
+const usageTextStyle: h.JSX.CSSProperties = {
+    width: 220,
+    maxWidth: 220,
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: '12px',
+    lineHeight: 1.35,
+    wordBreak: 'break-word',
+    fontFamily: 'sans-serif',
+    fontStyle: 'italic',
+};
+
 const hintStyle: h.JSX.CSSProperties = {
     marginTop: '2px',
     color: 'rgba(255,180,120,0.9)',
@@ -43,6 +54,34 @@ const hintStyle: h.JSX.CSSProperties = {
     fontFamily: 'sans-serif',
     lineHeight: 1.3,
     maxWidth: 150,
+};
+
+const editButtonStyle = (disabled: boolean): h.JSX.CSSProperties => ({
+    padding: '4px 8px',
+    borderRadius: '4px',
+    border: '1px solid #555',
+    background: '#333',
+    color: '#fff',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    fontFamily: 'sans-serif',
+    fontSize: '12px',
+    flexShrink: 0,
+    opacity: disabled ? 0.5 : 1,
+});
+
+const fieldTextareaStyle: h.JSX.CSSProperties = {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '4px 6px',
+    borderRadius: '4px',
+    border: '1px solid #555',
+    background: '#222',
+    color: '#fff',
+    fontFamily: 'sans-serif',
+    fontSize: '13px',
+    lineHeight: 1.35,
+    resize: 'vertical',
+    wordBreak: 'break-word',
 };
 
 function stopPropagation(e: Event) {
@@ -53,25 +92,33 @@ function ConfigRow({
     entry,
     allEntries,
     onSaveLabel,
+    onSaveUsage,
     onChangeValue,
     onDelete,
 }: {
     entry: BehaviorConfigEntry;
     allEntries: BehaviorConfigEntry[];
     onSaveLabel: (label: string) => void;
+    onSaveUsage: (usage: string) => void;
     onChangeValue: (value: number | boolean) => void;
     onDelete: () => void;
 }) {
-    const [editing, setEditing] = useState(false);
-    const [draft, setDraft] = useState(entry.label);
+    const [editingLabel, setEditingLabel] = useState(false);
+    const [editingUsage, setEditingUsage] = useState(false);
+    const [labelDraft, setLabelDraft] = useState(entry.label);
+    const [usageDraft, setUsageDraft] = useState(entry.usage ?? '');
 
     useEffect(() => {
-        if (!editing) setDraft(entry.label);
-    }, [entry.label, editing]);
+        if (!editingLabel) setLabelDraft(entry.label);
+    }, [entry.label, editingLabel]);
 
-    const trimmed = normalizeConfigLabel(draft);
-    const duplicate = trimmed.length > 0 && isDuplicateConfigLabel(allEntries, trimmed, entry.id);
-    const canSave = editing && trimmed.length > 0 && !duplicate;
+    useEffect(() => {
+        if (!editingUsage) setUsageDraft(entry.usage ?? '');
+    }, [entry.usage, editingUsage]);
+
+    const trimmedLabel = normalizeConfigLabel(labelDraft);
+    const duplicateLabel = trimmedLabel.length > 0 && isDuplicateConfigLabel(allEntries, trimmedLabel, entry.id);
+    const canSaveLabel = editingLabel && trimmedLabel.length > 0 && !duplicateLabel;
 
     return h(
         'div',
@@ -87,32 +134,19 @@ function ConfigRow({
         h(
             'div',
             { style: { width: 150, flexShrink: 0 } },
-            editing
+            editingLabel
                 ? h('textarea', {
-                      value: draft,
+                      value: labelDraft,
                       rows: 2,
-                      onInput: (e: Event) => setDraft((e.target as HTMLTextAreaElement).value),
+                      onInput: (e: Event) => setLabelDraft((e.target as HTMLTextAreaElement).value),
                       onPointerDown: stopPropagation,
-                      style: {
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '4px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid #555',
-                          background: '#222',
-                          color: '#fff',
-                          fontFamily: 'sans-serif',
-                          fontSize: '13px',
-                          lineHeight: 1.35,
-                          resize: 'vertical',
-                          wordBreak: 'break-word',
-                      },
+                      style: fieldTextareaStyle,
                   })
                 : h('div', { style: labelTextStyle }, entry.label || '—'),
-            editing && duplicate
+            editingLabel && duplicateLabel
                 ? h('div', { style: hintStyle }, 'This label is already used by another configuration value.')
                 : null,
-            editing && trimmed.length === 0
+            editingLabel && trimmedLabel.length === 0
                 ? h('div', { style: hintStyle }, 'Label cannot be empty.')
                 : null,
         ),
@@ -120,32 +154,21 @@ function ConfigRow({
             'button',
             {
                 type: 'button',
-                disabled: editing && !canSave,
+                disabled: editingLabel && !canSaveLabel,
                 onClick: () => {
-                    if (editing) {
-                        if (!canSave) return;
-                        onSaveLabel(trimmed);
-                        setEditing(false);
+                    if (editingLabel) {
+                        if (!canSaveLabel) return;
+                        onSaveLabel(trimmedLabel);
+                        setEditingLabel(false);
                     } else {
-                        setDraft(entry.label);
-                        setEditing(true);
+                        setLabelDraft(entry.label);
+                        setEditingLabel(true);
                     }
                 },
                 onPointerDown: stopPropagation,
-                style: {
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    border: '1px solid #555',
-                    background: '#333',
-                    color: '#fff',
-                    cursor: editing && !canSave ? 'not-allowed' : 'pointer',
-                    fontFamily: 'sans-serif',
-                    fontSize: '12px',
-                    flexShrink: 0,
-                    opacity: editing && !canSave ? 0.5 : 1,
-                },
+                style: editButtonStyle(editingLabel && !canSaveLabel),
             },
-            editing ? 'Save' : 'Edit',
+            editingLabel ? 'Save' : 'Edit',
         ),
         entry.type === 'boolean'
             ? h(BooleanToggleGroup, {
@@ -156,7 +179,7 @@ function ConfigRow({
             : h('input', {
                   type: 'number',
                   value: Number(entry.value),
-                  onInput: (e: Event) => onChangeValue(parseFloat((e.target as HTMLTextAreaElement).value) || 0),
+                  onInput: (e: Event) => onChangeValue(parseFloat((e.target as HTMLInputElement).value) || 0),
                   onPointerDown: stopPropagation,
                   style: valueInputStyle,
               }),
@@ -181,6 +204,42 @@ function ConfigRow({
             },
             'Delete',
         ),
+        h(
+            'div',
+            { style: { width: 220, flexShrink: 0 } },
+            editingUsage
+                ? h('textarea', {
+                      value: usageDraft,
+                      rows: 3,
+                      placeholder: 'Describe what this value controls…',
+                      onInput: (e: Event) => setUsageDraft((e.target as HTMLTextAreaElement).value),
+                      onPointerDown: stopPropagation,
+                      style: { ...fieldTextareaStyle, fontSize: '12px', fontStyle: 'normal' },
+                  })
+                : h(
+                      'div',
+                      { style: usageTextStyle },
+                      entry.usage?.trim() ? entry.usage : '—',
+                  ),
+        ),
+        h(
+            'button',
+            {
+                type: 'button',
+                onClick: () => {
+                    if (editingUsage) {
+                        onSaveUsage(usageDraft.trim());
+                        setEditingUsage(false);
+                    } else {
+                        setUsageDraft(entry.usage ?? '');
+                        setEditingUsage(true);
+                    }
+                },
+                onPointerDown: stopPropagation,
+                style: editButtonStyle(false),
+            },
+            editingUsage ? 'Save' : 'Edit',
+        ),
     );
 }
 
@@ -193,6 +252,12 @@ export default function SpeciesConfigurationEditor({ species }: { species: Speci
         if (isDuplicateConfigLabel(species.behaviorConfiguration.peek(), trimmed, id)) return;
         species.behaviorConfiguration.value = species.behaviorConfiguration.peek().map(e =>
             e.id === id ? { ...e, label: trimmed, key: trimmed } : e);
+        graphUpdateTrigger.dispatchEvent(new Event('update'));
+    };
+
+    const saveUsage = (id: string, usage: string) => {
+        species.behaviorConfiguration.value = species.behaviorConfiguration.peek().map(e =>
+            e.id === id ? { ...e, usage: usage || undefined } : e);
         graphUpdateTrigger.dispatchEvent(new Event('update'));
     };
 
@@ -234,8 +299,10 @@ export default function SpeciesConfigurationEditor({ species }: { species: Speci
             },
             h('span', { style: { width: 150 } }, 'Label'),
             h('span', { style: { width: 44 } }, ''),
-            h('span', { style: { width: 200 } }, 'Value'),
+            h('span', { style: { width: 100 } }, 'Value'),
             h('span', { style: { width: 56 } }, ''),
+            h('span', { style: { width: 220 } }, 'Usage'),
+            h('span', { style: { width: 44 } }, ''),
         ),
         entries.length === 0
             ? h(
@@ -257,6 +324,7 @@ export default function SpeciesConfigurationEditor({ species }: { species: Speci
                       entry,
                       allEntries: entries,
                       onSaveLabel: (label: string) => saveLabel(entry.id, label),
+                      onSaveUsage: (usage: string) => saveUsage(entry.id, usage),
                       onChangeValue: (value: number | boolean) => setValue(entry.id, value),
                       onDelete: () => deleteEntry(entry.id),
                   }),

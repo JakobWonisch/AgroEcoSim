@@ -229,6 +229,39 @@ public class GraphTickInterpreterTests
 		Assert.True(agent.GraphWasMeristemThisTick());
 	}
 
+	/// <summary>Legacy: min(wood, parentWood) + growthTimeVar, not min(wood + growth, parentWood).</summary>
+	[Fact]
+	public void Execute_WoodLignifyFormula_MinBaseThenAdd()
+	{
+		var compiled = CompileWithGate(
+			[
+				("wood", "Number Input", new Dictionary<string, object> { ["value"] = 0.8f }),
+				("pw", "Number Input", new Dictionary<string, object> { ["value"] = 0.5f }),
+				("gtv", "Number Input", new Dictionary<string, object> { ["value"] = 0.01f }),
+				("lt", "Less Than", null),
+				("base", "If / Else", null),
+				("sum", "Add", null),
+				("one", "Number Input", new Dictionary<string, object> { ["value"] = 1f }),
+				("cl", "Clamp Max", null),
+				("set", "Set Wood", null),
+			],
+			[
+				("c1", "wood", "num", "lt", "a"),
+				("c2", "pw", "num", "lt", "b"),
+				("c3", "lt", "out", "base", "condition"),
+				("c4", "wood", "num", "base", "trueValue"),
+				("c5", "pw", "num", "base", "falseValue"),
+				("c6", "base", "out", "sum", "a"),
+				("c7", "gtv", "num", "sum", "b"),
+				("c8", "sum", "out", "cl", "value"),
+				("c9", "one", "num", "cl", "max"),
+				("c10", "cl", "out", "set", "value"),
+			]);
+		var agent = default(AboveGroundAgent);
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+		Assert.Equal(0.51f, agent.WoodRatio(), 5);
+	}
+
 	[Fact]
 	public void Execute_SetWasMeristem_SetsScratchFlag()
 	{

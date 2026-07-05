@@ -6,6 +6,8 @@ export interface BehaviorConfigEntry {
     id: string;
     key: string;
     label: string;
+    /** Optional documentation shown in the species configuration panel only. */
+    usage?: string;
     type: BehaviorConfigType;
     value: number | boolean;
 }
@@ -14,6 +16,7 @@ export interface BehaviorConfigWireEntry {
     Id: string;
     Key: string;
     Label: string;
+    Usage?: string;
     Type: BehaviorConfigType;
     Value: number | boolean;
 }
@@ -53,13 +56,18 @@ export function isDuplicateConfigLabel(
 }
 
 export function toWireEntries(entries: BehaviorConfigEntry[]): BehaviorConfigWireEntry[] {
-    return sortConfigEntries(entries).map(e => ({
-        Id: e.id,
-        Key: e.key,
-        Label: e.label,
-        Type: e.type,
-        Value: e.value,
-    }));
+    return sortConfigEntries(entries).map(e => {
+        const wire: BehaviorConfigWireEntry = {
+            Id: e.id,
+            Key: e.key,
+            Label: e.label,
+            Type: e.type,
+            Value: e.value,
+        };
+        const usage = e.usage?.trim();
+        if (usage) wire.Usage = usage;
+        return wire;
+    });
 }
 
 export function fromWireEntries(wire: BehaviorConfigWireEntry[] | undefined): BehaviorConfigEntry[] {
@@ -70,10 +78,12 @@ export function fromWireEntries(wire: BehaviorConfigWireEntry[] | undefined): Be
             const label = typeof e.Label === 'string' && e.Label.trim()
                 ? e.Label.trim()
                 : (typeof e.Key === 'string' ? e.Key.trim() : 'config');
+            const usage = typeof e.Usage === 'string' && e.Usage.trim() ? e.Usage.trim() : undefined;
             return {
                 id: e.Id,
                 key: typeof e.Key === 'string' && e.Key.trim() ? e.Key.trim() : label,
                 label,
+                usage,
                 type: e.Type === 'boolean' ? 'boolean' : 'number',
                 value: e.Type === 'boolean' ? Boolean(e.Value) : Number(e.Value) || 0,
             };
