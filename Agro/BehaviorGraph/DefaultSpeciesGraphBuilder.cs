@@ -641,12 +641,13 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(activeGate, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 623–628.</summary>
+	/// <summary>TickDefault lines 623–628: min(wood, parentWood) + GrowthTimeVar, capped at 1.</summary>
 	public static global::ExportedGraph BuildWoodLignifySubgraph()
 	{
 		var b = SubgraphBuilder.Create("wl");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
 		var c1 = b.AddNum("c1", 1f, 280, 0);
 
 		var woodLt1 = b.Add("wood-lt", "Less Than", 520, 60);
@@ -662,16 +663,15 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and1, "out", and2, "a");
 		b.Connect(enough, "out", and2, "b");
 
-		var newWood = b.Add("new-wood", "Add", 1480, 200);
-		b.Connect(state, "wood", newWood, "a");
-		b.Connect(state, "growthTimeVar", newWood, "b");
+		var baseWood = b.WireMinFloat(state, "wood", form, "parentWood", "base");
 
-		var capped = b.Add("capped", "Parent Wood Cap", 1720, 200);
-		b.Connect(newWood, "out", capped, "value");
+		var newWood = b.Add("new-wood", "Add", 1480, 200);
+		b.Connect(baseWood, "out", newWood, "a");
+		b.Connect(state, "growthTimeVar", newWood, "b");
 
 		var one = b.AddNum("one", 1f, 1720, 240);
 		var clamped = b.Add("clamped", "Clamp Max", 1960, 200);
-		b.Connect(capped, "out", clamped, "value");
+		b.Connect(newWood, "out", clamped, "value");
 		b.Connect(one, "num", clamped, "max");
 
 		var setWood = b.Add("set-wood", "Set Wood", 2200, 200);
@@ -1155,7 +1155,7 @@ public static class DefaultSpeciesGraphBuilder
 			}
 
 			var deltaLen = WireAxisDelta(cfgLen, 480, "len");
-			var deltaRad = WireAxisDelta(cfgRad, 520, "rad");
+			var deltaRad = WireCapRadiusDeltaToParent(stateId, formId, WireAxisDelta(cfgRad, 520, "rad"), "mer");
 			return (deltaLen, deltaRad);
 		}
 
@@ -1182,7 +1182,20 @@ public static class DefaultSpeciesGraphBuilder
 			var deltaRad = Add("delta-r", "Multiply", 1440, 480);
 			Connect(m3, "out", deltaRad, "a");
 			Connect(simId, "hoursPerTick", deltaRad, "b");
-			return deltaRad;
+			return WireCapRadiusDeltaToParent(stateId, formId, deltaRad, "stem");
+		}
+
+		/// <summary>TickDefault: growth.Y = min(growth.Y, parentRadius - radius).</summary>
+		public string WireCapRadiusDeltaToParent(string stateId, string formId, string deltaRadId, string suffix)
+		{
+			var parentCap = Add($"parent-cap-{suffix}", "Subtract", 1680, 520);
+			Connect(formId, "parentBaseRadius", parentCap, "a");
+			Connect(stateId, "radius", parentCap, "b");
+
+			var capped = Add($"delta-r-cap-{suffix}", "Clamp Max", 1920, 520);
+			Connect(deltaRadId, "out", capped, "value");
+			Connect(parentCap, "out", capped, "max");
+			return capped;
 		}
 
 		/// <summary>NextFloatAccum(p, hoursPerTick) — returns RNG node id (out socket).</summary>

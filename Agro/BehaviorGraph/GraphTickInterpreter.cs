@@ -505,7 +505,7 @@ public static class GraphTickInterpreter
 			outs[(g, "parentAuxins")] = WireValue.OfFloat(0f);
 			outs[(g, "grandparentAuxins")] = WireValue.OfFloat(0f);
 			outs[(g, "parentDominance")] = WireValue.OfFloat(0f);
-			outs[(g, "parentBaseRadius")] = WireValue.OfFloat(0f);
+			outs[(g, "parentBaseRadius")] = WireValue.OfFloat(float.MaxValue);
 			outs[(g, "hasChildren")] = WireValue.OfBool(false);
 			outs[(g, "childrenProductionSum")] = WireValue.OfFloat(0f);
 			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(0f);
@@ -518,8 +518,7 @@ public static class GraphTickInterpreter
 			var parentOrgan = formation.GetOrgan(parent);
 			var parentIsRhizome = formation.GetIsRizome(parent);
 			outs[(g, "parentIsRhizome")] = WireValue.OfBool(parentIsRhizome);
-			outs[(g, "parentWood")] = WireValue.OfFloat(
-				parentIsRhizome ? agent.WoodRatio() : formation.GetWoodRatio(parent));
+			outs[(g, "parentWood")] = WireValue.OfFloat(formation.GetWoodRatio(parent));
 			outs[(g, "parentLeaf")] = WireValue.OfBool(parentOrgan == OrganTypes.Leaf);
 			outs[(g, "parentStem")] = WireValue.OfBool(parentOrgan == OrganTypes.Stem);
 			outs[(g, "parentMeristem")] = WireValue.OfBool(parentOrgan == OrganTypes.Meristem);
@@ -613,15 +612,13 @@ public static class GraphTickInterpreter
 		outs[(g, "hoursPerTick")] = WireValue.OfFloat(hoursPerTick);
 	}
 
+	/// <summary>Caps a post-increment value to parent wood (utility node; lignify uses min-then-add in graph).</summary>
 	static float ParentWoodCap(ref AboveGroundAgent agent, TickEvalContext ctx, float value)
 	{
 		if (!ctx.HasFormation || agent.Parent < 0)
 			return value;
 
-		var formation = ctx.Formation!;
-		var parentWood = formation.GetIsRizome(agent.Parent)
-			? agent.WoodRatio()
-			: formation.GetWoodRatio(agent.Parent);
+		var parentWood = ctx.Formation!.GetWoodRatio(agent.Parent);
 		return value <= parentWood ? value : parentWood;
 	}
 
