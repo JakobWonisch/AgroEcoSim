@@ -1,8 +1,8 @@
 import { ClassicPreset } from 'rete';
 import { h } from 'preact';
 import { useState } from 'preact/hooks';
-
-export const graphUpdateTrigger = new EventTarget();
+import { BooleanToggleGroup } from './ConfigurationControls';
+import { graphUpdateTrigger } from './graphUpdate';
 
 export class SwitchControl extends ClassicPreset.Control {
     constructor(public value: boolean, public onChange: (val: boolean) => void) {
@@ -12,26 +12,16 @@ export class SwitchControl extends ClassicPreset.Control {
 
 export function SwitchControlComponent(props: { data: SwitchControl }) {
     const [val, setVal] = useState(props.data.value);
+
+    const setValue = (next: boolean) => {
+        setVal(next);
+        props.data.value = next;
+        props.data.onChange(next);
+        graphUpdateTrigger.dispatchEvent(new Event('update'));
+    };
+
     return (
-        <label 
-            onPointerDown={e => e.stopPropagation()} 
-            onDblClick={e => e.stopPropagation()}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', cursor: 'pointer' }}
-        >
-            <input 
-                type="checkbox" 
-                checked={val} 
-                onChange={(e) => {
-                    const checked = (e.target as HTMLInputElement).checked;
-                    setVal(checked);
-                    props.data.value = checked;
-                    props.data.onChange(checked);
-                    graphUpdateTrigger.dispatchEvent(new Event('update'));
-                }}
-                style={{ cursor: 'pointer' }}
-            />
-            <span style={{ color: 'white', fontSize: '14px', fontFamily: 'sans-serif' }}>Toggle</span>
-        </label>
+        <BooleanToggleGroup value={val} onChange={setValue} />
     );
 }
 

@@ -3,6 +3,7 @@ import appstate from "../../appstate";
 import { Species } from "src/helpers/Species";
 import { computed, signal, useSignal } from "@preact/signals";
 import BehaviorEditor from "./nodes/BehaviorEditor";
+import SpeciesConfigurationEditor from "./SpeciesConfigurationEditor";
 import type { NamedGraph } from "./nodes/Conversion";
 import { createDefaultNamedGraph } from "./nodes/Conversion";
 
@@ -15,6 +16,19 @@ const selectedSpecies = signal('');
 
 /** Per-species selected behavior graph id (left list). */
 const selectedGraphIdBySpecies = signal<Map<string, string>>(new Map());
+
+type SpeciesSidebarView = 'configuration' | 'graphs';
+const speciesSidebarViewBySpecies = signal<Map<string, SpeciesSidebarView>>(new Map());
+
+function getSidebarView(speciesName: string): SpeciesSidebarView {
+    return speciesSidebarViewBySpecies.peek().get(speciesName) ?? 'graphs';
+}
+
+function setSidebarView(speciesName: string, view: SpeciesSidebarView) {
+    const next = new Map(speciesSidebarViewBySpecies.peek());
+    next.set(speciesName, view);
+    speciesSidebarViewBySpecies.value = next;
+}
 
 function getSelectedGraphId(speciesName: string, graphs: NamedGraph[]): string {
     const m = selectedGraphIdBySpecies.peek();
@@ -74,6 +88,8 @@ export function SpeciesItem()
     const links = computed(() => appstate.seeds.value.reduce((a, c) => a + (c.species.value == species.name.value ? 1 : 0), 0));
     const graphs = species.behaviorGraphs.value;
     void selectedGraphIdBySpecies.value;
+    void speciesSidebarViewBySpecies.value;
+    const sidebarView = getSidebarView(species.name.value);
     const selectedGraphId = getSelectedGraphId(species.name.value, graphs);
     const selectedGraph = graphs.find(g => g.id === selectedGraphId) ?? graphs[0];
 
@@ -253,6 +269,16 @@ export function SpeciesItem()
                 borderRadius: 4,
                 padding: 8,
             }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75em' }}>
+                    <strong>Configuration</strong>
+                    <button
+                        type="button"
+                        title="Edit configuration values"
+                        onClick={() => setSidebarView(species.name.value, 'configuration')}
+                    >
+                        edit
+                    </button>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <strong>Graphs</strong>
                     <button type="button" onClick={() => {
@@ -265,16 +291,19 @@ export function SpeciesItem()
                 </div>
                 {graphs.map((g, gi) => <div
                     key={g.id}
-                    onClick={() => setSelectedGraphId(species.name.value, g.id)}
+                    onClick={() => {
+                        setSidebarView(species.name.value, 'graphs');
+                        setSelectedGraphId(species.name.value, g.id);
+                    }}
                     style={{
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 4,
                         padding: 6,
                         cursor: 'pointer',
-                        background: g.id === selectedGraphId ? 'rgba(80,160,120,0.25)' : 'rgba(0,0,0,0.2)',
+                        background: sidebarView === 'graphs' && g.id === selectedGraphId ? 'rgba(80,160,120,0.25)' : 'rgba(0,0,0,0.2)',
                         borderRadius: 4,
-                        border: g.id === selectedGraphId ? '2px solid #5a8' : '1px solid rgba(255,255,255,0.12)',
+                        border: sidebarView === 'graphs' && g.id === selectedGraphId ? '2px solid #5a8' : '1px solid rgba(255,255,255,0.12)',
                     }}
                 >
                     <input
@@ -314,8 +343,10 @@ export function SpeciesItem()
                     </div>
                 </div>)}
             </div>
-            <div style={{ flex: 1, minWidth: 0, minHeight: 360, display: 'flex', flexDirection: 'column' }}>
-                <BehaviorEditor key={`${species.name.value}:${selectedGraph.id}`} species={species} namedGraph={selectedGraph} />
+            <div style={{ flex: 1, minWidth: 0, minHeight: 360, display: 'flex', flexDirection: 'column', alignItems: sidebarView === 'configuration' ? 'flex-start' : 'stretch' }}>
+                {sidebarView === 'configuration'
+                    ? <SpeciesConfigurationEditor species={species} />
+                    : <BehaviorEditor key={`${species.name.value}:${selectedGraph.id}`} species={species} namedGraph={selectedGraph} />}
             </div>
         </div> : <></>}
     </div>;

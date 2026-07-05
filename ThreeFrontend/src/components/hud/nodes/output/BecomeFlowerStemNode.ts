@@ -6,8 +6,4 @@ export class BecomeFlowerStemNode extends ClassicPreset.Node {
         super("Become Flower Stem");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

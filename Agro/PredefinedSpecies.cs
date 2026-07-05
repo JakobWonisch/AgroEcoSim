@@ -27,6 +27,9 @@ public sealed class PredefinedSpeciesEntry
 
 	[JsonPropertyName("graphs")]
 	public required List<PredefinedSpeciesGraphEntry> Graphs { get; init; }
+
+	[JsonPropertyName("configuration")]
+	public List<BehaviorConfigUploadEntry>? Configuration { get; init; }
 }
 
 public static class PredefinedSpeciesCatalog
@@ -35,7 +38,23 @@ public static class PredefinedSpeciesCatalog
 
 	public static IReadOnlyList<PredefinedSpeciesEntry> All => Lazy.Value;
 
-	static global::ExportedGraph BuildDefaultGatedGraph()
+	static List<PredefinedSpeciesGraphEntry> BuildDefaultSpeciesGraphEntries()
+	{
+		var entries = new List<PredefinedSpeciesGraphEntry>();
+		foreach (var (name, graph) in BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs())
+		{
+			entries.Add(new PredefinedSpeciesGraphEntry
+			{
+				Id = Guid.NewGuid().ToString(),
+				Name = name,
+				Graph = graph,
+			});
+		}
+
+		return entries;
+	}
+
+	static global::ExportedGraph BuildMinimalGatedGraph()
 	{
 		var boolId = Guid.NewGuid().ToString();
 		var activeId = Guid.NewGuid().ToString();
@@ -84,15 +103,20 @@ public static class PredefinedSpeciesCatalog
 			{
 				Name = s.Name,
 				Aka = s.Aka,
-				Graphs =
-				[
-					new PredefinedSpeciesGraphEntry
-					{
-						Id = Guid.NewGuid().ToString(),
-						Name = "Main",
-						Graph = BuildDefaultGatedGraph(),
-					},
-				],
+				Graphs = s.Name == "Default"
+					? BuildDefaultSpeciesGraphEntries()
+					:
+					[
+						new PredefinedSpeciesGraphEntry
+						{
+							Id = Guid.NewGuid().ToString(),
+							Name = "Main",
+							Graph = BuildMinimalGatedGraph(),
+						},
+					],
+				Configuration = s.Name == "Default"
+					? [.. BehaviorGraph.DefaultSpeciesGraphBuilder.BuildDefaultConfiguration()]
+					: null,
 			});
 		}
 

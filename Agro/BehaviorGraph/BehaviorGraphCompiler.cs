@@ -63,7 +63,7 @@ public static class BehaviorGraphCompiler
 		}
 
 		var kinds = new GraphNodeKind[nodes.Count];
-		var payloads = new (float num, bool boo, bool inclusive)[nodes.Count];
+		var payloads = new (float num, bool boo)[nodes.Count];
 
 		for (var i = 0; i < nodes.Count; i++)
 		{
@@ -98,6 +98,7 @@ public static class BehaviorGraphCompiler
 			}
 
 			var p = payloads[idx];
+			var (configId, configIsBool) = ReadConfigurationBinding(n.Data);
 			compiledNodes[t] = new CompiledNode
 			{
 				GraphNodeIndex = idx,
@@ -106,7 +107,8 @@ public static class BehaviorGraphCompiler
 				Inputs = inputs,
 				NumberConst = p.num,
 				BoolConst = p.boo,
-				NumericInclusive = p.inclusive,
+				ConfigId = configId,
+				ConfigIsBoolean = configIsBool,
 			};
 		}
 
@@ -203,9 +205,9 @@ public static class BehaviorGraphCompiler
 		return true;
 	}
 
-	static bool TryMapNode(global::GraphNode node, out GraphNodeKind kind, out (float num, bool boo, bool inclusive) payload, [NotNullWhen(false)] out string? error)
+	static bool TryMapNode(global::GraphNode node, out GraphNodeKind kind, out (float num, bool boo) payload, [NotNullWhen(false)] out string? error)
 	{
-		payload = (0f, false, false);
+		payload = (0f, false);
 		error = null;
 		var label = node.Label ?? "";
 
@@ -219,6 +221,14 @@ public static class BehaviorGraphCompiler
 				kind = GraphNodeKind.BooleanInput;
 				payload.boo = ReadBool(node.Data);
 				return true;
+			case "Configuration Value Input":
+				kind = GraphNodeKind.ConfigurationValueInput;
+				if (string.IsNullOrWhiteSpace(ReadConfigId(node.Data)))
+				{
+					error = $"Configuration Value Input node '{node.Id}' requires data.configId.";
+					return false;
+				}
+				return true;
 			case "Agent Type Input":
 				kind = GraphNodeKind.AgentTypeInput;
 				return true;
@@ -228,14 +238,23 @@ public static class BehaviorGraphCompiler
 			case "Agent State Input":
 				kind = GraphNodeKind.AgentStateInput;
 				return true;
-			case "Parent Input":
-				kind = GraphNodeKind.ParentInput;
+			case "Formation Input":
+				kind = GraphNodeKind.FormationInput;
 				return true;
 			case "Irradiance Input":
 				kind = GraphNodeKind.IrradianceInput;
 				return true;
+			case "Simulation Settings Input":
+				kind = GraphNodeKind.SimulationSettingsInput;
+				return true;
 			case "Random Chance Input":
 				kind = GraphNodeKind.RandomChanceInput;
+				return true;
+			case "Random Accum Chance Input":
+				kind = GraphNodeKind.RandomAccumChanceInput;
+				return true;
+			case "Random Float Var Input":
+				kind = GraphNodeKind.RandomFloatVarInput;
 				return true;
 			case "Parent Wood Cap":
 				kind = GraphNodeKind.ParentWoodCap;
@@ -273,6 +292,12 @@ public static class BehaviorGraphCompiler
 			case "Accumulate Production":
 				kind = GraphNodeKind.AccumulateProduction;
 				return true;
+			case "Accumulate Env Resources":
+				kind = GraphNodeKind.AccumulateEnvResources;
+				return true;
+			case "Accumulate Env Resources Inv":
+				kind = GraphNodeKind.AccumulateEnvResourcesInv;
+				return true;
 			case "Make Bud":
 				kind = GraphNodeKind.MakeBud;
 				return true;
@@ -290,6 +315,21 @@ public static class BehaviorGraphCompiler
 				return true;
 			case "Become Meristem":
 				kind = GraphNodeKind.BecomeMeristem;
+				return true;
+			case "Set Lateral Angle":
+				kind = GraphNodeKind.SetLateralAngle;
+				return true;
+			case "Delta Dominance":
+				kind = GraphNodeKind.DeltaDominance;
+				return true;
+			case "Set Length Var":
+				kind = GraphNodeKind.SetLengthVar;
+				return true;
+			case "Turn Upwards":
+				kind = GraphNodeKind.TurnUpwards;
+				return true;
+			case "Set Was Meristem":
+				kind = GraphNodeKind.SetWasMeristem;
 				return true;
 			case "Become Stem":
 				kind = GraphNodeKind.BecomeStem;
@@ -327,12 +367,6 @@ public static class BehaviorGraphCompiler
 			case "Active":
 				kind = GraphNodeKind.Active;
 				return true;
-			case "Boolean Output":
-				kind = GraphNodeKind.BooleanOutput;
-				return true;
-			case "Number Output":
-				kind = GraphNodeKind.NumberOutput;
-				return true;
 			case "And":
 				kind = GraphNodeKind.And;
 				return true;
@@ -345,13 +379,17 @@ public static class BehaviorGraphCompiler
 			case "Not":
 				kind = GraphNodeKind.Not;
 				return true;
-			case "Greater Than (or Equal)":
-				kind = GraphNodeKind.GreaterThanOrEqual;
-				payload.inclusive = ReadInclusiveEqual(node.Data);
+			case "Greater Than":
+				kind = GraphNodeKind.GreaterThan;
 				return true;
-			case "Less Than (or Equal)":
+			case "Greater Than or Equal":
+				kind = GraphNodeKind.GreaterThanOrEqual;
+				return true;
+			case "Less Than":
+				kind = GraphNodeKind.LessThan;
+				return true;
+			case "Less Than or Equal":
 				kind = GraphNodeKind.LessThanOrEqual;
-				payload.inclusive = ReadInclusiveEqual(node.Data);
 				return true;
 			case "Equal To":
 				kind = GraphNodeKind.EqualTo;
@@ -370,6 +408,9 @@ public static class BehaviorGraphCompiler
 				return true;
 			case "Divide":
 				kind = GraphNodeKind.Divide;
+				return true;
+			case "Integer Divide":
+				kind = GraphNodeKind.IntegerDivide;
 				return true;
 			case "Growth":
 				kind = GraphNodeKind.Growth;
@@ -410,12 +451,19 @@ public static class BehaviorGraphCompiler
 		return false;
 	}
 
-	static bool ReadInclusiveEqual(JsonElement data)
+	static string? ReadConfigId(JsonElement data)
 	{
-		if (data.ValueKind != JsonValueKind.Object)
-			return false;
-		if (data.TryGetProperty("equal", out var e) && e.TryGetSingle(out var f))
-			return f > 0f;
-		return false;
+		if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("configId", out var id))
+			return id.GetString();
+		return null;
+	}
+
+	static (string? ConfigId, bool IsBoolean) ReadConfigurationBinding(JsonElement data)
+	{
+		var configId = ReadConfigId(data);
+		var isBool = data.ValueKind == JsonValueKind.Object
+			&& data.TryGetProperty("configType", out var type)
+			&& string.Equals(type.GetString(), "boolean", StringComparison.OrdinalIgnoreCase);
+		return (configId, isBool);
 	}
 }

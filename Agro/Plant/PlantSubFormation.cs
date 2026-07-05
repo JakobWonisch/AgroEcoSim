@@ -66,6 +66,9 @@ public partial class PlantSubFormation<T> : IPlantSubFormation<T> where T: struc
 	(T[], T[]) SrcDst() => ReadTMP ? (AgentsTMP, Agents) : (Agents, AgentsTMP);
 	T[] Src() => ReadTMP ? AgentsTMP : Agents;
 
+	/// <summary>Active agent buffer after the latest tick/post/census (parity harness only).</summary>
+	internal ReadOnlySpan<T> ActiveAgentsForTesting() => Src();
+
 	public int Birth(T agent)
 	{
 		Births.Add(agent);

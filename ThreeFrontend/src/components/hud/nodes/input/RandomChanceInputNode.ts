@@ -7,8 +7,4 @@ export class RandomChanceInputNode extends ClassicPreset.Node {
         this.addInput("p", new ClassicPreset.Input(numSocket, "Probability"));
         this.addOutput("out", new ClassicPreset.Output(boolSocket, "Is success"));
     }
-
-    data() {
-        return { out: false };
-    }
 }

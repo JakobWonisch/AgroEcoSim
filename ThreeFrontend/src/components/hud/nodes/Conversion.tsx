@@ -55,26 +55,28 @@ export function createDefaultNamedGraph(displayName: string): NamedGraph {
     return { id: newBehaviorGraphId(), name: displayName, graph: createDefaultExportedGraph() };
 }
 
+import { exportNodeComment } from "./nodeComment";
+import { exportNodeCollapsed } from "./nodeCollapse";
+
 function safeClone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value));
 }
 
 function exportNodeData(node: any): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    if (node?.valueControl && typeof node.valueControl.value === "number")
+        out.value = node.valueControl.value;
+    if (node?.switchControl && typeof node.switchControl.value === "boolean")
+        out.bool = node.switchControl.value;
+    if (typeof node?.configId === "string" && node.configId)
+        out.configId = node.configId;
+    if (node?.configType === "boolean" || node?.configType === "number")
+        out.configType = node.configType;
     if (node && typeof node.data === "object" && node.data !== null)
-        return safeClone(node.data);
-
-    // Rete nodes in this editor often expose `data()` as a function.
-    // Persist only primitive control values that can be reliably restored.
-    if (typeof node?.data === "function") {
-        const out: Record<string, unknown> = {};
-        if (node?.valueControl && typeof node.valueControl.value === "number")
-            out.value = node.valueControl.value;
-        if (node?.switchControl && typeof node.switchControl.value === "boolean")
-            out.bool = node.switchControl.value;
-        return out;
-    }
-
-    return {};
+        Object.assign(out, safeClone(node.data));
+    exportNodeComment(node, out);
+    exportNodeCollapsed(node, out);
+    return out;
 }
 
 export function toJSON<Schemes extends BaseSchemes>(

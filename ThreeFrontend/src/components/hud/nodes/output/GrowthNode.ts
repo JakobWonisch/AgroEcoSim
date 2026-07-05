@@ -8,8 +8,4 @@ export class GrowthNode extends ClassicPreset.Node {
         this.addInput("Length", new ClassicPreset.Input(numSocket, "Length"));
         this.addInput("Radius", new ClassicPreset.Input(numSocket, "Radius"));
     }
-
-    data() {
-        return {};
-    }
 }

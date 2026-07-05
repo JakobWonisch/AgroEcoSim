@@ -15,19 +15,4 @@ export class AgentTypeInputNode extends ClassicPreset.Node {
         this.addOutput("flowerPadel", new ClassicPreset.Output(boolSocket, "Is Flower Padel"));
         this.addOutput("flowerPetiol", new ClassicPreset.Output(boolSocket, "Is Flower Petiol"));
     }
-
-    data() {
-        return {
-            leaf: false,
-            stem: false,
-            meristem: false,
-            petiole: false,
-            bud: false,
-            flowerStem: false,
-            flowerMeristem: false,
-            flowerBud: false,
-            flowerPadel: false,
-            flowerPetiol: false,
-        };
-    }
 }

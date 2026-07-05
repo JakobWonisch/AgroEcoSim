@@ -1,6 +1,8 @@
 import { signal } from "@preact/signals"
 import type { ExportedGraph, NamedGraph } from "../components/hud/nodes/Conversion";
 import { createDefaultNamedGraph } from "../components/hud/nodes/Conversion";
+import type { BehaviorConfigEntry } from "../components/hud/nodes/behaviorConfiguration";
+import { fromWireEntries, toWireEntries } from "../components/hud/nodes/behaviorConfiguration";
 
 const DegToRad = Math.PI / 180.0;
 const RadToDeg = 180.0 / Math.PI;
@@ -12,6 +14,9 @@ export class Species {
 
     /** Ordered behavior graphs for simulation (Rete export); executed top-to-bottom per agent tick. */
     behaviorGraphs = signal<NamedGraph[]>([createDefaultNamedGraph("Main")]);
+
+    /** Shared configuration values referenced by Configuration Value Input nodes. */
+    behaviorConfiguration = signal<BehaviorConfigEntry[]>([]);
 
     //trunkToWood = signal(1);
     height = signal(12);
@@ -70,6 +75,7 @@ export class Species {
             name: this.name.peek(),
             aka: this.aka.peek(),
             graphs: structuredClone(this.behaviorGraphs.peek()),
+            configuration: toWireEntries(this.behaviorConfiguration.peek()),
             behavior: this.behaviorIndex.peek(),
             height: this.height.peek(),
 
@@ -118,13 +124,14 @@ export class Species {
         };
     }
 
-    public loadPredefined(entry: { name: string; aka?: string; graphs: NamedGraph[] }) {
+    public loadPredefined(entry: { name: string; aka?: string; graphs: NamedGraph[]; configuration?: Parameters<typeof fromWireEntries>[0] }) {
         this.name.value = entry.name;
         this.aka.value = entry.aka ?? "";
         if (Array.isArray(entry.graphs) && entry.graphs.length > 0)
             this.behaviorGraphs.value = structuredClone(entry.graphs);
         else
             this.behaviorGraphs.value = [createDefaultNamedGraph("Main")];
+        this.behaviorConfiguration.value = fromWireEntries(entry.configuration);
         return this;
     }
 
@@ -134,6 +141,8 @@ export class Species {
         this.behaviorIndex.value = s.behavior ?? 0;
         if (Array.isArray(s.graphs) && s.graphs.length > 0)
             this.behaviorGraphs.value = structuredClone(s.graphs);
+        if (Array.isArray(s.configuration))
+            this.behaviorConfiguration.value = fromWireEntries(s.configuration);
         this.height.value = s.height;
         this.nodeDistance.value = s.nodeDistance;
         this.nodeDistanceVar.value = s.nodeDistanceVar;

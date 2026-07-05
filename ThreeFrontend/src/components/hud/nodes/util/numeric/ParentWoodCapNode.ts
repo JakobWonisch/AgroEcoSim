@@ -7,8 +7,4 @@ export class ParentWoodCapNode extends ClassicPreset.Node {
         this.addInput("value", new ClassicPreset.Input(numSocket, "value"));
         this.addOutput("out", new ClassicPreset.Output(numSocket, "out"));
     }
-
-    data() {
-        return { out: 0 };
-    }
 }

@@ -6,8 +6,4 @@ export class BecomeMeristemNode extends ClassicPreset.Node {
         super("Become Meristem");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

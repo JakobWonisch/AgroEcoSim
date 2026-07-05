@@ -7,8 +7,4 @@ export class SpawnTriggerNode extends ClassicPreset.Node {
         super(label);
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

@@ -389,6 +389,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 		var graphs = formation.Plant.BehaviorGraphs;
 		if (graphs.Count > 0)
 		{
+			graphWasMeristemThisTick = false;
 			foreach (var graph in graphs)
 				GraphTickInterpreter.Execute(ref this, formation, agentID, timestep, graph);
 			return;
@@ -396,10 +397,6 @@ public partial struct AboveGroundAgent : IPlantAgent
 
 		switch (formation.Plant.Parameters.Behavior)
 		{
-			case Behavior.Default:
-			case Behavior.Test:
-				Test.Tick(ref this, formation, agentID, timestep);
-				break;
 			case Behavior.Geranium_Sanguineum: GeraniumSanguineum.TickGeraniumSanguineum(ref this, formation, agentID, timestep); break;
 			case Behavior.Geranium_Macrorrhizum: case Behavior.Geranium_x_Cantabrigiense: case Behavior.Bergenia_Cordifolia: Bergania.Tick(ref this, formation, agentID, timestep); break;
 			default: TickDefault(_formation, agentID, timestep); break;
@@ -876,11 +873,28 @@ public partial struct AboveGroundAgent : IPlantAgent
 	//public void IncCytokinins(float amount) => Cytokinins += amount;
 
 	#region Behavior graph mutations
+	[M(AI)] internal readonly float GraphLengthVar() => LengthVar;
+	[M(AI)] internal readonly float GraphRadiusVar() => RadiusVar;
+	[M(AI)] internal readonly float GraphGrowthTimeVar() => GrowthTimeVar;
+	[M(AI)] internal readonly float GraphDominanceLevel() => DominanceLevel;
+	[M(AI)] internal readonly float GraphParentRadiusAtBirth() => ParentRadiusAtBirth;
+	[M(AI)] internal readonly float GraphPreviousDayEnvResources() => PreviousDayEnvResources;
+	[M(AI)] internal readonly float GraphPreviousDayProductionInv() => PreviousDayProductionInvariant;
+	[M(AI)] internal readonly float GraphEnergyStorageCapacity() => EnergyStorageCapacity();
 	[M(AI)] internal void GraphDeltaWood(float amount) => WoodFactor += amount;
 	[M(AI)] internal void GraphSetWood(float value) => WoodFactor = value;
 	[M(AI)] internal void GraphSetGrowthTimeVar(float value) => GrowthTimeVar = value;
 	[M(AI)] internal void GraphAccumulateProduction(float amount) => CurrentDayProductionInv += amount;
+	[M(AI)] internal void GraphAccumulateEnvResources(float amount) => CurrentDayEnvResources += amount;
 	[M(AI)] internal void GraphAccumulateEnvResourcesInv(float amount) => CurrentDayEnvResourcesInv += amount;
+	[M(AI)] internal void GraphClearWasMeristemThisTick() => graphWasMeristemThisTick = false;
+	[M(AI)] internal readonly bool GraphWasMeristemThisTick() => graphWasMeristemThisTick;
+	[M(AI)] internal void GraphSetWasMeristemThisTick(bool value) => graphWasMeristemThisTick = value;
+	[M(AI)] internal void GraphSetLateralAngle(float value) => LateralAngle = value;
+	[M(AI)] internal void GraphDeltaDominance(float count) => DominanceLevel += (byte)MathF.Max(0f, count);
+	[M(AI)] internal void GraphSetLengthVar(float value) => LengthVar = value;
+	[M(AI)] internal void GraphTurnUpwards() => Orientation = TurnUpwards(Orientation);
+	bool graphWasMeristemThisTick;
 	#endregion
 
 	[M(AI)]

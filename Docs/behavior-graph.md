@@ -96,10 +96,12 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
   - `Boolean Input` — control `switch` (boolean); output `bool: Boolean`.
   - `Agent Type Input` — organ-type flags: `leaf`, `stem`, `meristem`, `petiole`, `bud`, `flowerStem`, `flowerMeristem`, `flowerBud`, `flowerPadel`, `flowerPetiol` (display labels e.g. "Is Leaf", "Is Stem").
   - `Phase Input` — `preFlower`, `flowering`, `postFlower`, `resetPending` (bool) from `formation.GetPhase`.
-  - `Agent State Input` — `energy`, `water`, `length`, `radius`, `wood`, `ageHours`, `isRizome`, `trySpawn`.
-  - `Parent Input` — `parentIsRhizome` (bool), `parentWood` (float).
-  - `Irradiance Input` — `irradiance` (float) from the light simulator.
+  - `Agent State Input` — `energy`, `water`, `length`, `radius`, `wood`, `ageHours`, `isRizome`, `trySpawn`, `wasMeristemThisTick`, `lengthVar`, `radiusVar`, `growthTimeVar`, `dominanceLevel`, `parentRadiusAtBirth`, `previousDayEnvResources`, `previousDayProductionInv`, `energyStorageCapacity`.
+  - `Formation Input` — parent/formation context including `auxinLocalMinimum`, `dailyProductionMax`, `energyProductionMax`, `agentHeightRatio`, etc.
+  - `Simulation Settings Input` — `hoursPerTick`.
   - `Random Chance Input` — input `p` (0–1); output `out` (bool), `RNG.NextFloat(0,1) < p`.
+  - `Random Accum Chance Input` — input `p` (0–1); output `out` (bool), `RNG.NextFloatAccum(p, hoursPerTick)`.
+  - `Random Float Var Input` — input `variance`; output `out` (float), `RNG.NextFloatVar(variance)`.
 - output
   - `Active` — input `isActive: Boolean`. **Gates the graph** (see interpreter section).
   - `Boolean Output` / `Number Output` — no-ops (placeholders).
@@ -109,10 +111,15 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
   - `Multiply Energy` / `Multiply Water` — input `factor`.
   - `Set trySpawn` — input `value` (bool).
   - `Accumulate Production` — input `amount`; adds to `CurrentDayProductionInv`.
-  - `Make Bud` / `Create Leaves` — input `trigger` (bool); run `MakeBud` / `CreateLeaves` when true.
-  - `Death` / `Death Parent` / `Death Children` — input `trigger`.
-  - `Become Meristem` / `Become Stem` / `Become Flower Stem` / `Become Flower Meristem` — input `trigger`.
-  - `Spawn Meristem`, `Spawn Bud`, `Spawn Stem`, `Spawn Flower Stem`, `Spawn Flower Meristem`, `Spawn Flower Bud`, `Spawn Flower Padel`, `Spawn Rhizome` — input `trigger`.
+  - `Make Bud` / `Create Leaves` — input `trigger` (bool); `Create Leaves` optional `meristemId`; output `seq` on `Create Leaves`.
+  - `Death` / `Death Parent` / `Death Children` — input `trigger`; `Death Children` output `seq`.
+  - `Become Meristem` / `Become Stem` / `Become Flower Stem` / `Become Flower Meristem` — input `trigger`; output `seq` on meristem/stem transforms.
+  - `Set Lateral Angle` — inputs `trigger`, `value`; output `seq`.
+  - `Delta Dominance` — inputs `trigger`, `count`; output `seq`.
+  - `Set Length Var` — inputs `trigger`, `value`; output `seq`.
+  - `Turn Upwards` — input `trigger`; output `seq`.
+  - `Set Was Meristem` — input `value` (bool); sets tick-scratch `wasMeristemThisTick` on the agent.
+  - `Spawn Meristem`, `Spawn Bud`, `Spawn Stem`, … — input `trigger`; `Spawn Meristem` outputs `childId` and `seq`.
 - boolean
   - `And`, `Or`, `Xor` — inputs `a, b: Boolean`; output `out: Boolean`.
   - `Not` — input `a: Boolean`; output `out: Boolean`.

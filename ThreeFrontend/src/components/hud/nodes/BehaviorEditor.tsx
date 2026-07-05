@@ -8,19 +8,26 @@ import { AreaExtensions, AreaPlugin } from 'rete-area-plugin';
 import { ConnectionPlugin, Presets as ConnectionPresets } from 'rete-connection-plugin';
 import { ContextMenuPlugin, Presets as ContextMenuPresets } from 'rete-context-menu-plugin';
 import { Presets, ReactPlugin, useRete } from 'rete-react-plugin';
+import { CommentableNodeComponent } from './CommentableNode';
+import {
+    AddToConfigControl,
+    AddToConfigControlComponent,
+    ConfigSelectControl,
+    ConfigSelectControlComponent,
+} from './ConfigurationControls';
 import { CustomInputComponent, CustomSocketComponent, SwitchControl, SwitchControlComponent } from './Controls';
 import { AgentTypeInputNode } from './input/AgentTypeInputNode';
 import { PhaseInputNode } from './input/PhaseInputNode';
 import { AgentStateInputNode } from './input/AgentStateInputNode';
-import { ParentInputNode } from './input/ParentInputNode';
+import { FormationInputNode } from './input/FormationInputNode';
 import { IrradianceInputNode } from './input/IrradianceInputNode';
+import { SimulationSettingsInputNode } from './input/SimulationSettingsInputNode';
 import { RandomChanceInputNode } from './input/RandomChanceInputNode';
 import { BooleanInputNode } from './input/BooleanInputNode';
 import { NumberInputNode } from './input/NumberInputNode';
+import { ConfigurationValueInputNode } from './input/ConfigurationValueInputNode';
 import { AreaExtra, Schemes } from './NodeTypes';
 import { ActiveOutputNode } from './output/ActiveOutputNode';
-import { BooleanOutputNode } from './output/BooleanOutputNode';
-import { NumberOutputNode } from './output/NumberOutputNode';
 import { GrowthNode } from './output/GrowthNode';
 import { DeltaEnergyNode } from './output/DeltaEnergyNode';
 import { DeltaWaterNode } from './output/DeltaWaterNode';
@@ -32,6 +39,8 @@ import { SetEnergyNode } from './output/SetEnergyNode';
 import { SetAuxinsNode } from './output/SetAuxinsNode';
 import { SetTrySpawnNode } from './output/SetTrySpawnNode';
 import { AccumulateProductionNode } from './output/AccumulateProductionNode';
+import { AccumulateEnvResourcesNode } from './output/AccumulateEnvResourcesNode';
+import { AccumulateEnvResourcesInvNode } from './output/AccumulateEnvResourcesInvNode';
 import { MakeBudNode } from './output/MakeBudNode';
 import { CreateLeavesNode } from './output/CreateLeavesNode';
 import { DeathNode } from './output/DeathNode';
@@ -59,10 +68,13 @@ import { OrNode } from './util/boolean/OrNode';
 import { XorNode } from './util/boolean/XorNode';
 import { EqualToNode } from './util/logic/EqualToNode';
 import { GreaterThanNode } from './util/logic/GreaterThanNode';
+import { GreaterThanOrEqualNode } from './util/logic/GreaterThanOrEqualNode';
 import { IfElseNode } from './util/logic/IfElseNode';
 import { LessThanNode } from './util/logic/LessThanNode';
+import { LessThanOrEqualNode } from './util/logic/LessThanOrEqualNode';
 import { AddNode } from './util/numeric/AddNode';
 import { DivideNode } from './util/numeric/DivideNode';
+import { IntegerDivideNode } from './util/numeric/IntegerDivideNode';
 import { MultiplyNode } from './util/numeric/MultiplyNode';
 import { SubtractNode } from './util/numeric/SubtractNode';
 import type { Species } from '../../../helpers/Species';
@@ -70,8 +82,10 @@ import appstate from '../../../appstate';
 import type { NamedGraph } from './Conversion';
 import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
-
-export const DEBUG_SHOW_VALUES = true;
+import { applyAutoLayout } from './autoLayout';
+import { setEditorContext, getEditorContext } from './editorContext';
+import { notifyGraphUiUpdate } from './graphUpdate';
+import { setAllNodesCollapsed, refreshNodeAfterCollapse, isNodeCollapsed, type CollapsibleNode } from './nodeCollapse';
 
 function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
     // Avoid overwriting node positions with 0/0 snapshots before views are ready.
@@ -84,60 +98,34 @@ function pushSpeciesGraph(species: Species, namedGraph: NamedGraph, editor: Node
         g.id === namedGraph.id ? { ...g, graph: snapshot } : g);
 }
 
-async function processGraph(editor: NodeEditor<Schemes>, area: AreaPlugin<Schemes, AreaExtra>) {
-    const cache = new Map<string, any>();
+function schedulePushSpeciesGraph(
+    species: Species,
+    namedGraph: NamedGraph,
+    editor: NodeEditor<Schemes>,
+    area: AreaPlugin<Schemes, AreaExtra>,
+    suppressGraphPush: () => boolean,
+) {
+    if (suppressGraphPush())
+        return;
+    setTimeout(() => pushSpeciesGraph(species, namedGraph, editor, area), 0);
+}
 
-    async function evaluateNode(nodeId: string): Promise<any> {
-        if (cache.has(nodeId)) return cache.get(nodeId);
-
-        const node = editor.getNode(nodeId);
-        const inputsData: Record<string, any[]> = {};
-
-        const cons = editor.getConnections().filter(c => c.target === nodeId);
-        for (const c of cons) {
-            const outData = await evaluateNode(c.source);
-            if (!inputsData[c.targetInput]) inputsData[c.targetInput] = [];
-            if (outData && outData[c.sourceOutput] !== undefined) {
-                inputsData[c.targetInput].push(outData[c.sourceOutput]);
-            }
-        }
-
-        const data = ('data' in node && typeof (node as any).data === 'function')
-            ? (node as any).data(inputsData)
-            : {};
-
-        // Debug labeling
-        let updated = false;
-        if (node.inputs) {
-            for (const [key, input] of Object.entries(node.inputs)) {
-                if (!input) continue;
-                const baseLabel = input.label.split(' [')[0];
-                let newLabel = baseLabel;
-
-                if (DEBUG_SHOW_VALUES && inputsData[key] && inputsData[key].length > 0) {
-                    const val = inputsData[key][0];
-                    const valStr = typeof val === 'boolean' ? (val ? 'True' : 'False') : (typeof val === 'number' ? Number(val).toFixed(2) : String(val));
-                    newLabel = `${baseLabel} [${valStr}]`;
-                }
-
-                if (input.label !== newLabel) {
-                    input.label = newLabel;
-                    updated = true;
-                }
-            }
-        }
-
-        cache.set(nodeId, data);
-        if (updated) {
-            area.update('node', nodeId);
-        }
-        return data;
+function measureNodeView(area: AreaPlugin<Schemes, AreaExtra>, nodeId: string) {
+    const el = area.nodeViews.get(nodeId)?.element;
+    if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+        return { width: el.offsetWidth, height: el.offsetHeight };
     }
+    return { width: 200, height: 80 };
+}
 
-    // Evaluate all nodes
-    for (const node of editor.getNodes()) {
-        await evaluateNode(node.id);
-    }
+async function placeNodeTopCenterAt(
+    area: AreaPlugin<Schemes, AreaExtra>,
+    nodeId: string,
+    anchor: { x: number; y: number },
+) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    const { width } = measureNodeView(area, nodeId);
+    await area.translate(nodeId, { x: anchor.x - width / 2, y: anchor.y });
 }
 
 export async function createEditor(container: HTMLElement, species: Species, namedGraph: NamedGraph) {
@@ -155,7 +143,16 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     renderPlugin.addPreset(Presets.classic.setup({
         customize: {
+            node() {
+                return CommentableNodeComponent as any;
+            },
             control(data) {
+                if (data.payload instanceof AddToConfigControl) {
+                    return AddToConfigControlComponent as any;
+                }
+                if (data.payload instanceof ConfigSelectControl) {
+                    return ConfigSelectControlComponent as any;
+                }
                 if (data.payload instanceof SwitchControl) {
                     return SwitchControlComponent as any;
                 }
@@ -172,25 +169,28 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     renderPlugin.addPreset(Presets.contextMenu.setup({ delay: 0 }));
 
-    const contextMenu = new ContextMenuPlugin<Schemes>({
-        items: ContextMenuPresets.classic.setup([
-            ['input', [
-                ['Number', () => new NumberInputNode(0)],
-                ['Boolean', () => new BooleanInputNode(false)],
+    const behaviorGraphMenuItems = ContextMenuPresets.classic.setup([
+            ['input constant', [
+                ['Number Input', () => new NumberInputNode(0)],
+                ['Boolean Input', () => new BooleanInputNode(false)],
+                ['Configuration Value Input', () => new ConfigurationValueInputNode()],
+            ]],
+            ['input dynamic', [
                 ['Agent Type Input', () => new AgentTypeInputNode()],
                 ['Phase Input', () => new PhaseInputNode()],
                 ['Agent State Input', () => new AgentStateInputNode()],
-                ['Parent Input', () => new ParentInputNode()],
+                ['Formation Input', () => new FormationInputNode()],
                 ['Irradiance Input', () => new IrradianceInputNode()],
+                ['Simulation Settings Input', () => new SimulationSettingsInputNode()],
                 ['Random Chance Input', () => new RandomChanceInputNode()],
             ]],
-            ['output', [
-                ['Number', () => new NumberOutputNode()],
-                ['Boolean', () => new BooleanOutputNode()],
+            ['output delta', [
                 ['Growth', () => new GrowthNode()],
                 ['Delta Energy', () => new DeltaEnergyNode()],
                 ['Delta Water', () => new DeltaWaterNode()],
                 ['Delta Wood', () => new DeltaWoodNode()],
+            ]],
+            ['output set', [
                 ['Set Wood', () => new SetWoodNode()],
                 ['Multiply Energy', () => new MultiplyEnergyNode()],
                 ['Multiply Water', () => new MultiplyWaterNode()],
@@ -198,15 +198,16 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Set Auxins', () => new SetAuxinsNode()],
                 ['Set trySpawn', () => new SetTrySpawnNode()],
                 ['Accumulate Production', () => new AccumulateProductionNode()],
+                ['Accumulate Env Resources', () => new AccumulateEnvResourcesNode()],
+                ['Accumulate Env Resources Inv', () => new AccumulateEnvResourcesInvNode()],
                 ['Make Bud', () => new MakeBudNode()],
                 ['Create Leaves', () => new CreateLeavesNode()],
-                ['Death', () => new DeathNode()],
-                ['Death Parent', () => new DeathParentNode()],
-                ['Death Children', () => new DeathChildrenNode()],
                 ['Become Meristem', () => new BecomeMeristemNode()],
                 ['Become Stem', () => new BecomeStemNode()],
                 ['Become Flower Stem', () => new BecomeFlowerStemNode()],
                 ['Become Flower Meristem', () => new BecomeFlowerMeristemNode()],
+            ]],
+            ['output spawn', [
                 ['Spawn Meristem', () => new SpawnMeristemNode()],
                 ['Spawn Bud', () => new SpawnBudNode()],
                 ['Spawn Stem', () => new SpawnStemNode()],
@@ -215,6 +216,11 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Spawn Flower Bud', () => new SpawnFlowerBudNode()],
                 ['Spawn Flower Padel', () => new SpawnFlowerPadelNode()],
                 ['Spawn Rhizome', () => new SpawnRhizomeNode()],
+            ]],
+            ['output death', [
+                ['Death', () => new DeathNode()],
+                ['Death Parent', () => new DeathParentNode()],
+                ['Death Children', () => new DeathChildrenNode()],
             ]],
             ['boolean', [
                 ['And', () => new AndNode()],
@@ -227,51 +233,45 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Subtract', () => new SubtractNode()],
                 ['Multiply', () => new MultiplyNode()],
                 ['Divide', () => new DivideNode()],
+                ['Integer Divide', () => new IntegerDivideNode()],
                 ['Parent Wood Cap', () => new ParentWoodCapNode()],
                 ['Clamp Max', () => new ClampMaxNode()],
             ]],
             ['logic', [
-                ['Greater Than (or Equal)', () => new GreaterThanNode()],
-                ['Less Than (or Equal)', () => new LessThanNode()],
+                ['Greater Than', () => new GreaterThanNode()],
+                ['Greater Than or Equal', () => new GreaterThanOrEqualNode()],
+                ['Less Than', () => new LessThanNode()],
+                ['Less Than or Equal', () => new LessThanOrEqualNode()],
                 ['Equal To', () => new EqualToNode()],
                 ['If / Else', () => new IfElseNode()]
             ]]
-        ])
+        ]);
+
+    const contextMenu = new ContextMenuPlugin<Schemes>({
+        items: (context, plugin) => {
+            const menu = behaviorGraphMenuItems(context, plugin);
+            return context === 'root' ? { ...menu, searchBar: false } : menu;
+        },
     });
 
     connection.addPreset(ConnectionPresets.classic.setup());
 
-    let lastPointerEvent: MouseEvent | undefined;
-    let pendingDropPosition: { x: number, y: number } | null = null;
-    let pendingDropConnection: { nodeId: string, side: 'input' | 'output', key: string } | null = null;
+    let pendingNodePosition: { x: number, y: number } | null = null;
+    let suppressGraphPush = false;
+    const isGraphPushSuppressed = () => suppressGraphPush;
+    const schedulePush = () => schedulePushSpeciesGraph(species, namedGraph, editor, area, isGraphPushSuppressed);
 
     area.addPipe(context => {
         const c = context as any;
-        if (['pointermove', 'pointerup'].includes(c.type)) {
-            if (c.data && c.data.event) {
-                lastPointerEvent = c.data.event;
-            }
+        if (c.type === 'contextmenu' && c.data.context === 'root') {
+            area.area.setPointerFrom(c.data.event);
+            pendingNodePosition = { ...area.area.pointer };
         }
         if (c.type === 'pointerdown') {
-            pendingDropPosition = null;
-            pendingDropConnection = null;
+            pendingNodePosition = null;
         }
-        return context;
-    });
-
-    connection.addPipe(context => {
-        const c = context as any;
-        if (c.type === 'connectiondrop') {
-            const ev = c.data.event || lastPointerEvent;
-            if (ev) {
-                // Record the exact projected SVG coordinates
-                pendingDropPosition = { ...area.area.pointer };
-                pendingDropConnection = c.data.initial;
-
-                setTimeout(() => {
-                    area.emit({ type: 'contextmenu', data: { event: ev, context: 'root' } } as any);
-                }, 10);
-            }
+        if (c.type === 'nodetranslated') {
+            schedulePush();
         }
         return context;
     });
@@ -316,38 +316,10 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 if (actives.length > 1)
                     setTimeout(() => editor.removeNode(c.data.id).catch(() => { }), 0);
             }
-            if (pendingDropPosition) {
-                const pos = { ...pendingDropPosition };
-                pendingDropPosition = null;
-                setTimeout(() => area.translate(c.data.id, pos), 0);
-            }
-
-            if (pendingDropConnection) {
-                const src = pendingDropConnection;
-                pendingDropConnection = null;
-
-                const newNode = c.data;
-                setTimeout(() => {
-                    try {
-                        if (src.side === 'output') {
-                            const inputs = Object.entries(newNode.inputs);
-                            if (inputs.length > 0) {
-                                editor.addConnection(new ClassicPreset.Connection(
-                                    editor.getNode(src.nodeId), src.key,
-                                    newNode, inputs[0][0]
-                                )).catch(() => { });
-                            }
-                        } else if (src.side === 'input') {
-                            const outputs = Object.entries(newNode.outputs);
-                            if (outputs.length > 0) {
-                                editor.addConnection(new ClassicPreset.Connection(
-                                    newNode, outputs[0][0],
-                                    editor.getNode(src.nodeId), src.key
-                                )).catch(() => { });
-                            }
-                        }
-                    } catch (e) { }
-                }, 10);
+            if (pendingNodePosition) {
+                const anchor = { ...pendingNodePosition };
+                pendingNodePosition = null;
+                setTimeout(() => { void placeNodeTopCenterAt(area, c.data.id, anchor); }, 0);
             }
         }
 
@@ -360,7 +332,6 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                         const node = new ActiveOutputNode();
                         await editor.addNode(node);
                         await area.translate(node.id, { x: 120, y: 120 });
-                        processGraph(editor, area);
                         pushSpeciesGraph(species, namedGraph, editor, area);
                     }, 0);
                 }
@@ -368,22 +339,27 @@ export async function createEditor(container: HTMLElement, species: Species, nam
         }
 
         if (['connectioncreated', 'connectionremoved', 'nodecreated', 'noderemoved'].includes(context.type)) {
-            setTimeout(() => {
-                processGraph(editor, area);
-                pushSpeciesGraph(species, namedGraph, editor, area);
-            }, 0);
+            schedulePush();
+            if (context.type === 'connectioncreated' || context.type === 'connectionremoved') {
+                const conn = c.data as { source?: string; target?: string };
+                setTimeout(async () => {
+                    notifyGraphUiUpdate();
+                    const affected = new Set<string>();
+                    if (conn?.source) affected.add(conn.source);
+                    if (conn?.target) affected.add(conn.target);
+                    for (const node of editor.getNodes()) {
+                        if (isNodeCollapsed(node as CollapsibleNode) && affected.has(node.id))
+                            await refreshNodeAfterCollapse(area, editor, node.id);
+                    }
+                }, 0);
+            }
         }
 
         return context;
     });
 
-    import('./Controls').then(m => {
-        m.graphUpdateTrigger.addEventListener('update', () => {
-            setTimeout(() => {
-                processGraph(editor, area);
-                pushSpeciesGraph(species, namedGraph, editor, area);
-            }, 0);
-        });
+    import('./graphUpdate').then(m => {
+        m.graphUpdateTrigger.addEventListener('update', schedulePush);
     });
 
     editor.use(area);
@@ -394,18 +370,30 @@ export async function createEditor(container: HTMLElement, species: Species, nam
     AreaExtensions.simpleNodesOrder(area);
 
     const initial = namedGraph.graph;
-    if (initial?.nodes?.length > 0)
-        await fromJSON(initial, editor, area, createNodeFromExport);
+    if (initial?.nodes?.length > 0) {
+        suppressGraphPush = true;
+        try {
+            await fromJSON(initial, editor, area, createNodeFromExport);
+        } finally {
+            suppressGraphPush = false;
+        }
+    }
 
     const speciesName = species.name.peek();
     const graphId = namedGraph.id;
     appstate.registerBehaviorGraphGetter(speciesName, graphId, () => toJSON(editor, area));
 
+    setEditorContext({
+        species,
+        editor,
+        area,
+        pushGraph: () => pushSpeciesGraph(species, namedGraph, editor, area),
+    });
+
     setTimeout(() => {
         const nodes = editor.getNodes();
         if (nodes.length > 0)
             AreaExtensions.zoomAt(area, nodes);
-        processGraph(editor, area);
         pushSpeciesGraph(species, namedGraph, editor, area);
     }, 10);
 
@@ -418,10 +406,34 @@ export async function createEditor(container: HTMLElement, species: Species, nam
 
     return {
         destroy: () => {
+            pushSpeciesGraph(species, namedGraph, editor, area);
+            setEditorContext(null);
             appstate.unregisterBehaviorGraphGetter(speciesName, graphId);
             window.removeEventListener('keydown', handleKeyDown);
             area.destroy();
-        }
+        },
+        autoLayout: async () => {
+            suppressGraphPush = true;
+            try {
+                await applyAutoLayout(editor, area);
+            } finally {
+                suppressGraphPush = false;
+            }
+            pushSpeciesGraph(species, namedGraph, editor, area);
+            const nodes = editor.getNodes();
+            if (nodes.length > 0)
+                AreaExtensions.zoomAt(area, nodes);
+        },
+        collapseAll: async () => {
+            const ctx = getEditorContext();
+            if (ctx)
+                await setAllNodesCollapsed(ctx, true);
+        },
+        expandAll: async () => {
+            const ctx = getEditorContext();
+            if (ctx)
+                await setAllNodesCollapsed(ctx, false);
+        },
     };
 }
 
@@ -430,11 +442,37 @@ export default function BehaviorEditor({ species, namedGraph }: { species: Speci
         () => (container: HTMLElement) => createEditor(container, species, namedGraph),
         [species.name.value, namedGraph.id]
     );
-    const [ref] = useRete(factory);
+    const [ref, editorApi] = useRete(factory);
 
     return (
-        <div style={{ width: '100%', height: '100%', background: 'rgba(0,0,0,0.1)' }}>
-            <div ref={ref} style={{ width: '100%', height: '100%' }} />
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.1)' }}>
+            <div style={{ flexShrink: 0, padding: '4px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                    type="button"
+                    title="Arrange nodes left-to-right by connections"
+                    disabled={!editorApi}
+                    onClick={() => editorApi?.autoLayout()}
+                >
+                    Auto-layout
+                </button>
+                <button
+                    type="button"
+                    title="Collapse all nodes to connected ports only"
+                    disabled={!editorApi}
+                    onClick={() => void editorApi?.collapseAll()}
+                >
+                    Collapse all
+                </button>
+                <button
+                    type="button"
+                    title="Expand all nodes"
+                    disabled={!editorApi}
+                    onClick={() => void editorApi?.expandAll()}
+                >
+                    Expand all
+                </button>
+            </div>
+            <div ref={ref} style={{ flex: 1, minHeight: 0, width: '100%' }} />
         </div>
     );
 }

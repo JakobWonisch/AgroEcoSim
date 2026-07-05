@@ -87,6 +87,9 @@ public class AgroWorld : SimulationWorld
 
 	public readonly bool VirtualRoots = false;
 
+	/// <summary>When set, each plant RNG unit draw uses this fixed value (test harness).</summary>
+	internal float? PlantRngFixedUnit { get; }
+
 	public AgroWorld(SimulationRequest? settings = null) : base()
 	{
 		var ianaTimeZone = TimeZoneLookup.GetTimeZone(Latitude, Longitude).Result;
@@ -122,6 +125,9 @@ public class AgroWorld : SimulationWorld
 
 			if (settings?.Seed.HasValue ?? false)
 				InitRNG(settings.Seed.Value);
+
+			if (settings?.PlantRngFixedUnit is float fixedUnit)
+				PlantRngFixedUnit = fixedUnit;
 
 			if (settings?.InitialDate.HasValue ?? false)
 				InitialTime = new(settings.InitialDate.Value.Year, settings.InitialDate.Value.Month, settings.InitialDate.Value.Day, 0, 0, 0, DateTimeKind.Unspecified);

@@ -13,6 +13,8 @@ import { scene } from "./components/viewport/ThreeSceneFn";
 import { VisualMappingOptions } from "./helpers/Plant";
 import { Species } from "./helpers/Species";
 import type { ExportedGraph } from "./components/hud/nodes/Conversion";
+import type { BehaviorConfigWireEntry } from "./components/hud/nodes/behaviorConfiguration";
+import { toWireEntries } from "./components/hud/nodes/behaviorConfiguration";
 
 /** One species graph entry in POST body (matches backend SpeciesGraphUploadEntry). */
 export interface SpeciesGraphWireEntry {
@@ -20,6 +22,9 @@ export interface SpeciesGraphWireEntry {
     Name: string;
     Graph: ExportedGraph;
 }
+
+/** One species configuration entry in POST body. */
+export interface SpeciesConfigurationWireEntry extends BehaviorConfigWireEntry {}
 import { IObjImport, Parse } from "./helpers/ObjParser";
 import { BoxTerrainItem, ITerrainItem, MeshTerrainItem } from "./helpers/Terrain";
 
@@ -230,6 +235,16 @@ class State {
         return out;
     };
 
+    collectSpeciesConfiguration = (): Record<string, SpeciesConfigurationWireEntry[]> => {
+        const out: Record<string, SpeciesConfigurationWireEntry[]> = {};
+        for (const s of this.species.peek()) {
+            const entries = toWireEntries(s.behaviorConfiguration.peek());
+            if (entries.length > 0)
+                out[s.name.peek()] = entries;
+        }
+        return out;
+    };
+
     //INITIAL SCENE SETUP
     seedsPerField = signal(1);
     seedsOptimalDistance = signal(0.165);
@@ -293,6 +308,7 @@ class State {
     //METHODS
     private requestBody = () => {
         const speciesGraphs = this.collectSpeciesGraphs();
+        const speciesConfiguration = this.collectSpeciesConfiguration();
         return {
         HoursPerTick: Math.trunc(this.hoursPerTick.peek()),
         TotalHours: Math.trunc(this.totalHours.peek()),
@@ -315,6 +331,7 @@ class State {
         FieldModelData: this.fieldModelData,
 
         ...(Object.keys(speciesGraphs).length > 0 ? { SpeciesGraphs: speciesGraphs } : {}),
+        ...(Object.keys(speciesConfiguration).length > 0 ? { SpeciesConfiguration: speciesConfiguration } : {}),
         };
     };
 
@@ -803,11 +820,12 @@ const st = new State();
 export default st;
 //now that the singleton is exported push in the default seed
 st.seeds.value = [ new Seed(st.species.peek()[0].name.peek(), st.fieldSizeX.peek() * 0.5, -0.01, st.fieldSizeZ.peek() * 0.5, 0, false) ];
-fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graphs: { id: string; name: string; graph: ExportedGraph }[] }[]) => {
+fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graphs: { id: string; name: string; graph: ExportedGraph }[]; configuration?: SpeciesConfigurationWireEntry[] }[]) => {
     st.species.value = list.map(e => new Species().loadPredefined({
         name: e.name,
         aka: e.aka,
         graphs: (e.graphs ?? []).map(g => ({ id: g.id, name: g.name, graph: g.graph })),
+        configuration: e.configuration,
     }));
 });
 

@@ -6,8 +6,4 @@ export class DeltaWoodNode extends ClassicPreset.Node {
         super("Delta Wood");
         this.addInput("amount", new ClassicPreset.Input(numSocket, "amount"));
     }
-
-    data() {
-        return {};
-    }
 }

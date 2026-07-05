@@ -6,8 +6,4 @@ export class IrradianceInputNode extends ClassicPreset.Node {
         super("Irradiance Input");
         this.addOutput("irradiance", new ClassicPreset.Output(numSocket, "Irradiance"));
     }
-
-    data() {
-        return { irradiance: 0 };
-    }
 }

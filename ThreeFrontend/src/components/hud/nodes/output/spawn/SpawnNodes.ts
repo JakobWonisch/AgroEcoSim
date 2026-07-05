@@ -1,8 +1,12 @@
 import { SpawnTriggerNode } from "./SpawnTriggerNode";
+import { boolSocket, numSocket } from "../../Sockets";
+import { ClassicPreset } from "rete";
 
 export class SpawnMeristemNode extends SpawnTriggerNode {
     constructor() {
         super("Spawn Meristem");
+        this.addOutput("childId", new ClassicPreset.Output(numSocket, "child id"));
+        this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }
 

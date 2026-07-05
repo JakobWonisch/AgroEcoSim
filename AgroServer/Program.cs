@@ -61,6 +61,8 @@ app.Run();
 [JsonSerializable(typeof(List<PredefinedSpeciesEntry>))]
 [JsonSerializable(typeof(PredefinedSpeciesGraphEntry))]
 [JsonSerializable(typeof(List<PredefinedSpeciesGraphEntry>))]
+[JsonSerializable(typeof(BehaviorConfigUploadEntry))]
+[JsonSerializable(typeof(List<BehaviorConfigUploadEntry>))]
 [JsonSerializable(typeof(ExportedGraph))]
 [JsonSerializable(typeof(GraphNode))]
 [JsonSerializable(typeof(GraphConnection))]

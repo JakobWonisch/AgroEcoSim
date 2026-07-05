@@ -6,8 +6,4 @@ export class DeathNode extends ClassicPreset.Node {
         super("Death");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

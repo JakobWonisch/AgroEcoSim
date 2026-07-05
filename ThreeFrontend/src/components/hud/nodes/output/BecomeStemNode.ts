@@ -6,8 +6,4 @@ export class BecomeStemNode extends ClassicPreset.Node {
         super("Become Stem");
         this.addInput("trigger", new ClassicPreset.Input(boolSocket, "trigger"));
     }
-
-    data() {
-        return {};
-    }
 }

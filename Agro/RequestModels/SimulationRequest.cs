@@ -51,6 +51,12 @@ public class SimulationRequest
     public ulong? Seed { get; init; }
 
     /// <summary>
+    /// Test harness: pin each plant <see cref="Utils.Pcg"/> unit draw to this value in [0,1]
+    /// instead of advancing the stream (extremal RNG parity).
+    /// </summary>
+    public float? PlantRngFixedUnit { get; init; }
+
+    /// <summary>
     /// Date to start the simulation
     /// </summary>
     public DateTime? InitialDate { get; init; }
@@ -65,6 +71,12 @@ public class SimulationRequest
     /// </summary>
     [JsonPropertyName("SpeciesGraphs")]
     public Dictionary<string, List<SpeciesGraphUploadEntry>>? SpeciesGraphs { get; init; }
+
+    /// <summary>
+    /// Per-species shared behavior configuration values keyed by species name.
+    /// </summary>
+    [JsonPropertyName("SpeciesConfiguration")]
+    public Dictionary<string, List<BehaviorConfigUploadEntry>>? SpeciesConfiguration { get; init; }
 
     ///<summary>
     ///A list of seeds to be planted (default: a single centered plant)

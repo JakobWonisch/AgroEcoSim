@@ -6,8 +6,4 @@ export class SetAuxinsNode extends ClassicPreset.Node {
         super("Set Auxins");
         this.addInput("value", new ClassicPreset.Input(numSocket, "value"));
     }
-
-    data() {
-        return {};
-    }
 }

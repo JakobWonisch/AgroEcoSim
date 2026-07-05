@@ -170,4 +170,109 @@ public class GraphTickInterpreterTests
 		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
 		Assert.Equal(1f, agent.WoodRatio(), 5);
 	}
+
+	[Fact]
+	public void Execute_RandomAccumChanceInput_UsesAccumulatedProbability()
+	{
+		var compiled = CompileWithGate(
+			[
+				("p", "Number Input", new Dictionary<string, object> { ["value"] = 0.5f }),
+				("rng", "Random Accum Chance Input", null),
+			],
+			[("c", "p", "num", "rng", "p")]);
+		var agent = default(AboveGroundAgent);
+		// Without formation, RNG should not fire.
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+	}
+
+	[Fact]
+	public void Execute_IntegerDivide_MatchesLegacyUintDivision()
+	{
+		var compiled = CompileWithGate(
+			[
+				("a", "Number Input", new Dictionary<string, object> { ["value"] = 44f }),
+				("b", "Number Input", new Dictionary<string, object> { ["value"] = 4032f }),
+				("idiv", "Integer Divide", null),
+				("z", "Number Input", new Dictionary<string, object> { ["value"] = 0f }),
+				("gt", "Greater Than", null),
+				("set", "Set Was Meristem", null),
+			],
+			[
+				("c1", "a", "num", "idiv", "a"),
+				("c2", "b", "num", "idiv", "b"),
+				("c3", "idiv", "out", "gt", "a"),
+				("c4", "z", "num", "gt", "b"),
+				("c5", "gt", "out", "set", "value"),
+			]);
+		var agent = default(AboveGroundAgent);
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+		Assert.False(agent.GraphWasMeristemThisTick());
+
+		var compiled2 = CompileWithGate(
+			[
+				("a", "Number Input", new Dictionary<string, object> { ["value"] = 4032f }),
+				("b", "Number Input", new Dictionary<string, object> { ["value"] = 4032f }),
+				("idiv", "Integer Divide", null),
+				("z", "Number Input", new Dictionary<string, object> { ["value"] = 0f }),
+				("gt", "Greater Than", null),
+				("set", "Set Was Meristem", null),
+			],
+			[
+				("c1", "a", "num", "idiv", "a"),
+				("c2", "b", "num", "idiv", "b"),
+				("c3", "idiv", "out", "gt", "a"),
+				("c4", "z", "num", "gt", "b"),
+				("c5", "gt", "out", "set", "value"),
+			]);
+		agent = default;
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled2);
+		Assert.True(agent.GraphWasMeristemThisTick());
+	}
+
+	[Fact]
+	public void Execute_SetWasMeristem_SetsScratchFlag()
+	{
+		var compiled = CompileWithGate(
+			[
+				("b", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+				("s", "Set Was Meristem", null),
+			],
+			[("c", "b", "bool", "s", "value")]);
+		var agent = default(AboveGroundAgent);
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+	}
+
+	[Fact]
+	public void Execute_SetLateralAngle_ChainsSeq()
+	{
+		var compiled = CompileWithGate(
+			[
+				("t", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+				("v", "Number Input", new Dictionary<string, object> { ["value"] = 1.57f }),
+				("s", "Set Lateral Angle", null),
+			],
+			[
+				("c1", "t", "bool", "s", "trigger"),
+				("c2", "v", "num", "s", "value"),
+			]);
+		var agent = default(AboveGroundAgent);
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+		Assert.Equal(1.57f, agent.LateralAngle, 3);
+	}
+
+	[Fact]
+	public void Execute_TurnUpwards_MutatesOrientation()
+	{
+		var compiled = CompileWithGate(
+			[
+				("t", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+				("turn", "Turn Upwards", null),
+			],
+			[("c", "t", "bool", "turn", "trigger")]);
+		var agent = default(AboveGroundAgent);
+		agent.SetOrientation(System.Numerics.Quaternion.CreateFromAxisAngle(System.Numerics.Vector3.UnitY, 0.4f));
+		var before = agent.Orientation;
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+		Assert.NotEqual(before, agent.Orientation);
+	}
 }
