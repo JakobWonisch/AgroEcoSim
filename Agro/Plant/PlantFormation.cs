@@ -84,6 +84,8 @@ public partial class PlantFormation2 : IPlantFormation
 		Position = seed.Center;
 
 		RNG = parentRNG.NextRNG();
+		if (world.PlantRngFixedUnit is float fixedUnit)
+			RNG.FixedUnitFloat = fixedUnit;
 		UG = world.VirtualRoots ? new VirtualRootsFormation(this) : new PlantSubFormation<UnderGroundAgent>(this, UnderGroundAgent.Reindex, false);
 		AG = new(this, AboveGroundAgent.Reindex, true);
 		//SegmentOrientations = new();

@@ -51,6 +51,12 @@ public class SimulationRequest
     public ulong? Seed { get; init; }
 
     /// <summary>
+    /// Test harness: pin each plant <see cref="Utils.Pcg"/> unit draw to this value in [0,1]
+    /// instead of advancing the stream (extremal RNG parity).
+    /// </summary>
+    public float? PlantRngFixedUnit { get; init; }
+
+    /// <summary>
     /// Date to start the simulation
     /// </summary>
     public DateTime? InitialDate { get; init; }

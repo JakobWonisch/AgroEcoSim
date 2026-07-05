@@ -155,6 +155,13 @@ public static class GraphTickInterpreter
 				outs[(g, "out")] = WireValue.OfFloat(b != 0f ? a / b : 0f);
 				break;
 			}
+			case GraphNodeKind.IntegerDivide:
+			{
+				var a = FirstFloat(node.Inputs, "a", outs);
+				var b = FirstFloat(node.Inputs, "b", outs);
+				outs[(g, "out")] = WireValue.OfFloat(IntegerDivideUint(a, b));
+				break;
+			}
 			case GraphNodeKind.And:
 			{
 				var a = FirstBool(node.Inputs, "a", outs);
@@ -254,6 +261,11 @@ public static class GraphTickInterpreter
 				agent.Water_g *= FirstFloat(node.Inputs, "factor", outs);
 				break;
 			case GraphNodeKind.SetEnergy:
+				if (node.Inputs.TryGetValue("trigger", out var setEnergyTriggers) && setEnergyTriggers.Count > 0)
+				{
+					if (!FirstBool(node.Inputs, "trigger", outs))
+						break;
+				}
 				agent.Energy = FirstFloat(node.Inputs, "value", outs);
 				break;
 			case GraphNodeKind.SetAuxins:
@@ -625,6 +637,14 @@ public static class GraphTickInterpreter
 		if (string.IsNullOrWhiteSpace(configId) || ctx.BehaviorConfiguration is null)
 			return false;
 		return ctx.BehaviorConfiguration.TryGetValue(configId, out var entry) && entry.BoolValue;
+	}
+
+	/// <summary>Matches legacy C# <c>uint ageHours / int divisor</c> (e.g. TickDefault petiole age bud).</summary>
+	static float IntegerDivideUint(float a, float b)
+	{
+		if (b == 0f)
+			return 0f;
+		return (uint)a / (uint)b;
 	}
 
 	static float FirstFloat(Dictionary<string, List<(int ProducerIndex, string ProducerSocket)>> inputs, string key, Dictionary<(int, string), WireValue> outs)

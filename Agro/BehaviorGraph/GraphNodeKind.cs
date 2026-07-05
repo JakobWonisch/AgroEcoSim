@@ -28,6 +28,7 @@ public enum GraphNodeKind : byte
 	Subtract,
 	Multiply,
 	Divide,
+	IntegerDivide,
 	Growth,
 	ParentWoodCap,
 	ClampMax,

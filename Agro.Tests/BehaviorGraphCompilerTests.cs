@@ -239,6 +239,7 @@ public class BehaviorGraphCompilerTests
 	[InlineData("Set trySpawn")]
 	[InlineData("Parent Wood Cap")]
 	[InlineData("Clamp Max")]
+	[InlineData("Integer Divide")]
 	[InlineData("Make Bud")]
 	[InlineData("Spawn Meristem")]
 	[InlineData("Death")]
@@ -410,7 +411,7 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(1e-3f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthLength).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
-		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
+		Assert.Equal(SpeciesSettings.Default.DominanceFactors[0], Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
 		Assert.Equal(s.AuxinsProduction, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
 		Assert.Equal(s.NodeDistance, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance).Value.GetSingle());
 		Assert.Equal(s.NodeDistanceVar, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar).Value.GetSingle());

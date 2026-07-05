@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Agro.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AgentsSystem\AgentsSystem.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>

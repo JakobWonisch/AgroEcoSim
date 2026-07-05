@@ -4,6 +4,22 @@ public sealed class TraceCompareOptions
 {
 	public float Tolerance { get; init; } = 1e-5f;
 	public bool IgnoreRng { get; init; }
+	/// <summary>Skip plant-level balances (coupled to roots/RNG); compare agents only.</summary>
+	public bool IgnorePlantBalances { get; init; }
+	/// <summary>Skip per-agent energy (census redistribution noise under extremal RNG).</summary>
+	public bool IgnoreAgentEnergy { get; init; }
+	/// <summary>Skip per-agent water (follows photosynthesis / energy drift).</summary>
+	public bool IgnoreAgentWater { get; init; }
+
+	/// <summary>Decision-structure parity: organs, topology, geometry; not energy/water/RNG.</summary>
+	public static TraceCompareOptions StructuralParity => new()
+	{
+		Tolerance = 1e-4f,
+		IgnoreRng = true,
+		IgnorePlantBalances = true,
+		IgnoreAgentEnergy = true,
+		IgnoreAgentWater = true,
+	};
 }
 
 public sealed class TraceMismatch
@@ -75,9 +91,12 @@ public static class TraceComparer
 			CompareFloat(legacy.Seed.GerminationProgress, node.Seed.GerminationProgress, $"{prefix}.Seed.GerminationProgress", timestep, options, out m); if (m != null) return m;
 		}
 
-		CompareFloat(legacy.WaterBalance, node.WaterBalance, $"{prefix}.WaterBalance", timestep, options, out m); if (m != null) return m;
-		CompareFloat(legacy.WaterBalanceUG, node.WaterBalanceUG, $"{prefix}.WaterBalanceUG", timestep, options, out m); if (m != null) return m;
-		CompareFloat(legacy.EnergyBalance, node.EnergyBalance, $"{prefix}.EnergyBalance", timestep, options, out m); if (m != null) return m;
+		if (!options.IgnorePlantBalances)
+		{
+			CompareFloat(legacy.WaterBalance, node.WaterBalance, $"{prefix}.WaterBalance", timestep, options, out m); if (m != null) return m;
+			CompareFloat(legacy.WaterBalanceUG, node.WaterBalanceUG, $"{prefix}.WaterBalanceUG", timestep, options, out m); if (m != null) return m;
+			CompareFloat(legacy.EnergyBalance, node.EnergyBalance, $"{prefix}.EnergyBalance", timestep, options, out m); if (m != null) return m;
+		}
 		CompareFloat(legacy.EnergyProductionMax, node.EnergyProductionMax, $"{prefix}.EnergyProductionMax", timestep, options, out m); if (m != null) return m;
 
 		if (!options.IgnoreRng && legacy.Rng != null && node.Rng != null)
@@ -127,8 +146,14 @@ public static class TraceComparer
 
 		CompareFloat(legacy.Length, node.Length, $"{prefix}.Length", timestep, options, out var m); if (m != null) return m;
 		CompareFloat(legacy.Radius, node.Radius, $"{prefix}.Radius", timestep, options, out m); if (m != null) return m;
-		CompareFloat(legacy.Energy, node.Energy, $"{prefix}.Energy", timestep, options, out m); if (m != null) return m;
-		CompareFloat(legacy.Water_g, node.Water_g, $"{prefix}.Water_g", timestep, options, out m); if (m != null) return m;
+		if (!options.IgnoreAgentEnergy)
+		{
+			CompareFloat(legacy.Energy, node.Energy, $"{prefix}.Energy", timestep, options, out m); if (m != null) return m;
+		}
+		if (!options.IgnoreAgentWater)
+		{
+			CompareFloat(legacy.Water_g, node.Water_g, $"{prefix}.Water_g", timestep, options, out m); if (m != null) return m;
+		}
 		CompareFloat(legacy.Auxins, node.Auxins, $"{prefix}.Auxins", timestep, options, out m); if (m != null) return m;
 
 		if (legacy.DominanceLevel != node.DominanceLevel)

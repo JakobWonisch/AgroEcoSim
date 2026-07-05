@@ -186,6 +186,50 @@ public class GraphTickInterpreterTests
 	}
 
 	[Fact]
+	public void Execute_IntegerDivide_MatchesLegacyUintDivision()
+	{
+		var compiled = CompileWithGate(
+			[
+				("a", "Number Input", new Dictionary<string, object> { ["value"] = 44f }),
+				("b", "Number Input", new Dictionary<string, object> { ["value"] = 4032f }),
+				("idiv", "Integer Divide", null),
+				("z", "Number Input", new Dictionary<string, object> { ["value"] = 0f }),
+				("gt", "Greater Than", null),
+				("set", "Set Was Meristem", null),
+			],
+			[
+				("c1", "a", "num", "idiv", "a"),
+				("c2", "b", "num", "idiv", "b"),
+				("c3", "idiv", "out", "gt", "a"),
+				("c4", "z", "num", "gt", "b"),
+				("c5", "gt", "out", "set", "value"),
+			]);
+		var agent = default(AboveGroundAgent);
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+		Assert.False(agent.GraphWasMeristemThisTick());
+
+		var compiled2 = CompileWithGate(
+			[
+				("a", "Number Input", new Dictionary<string, object> { ["value"] = 4032f }),
+				("b", "Number Input", new Dictionary<string, object> { ["value"] = 4032f }),
+				("idiv", "Integer Divide", null),
+				("z", "Number Input", new Dictionary<string, object> { ["value"] = 0f }),
+				("gt", "Greater Than", null),
+				("set", "Set Was Meristem", null),
+			],
+			[
+				("c1", "a", "num", "idiv", "a"),
+				("c2", "b", "num", "idiv", "b"),
+				("c3", "idiv", "out", "gt", "a"),
+				("c4", "z", "num", "gt", "b"),
+				("c5", "gt", "out", "set", "value"),
+			]);
+		agent = default;
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled2);
+		Assert.True(agent.GraphWasMeristemThisTick());
+	}
+
+	[Fact]
 	public void Execute_SetWasMeristem_SetsScratchFlag()
 	{
 		var compiled = CompileWithGate(

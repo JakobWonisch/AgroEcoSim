@@ -24,6 +24,7 @@ import { LessThanNode } from "./util/logic/LessThanNode";
 import { LessThanOrEqualNode } from "./util/logic/LessThanOrEqualNode";
 import { AddNode } from "./util/numeric/AddNode";
 import { DivideNode } from "./util/numeric/DivideNode";
+import { IntegerDivideNode } from "./util/numeric/IntegerDivideNode";
 import { MultiplyNode } from "./util/numeric/MultiplyNode";
 import { SubtractNode } from "./util/numeric/SubtractNode";
 import { ParentWoodCapNode } from "./util/numeric/ParentWoodCapNode";
@@ -176,6 +177,7 @@ const creators: Record<string, Creator> = {
     Subtract: () => new SubtractNode(),
     Multiply: () => new MultiplyNode(),
     Divide: () => new DivideNode(),
+    "Integer Divide": () => new IntegerDivideNode(),
     "Parent Wood Cap": () => new ParentWoodCapNode(),
     "Clamp Max": () => new ClampMaxNode(),
     Growth: () => new GrowthNode(),

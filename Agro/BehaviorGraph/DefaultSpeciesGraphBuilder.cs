@@ -230,7 +230,9 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Dominance factor",
 			Label = "Dominance factor",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(1f),
+			// Default species never sets DominanceFactor init; DominanceFactors stays [0.7f] and
+			// TickDefault falls back to index 0 for DominanceLevel >= 1.
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.DominanceFactors[0]),
 		},
 		new()
 		{
@@ -452,7 +454,7 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and1, "out", and2, "a");
 		b.Connect(notParentMeristem, "out", and2, "b");
 
-		var ageRatio = b.Add("age-ratio", "Divide", 1240, 80);
+		var ageRatio = b.Add("age-ratio", "Integer Divide", 1240, 80);
 		b.Connect(state, "ageHours", ageRatio, "a");
 		b.Connect(refHours, "num", ageRatio, "b");
 
@@ -461,15 +463,11 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(ageRatio, "out", pSquared, "b");
 
 		var rng = b.WireRandomAccumChance(pSquared, "out");
-		var and3 = b.Add("and3", "And", 1720, 60);
-		b.Connect(and2, "out", and3, "a");
-		b.Connect(rng, "out", and3, "b");
 
-		var makeBudTrig = b.AddBool("make-bud-trig", true, 1920, 200);
 		var makeBud = b.Add("make-bud", "Make Bud", 2160, 200);
-		b.Connect(makeBudTrig, "bool", makeBud, "trigger");
+		b.Connect(rng, "out", makeBud, "trigger");
 
-		return b.FinishWithActive(and3, "out").Build();
+		return b.FinishWithActive(and2, "out").Build();
 	}
 
 	/// <summary>TickDefault lines 473–486.</summary>
@@ -500,15 +498,13 @@ public static class DefaultSpeciesGraphBuilder
 
 		var deathP = b.WireStemDeathProbability(state, form);
 		var rng = b.WireRandomAccumChance(deathP, "out");
-		var and2 = b.Add("and2", "And", 1480, 40);
-		b.Connect(and1, "out", and2, "a");
-		b.Connect(rng, "out", and2, "b");
 
 		var c0 = b.AddNum("c0", 0f, 1920, 200);
 		var setEnergy = b.Add("set-energy", "Set Energy", 2160, 200);
 		b.Connect(c0, "num", setEnergy, "value");
+		b.Connect(rng, "out", setEnergy, "trigger");
 
-		return b.FinishWithActive(and2, "out").Build();
+		return b.FinishWithActive(and1, "out").Build();
 	}
 
 	/// <summary>TickDefault line 490 — switch case Meristem (wasMeristem flag).</summary>
@@ -530,13 +526,21 @@ public static class DefaultSpeciesGraphBuilder
 		var form = b.Add("form", "Formation Input", 0, 60);
 		var state = b.Add("state", "Agent State Input", 0, 120);
 
-		var petioleOrBud = b.Add("pet-or-bud", "Or", 400, 20);
-		b.Connect(organ, "petiole", petioleOrBud, "a");
-		b.Connect(organ, "bud", petioleOrBud, "b");
+		// TickDefault: petiole twig only when parent is not meristem; buds may activate regardless.
+		var notParentMeristem = b.Add("gate-not-parent-mer", "Not", 400, 60);
+		b.Connect(form, "parentMeristem", notParentMeristem, "a");
+
+		var petioleNotUnderMeristem = b.Add("pet-ok", "And", 640, 20);
+		b.Connect(organ, "petiole", petioleNotUnderMeristem, "a");
+		b.Connect(notParentMeristem, "out", petioleNotUnderMeristem, "b");
+
+		var twigOrgan = b.Add("twig-organ", "Or", 640, 0);
+		b.Connect(organ, "bud", twigOrgan, "a");
+		b.Connect(petioleNotUnderMeristem, "out", twigOrgan, "b");
 
 		var enough = b.WireEnoughEnergy(organ, state);
 		var and1 = b.Add("and1", "And", 880, 20);
-		b.Connect(petioleOrBud, "out", and1, "a");
+		b.Connect(twigOrgan, "out", and1, "a");
 		b.Connect(enough, "out", and1, "b");
 
 		var and2 = b.Add("and2", "And", 1120, 40);
@@ -572,7 +576,7 @@ public static class DefaultSpeciesGraphBuilder
 	}
 
 	/// <summary>
-	/// TickDefault lines 575–592 — Partial: production-based growth; parent-radius cap deferred.
+	/// TickDefault lines 575–592 — production-based growth with parent-radius cap on radius.
 	/// </summary>
 	public static global::ExportedGraph BuildGrowthPetioleSubgraph()
 	{
@@ -585,7 +589,7 @@ public static class DefaultSpeciesGraphBuilder
 		var (deltaLen, deltaRad) = b.WireLeafPetioleGrowthDeltas(
 			state, form,
 			ConfigIds.PetioleLength, ConfigIds.PetioleRadius,
-			capRadiusToParent: false);
+			capRadiusToParent: true);
 
 		var growth = b.Add("growth", "Growth", 1200, 200);
 		b.Connect(deltaLen, "out", growth, "Length");
@@ -800,15 +804,10 @@ public static class DefaultSpeciesGraphBuilder
 		var deathP = b.WireUnproductiveDeathProbability(prodRatio, "out");
 		var rng = b.WireRandomAccumChance(deathP, "out");
 
-		var and5 = b.Add("and5", "And", 1960, 100);
-		b.Connect(and4, "out", and5, "a");
-		b.Connect(rng, "out", and5, "b");
-
-		var deathTrig = b.AddBool("death-trig", true, 2200, 200);
 		var death = b.Add("death", "Death", 2440, 200);
-		b.Connect(deathTrig, "bool", death, "trigger");
+		b.Connect(rng, "out", death, "trigger");
 
-		return b.FinishWithActive(and5, "out").Build();
+		return b.FinishWithActive(and4, "out").Build();
 	}
 
 	/// <summary>TickDefault lines 712–726 — Energy &lt;= 0.</summary>

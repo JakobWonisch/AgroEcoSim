@@ -409,6 +409,9 @@ public static class BehaviorGraphCompiler
 			case "Divide":
 				kind = GraphNodeKind.Divide;
 				return true;
+			case "Integer Divide":
+				kind = GraphNodeKind.IntegerDivide;
+				return true;
 			case "Growth":
 				kind = GraphNodeKind.Growth;
 				return true;
