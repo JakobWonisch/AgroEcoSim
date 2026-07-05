@@ -34,6 +34,10 @@ public static class DefaultSpeciesGraphBuilder
 		public const string MeristemGrowthRadius = "default-config-meristem-growth-radius";
 		public const string StemGrowthRadius = "default-config-stem-growth-radius";
 		public const string DominanceFactor = "default-config-dominance-factor";
+		public const string AuxinsProduction = "default-config-auxins-production";
+		public const string NodeDistance = "default-config-node-distance";
+		public const string NodeDistanceVar = "default-config-node-distance-var";
+		public const string TwigLateralAngle = "default-config-twig-lateral-angle";
 	}
 
 	static float DefaultPetioleCoverThreshold()
@@ -228,26 +232,58 @@ public static class DefaultSpeciesGraphBuilder
 			Type = "number",
 			Value = JsonSerializer.SerializeToElement(1f),
 		},
+		new()
+		{
+			Id = ConfigIds.AuxinsProduction,
+			Key = "Auxins production",
+			Label = "Auxins production",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.AuxinsProduction),
+		},
+		new()
+		{
+			Id = ConfigIds.NodeDistance,
+			Key = "Node distance",
+			Label = "Node distance",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.NodeDistance),
+		},
+		new()
+		{
+			Id = ConfigIds.NodeDistanceVar,
+			Key = "Node distance var",
+			Label = "Node distance var",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(SpeciesSettings.Default.NodeDistanceVar),
+		},
+		new()
+		{
+			Id = ConfigIds.TwigLateralAngle,
+			Key = "Twig lateral angle",
+			Label = "Twig lateral angle",
+			Type = "number",
+			Value = JsonSerializer.SerializeToElement(MathF.PI * 0.5f),
+		},
 	];
 
 	public static IReadOnlyList<(string Name, global::ExportedGraph Graph)> BuildDefaultSpeciesSubgraphs() =>
 	[
 		("Life support", BuildLifeSupportSubgraph()),
 		("Photosynthesis", BuildPhotosynthesisSubgraph()),
-		// ("Petiole age bud", BuildPetioleAgeBudSubgraph()),
-		// ("Stem dominance death", BuildStemDominanceDeathSubgraph()),
-		// ("Meristem tick marker", BuildMeristemTickMarkerSubgraph()),
-		// ("Auxin twig", BuildAuxinTwigSubgraph()),
+		("Petiole age bud", BuildPetioleAgeBudSubgraph()),
+		("Stem dominance death", BuildStemDominanceDeathSubgraph()),
+		("Meristem tick marker", BuildMeristemTickMarkerSubgraph()),
+		("Auxin twig", BuildAuxinTwigSubgraph()),
 		("Growth leaf", BuildGrowthLeafSubgraph()),
 		("Growth petiole", BuildGrowthPetioleSubgraph()),
 		("Growth meristem", BuildGrowthMeristemSubgraph()),
 		("Growth stem", BuildGrowthStemSubgraph()),
-		// ("Wood lignify", BuildWoodLignifySubgraph()),
-		// ("Meristem chain", BuildMeristemChainSubgraph()),
-		// ("Petiole cover bud", BuildPetioleCoverBudSubgraph()),
-		// ("Petiole unproductive death", BuildPetioleUnproductiveDeathSubgraph()),
-		// ("Energy depletion", BuildEnergyDepletionSubgraph()),
-		// ("Auxins update", BuildAuxinsUpdateSubgraph()),
+		("Wood lignify", BuildWoodLignifySubgraph()),
+		("Meristem chain", BuildMeristemChainSubgraph()),
+		("Petiole cover bud", BuildPetioleCoverBudSubgraph()),
+		("Petiole unproductive death", BuildPetioleUnproductiveDeathSubgraph()),
+		("Energy depletion", BuildEnergyDepletionSubgraph()),
+		("Auxins update", BuildAuxinsUpdateSubgraph()),
 	];
 
 	/// <summary>
@@ -389,7 +425,7 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(activeCond, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 461–467 — partial; RNG missing.</summary>
+	/// <summary>TickDefault lines 461–467.</summary>
 	public static global::ExportedGraph BuildPetioleAgeBudSubgraph()
 	{
 		var b = SubgraphBuilder.Create("pab");
@@ -398,6 +434,8 @@ public static class DefaultSpeciesGraphBuilder
 		var form = b.Add("form", "Formation Input", 0, 120);
 		var minAge = b.AddConfig("min-age", ConfigIds.PetioleAgeBudMinHours, false, 280, 0,
 			"Minimum petiole age (hours) before age-based budding");
+		var refHours = b.AddConfig("ref-hours", ConfigIds.PetioleAgeBudReferenceHours, false, 280, 40,
+			"Reference hours for age-based budding probability");
 
 		var ageOk = b.Add("age-ok", "Greater Than", 520, 60);
 		b.Connect(state, "ageHours", ageOk, "a");
@@ -414,16 +452,27 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and1, "out", and2, "a");
 		b.Connect(notParentMeristem, "out", and2, "b");
 
-		var missingRng = b.AddBoolStub("missing-rng", true,
-			"MISSING: NextFloatAccum (Random Chance uses different semantics)");
-		var and3 = b.Add("and3", "And", 1240, 60);
+		var ageRatio = b.Add("age-ratio", "Divide", 1240, 80);
+		b.Connect(state, "ageHours", ageRatio, "a");
+		b.Connect(refHours, "num", ageRatio, "b");
+
+		var pSquared = b.Add("p-sq", "Multiply", 1480, 80);
+		b.Connect(ageRatio, "out", pSquared, "a");
+		b.Connect(ageRatio, "out", pSquared, "b");
+
+		var rng = b.WireRandomAccumChance(pSquared, "out");
+		var and3 = b.Add("and3", "And", 1720, 60);
 		b.Connect(and2, "out", and3, "a");
-		b.Connect(missingRng, "bool", and3, "b");
+		b.Connect(rng, "out", and3, "b");
+
+		var makeBudTrig = b.AddBool("make-bud-trig", true, 1920, 200);
+		var makeBud = b.Add("make-bud", "Make Bud", 2160, 200);
+		b.Connect(makeBudTrig, "bool", makeBud, "trigger");
 
 		return b.FinishWithActive(and3, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 473–486 — partial; stem death probability and RNG missing.</summary>
+	/// <summary>TickDefault lines 473–486.</summary>
 	public static global::ExportedGraph BuildStemDominanceDeathSubgraph()
 	{
 		var b = SubgraphBuilder.Create("sdd");
@@ -449,11 +498,15 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(organ, "stem", and1, "a");
 		b.Connect(andDom, "out", and1, "b");
 
-		var missingRng = b.AddBoolStub("missing-rng", true,
-			"MISSING: NextFloatAccum for stem death probability");
-		var and2 = b.Add("and2", "And", 1000, 40);
+		var deathP = b.WireStemDeathProbability(state, form);
+		var rng = b.WireRandomAccumChance(deathP, "out");
+		var and2 = b.Add("and2", "And", 1480, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingRng, "bool", and2, "b");
+		b.Connect(rng, "out", and2, "b");
+
+		var c0 = b.AddNum("c0", 0f, 1920, 200);
+		var setEnergy = b.Add("set-energy", "Set Energy", 2160, 200);
+		b.Connect(c0, "num", setEnergy, "value");
 
 		return b.FinishWithActive(and2, "out").Build();
 	}
@@ -463,29 +516,34 @@ public static class DefaultSpeciesGraphBuilder
 	{
 		var b = SubgraphBuilder.Create("mtm");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var wasTrue = b.AddBool("was-true", true, 1920, 200);
+		var setWas = b.Add("set-was", "Set Was Meristem", 2160, 200);
+		b.Connect(wasTrue, "bool", setWas, "value");
 		return b.FinishWithActive(organ, "meristem").Build();
 	}
 
-	/// <summary>TickDefault lines 494–548 — partial; energy gate and twig effects missing.</summary>
+	/// <summary>TickDefault lines 494–548.</summary>
 	public static global::ExportedGraph BuildAuxinTwigSubgraph()
 	{
 		var b = SubgraphBuilder.Create("atw");
 		var organ = b.Add("organ", "Agent Type Input", 0, 0);
 		var form = b.Add("form", "Formation Input", 0, 60);
+		var state = b.Add("state", "Agent State Input", 0, 120);
 
 		var petioleOrBud = b.Add("pet-or-bud", "Or", 400, 20);
 		b.Connect(organ, "petiole", petioleOrBud, "a");
 		b.Connect(organ, "bud", petioleOrBud, "b");
 
-		var missingEnergy = b.AddBoolStub("missing-energy", true,
-			"MISSING: Energy > EnoughEnergy (needs life support per hour * 320)");
+		var enough = b.WireEnoughEnergy(organ, state);
 		var and1 = b.Add("and1", "And", 880, 20);
 		b.Connect(petioleOrBud, "out", and1, "a");
-		b.Connect(missingEnergy, "bool", and1, "b");
+		b.Connect(enough, "out", and1, "b");
 
 		var and2 = b.Add("and2", "And", 1120, 40);
 		b.Connect(and1, "out", and2, "a");
 		b.Connect(form, "auxinLocalMinimum", and2, "b");
+
+		b.WireTwigEffectChain(organ, form);
 
 		return b.FinishWithActive(and2, "out").Build();
 	}
@@ -579,7 +637,7 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(activeGate, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 623–628 — partial; energy and branch context missing.</summary>
+	/// <summary>TickDefault lines 623–628.</summary>
 	public static global::ExportedGraph BuildWoodLignifySubgraph()
 	{
 		var b = SubgraphBuilder.Create("wl");
@@ -591,20 +649,34 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(state, "wood", woodLt1, "a");
 		b.Connect(c1, "num", woodLt1, "b");
 
-		var and1 = b.Add("and1", "And", 760, 20);
+		var enough = b.WireEnoughEnergy(organ, state);
+		var and1 = b.Add("and1", "And", 1000, 20);
 		b.Connect(organ, "stem", and1, "a");
 		b.Connect(woodLt1, "out", and1, "b");
 
-		var missingEnergy = b.AddBoolStub("missing-energy", true,
-			"MISSING: Energy > EnoughEnergy and Stem|Meristem growth block context");
-		var and2 = b.Add("and2", "And", 1000, 40);
+		var and2 = b.Add("and2", "And", 1240, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingEnergy, "bool", and2, "b");
+		b.Connect(enough, "out", and2, "b");
+
+		var newWood = b.Add("new-wood", "Add", 1480, 200);
+		b.Connect(state, "wood", newWood, "a");
+		b.Connect(state, "growthTimeVar", newWood, "b");
+
+		var capped = b.Add("capped", "Parent Wood Cap", 1720, 200);
+		b.Connect(newWood, "out", capped, "value");
+
+		var one = b.AddNum("one", 1f, 1720, 240);
+		var clamped = b.Add("clamped", "Clamp Max", 1960, 200);
+		b.Connect(capped, "out", clamped, "value");
+		b.Connect(one, "num", clamped, "max");
+
+		var setWood = b.Add("set-wood", "Set Wood", 2200, 200);
+		b.Connect(clamped, "out", setWood, "value");
 
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 632+ — partial; energy gate and chain effects missing.</summary>
+	/// <summary>TickDefault lines 632+ — monopodial meristem chain (dichotomous deferred).</summary>
 	public static global::ExportedGraph BuildMeristemChainSubgraph()
 	{
 		var b = SubgraphBuilder.Create("mc");
@@ -615,20 +687,41 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(state, "length", lengthGt, "a");
 		b.Connect(state, "lengthVar", lengthGt, "b");
 
+		var notBud = b.Add("not-bud", "Not", 520, 20);
+		b.Connect(organ, "bud", notBud, "a");
+
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "meristem", and1, "a");
 		b.Connect(lengthGt, "out", and1, "b");
 
-		var missingEnergy = b.AddBoolStub("missing-energy", true,
-			"MISSING: Energy > EnoughEnergy and Organ != Bud");
+		var enough = b.WireEnoughEnergy(organ, state);
 		var and2 = b.Add("and2", "And", 1000, 40);
 		b.Connect(and1, "out", and2, "a");
-		b.Connect(missingEnergy, "bool", and2, "b");
+		b.Connect(notBud, "out", and2, "b");
 
-		return b.FinishWithActive(and2, "out").Build();
+		var and3 = b.Add("and3", "And", 1240, 60);
+		b.Connect(and2, "out", and3, "a");
+		b.Connect(enough, "out", and3, "b");
+
+		var chainTrig = b.AddBool("chain-trig", true, 1480, 200);
+		var becomeStem = b.Add("become-stem", "Become Stem", 1720, 160);
+		b.Connect(chainTrig, "bool", becomeStem, "trigger");
+
+		var wasTrue = b.AddBool("was-true", true, 1720, 200);
+		var setWas = b.Add("set-was", "Set Was Meristem", 1960, 200);
+		b.Connect(wasTrue, "bool", setWas, "value");
+
+		var spawn = b.Add("spawn", "Spawn Meristem", 1720, 240);
+		b.Connect(chainTrig, "bool", spawn, "trigger");
+
+		var createLeaves = b.Add("create-leaves", "Create Leaves", 1960, 240);
+		b.Connect(spawn, "seq", createLeaves, "trigger");
+		b.Connect(spawn, "childId", createLeaves, "meristemId");
+
+		return b.FinishWithActive(and3, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 686–687 — partial; energy gate and Make Bud effect missing.</summary>
+	/// <summary>TickDefault lines 686–687.</summary>
 	public static global::ExportedGraph BuildPetioleCoverBudSubgraph()
 	{
 		var b = SubgraphBuilder.Create("pcb");
@@ -636,11 +729,10 @@ public static class DefaultSpeciesGraphBuilder
 		var state = b.Add("state", "Agent State Input", 0, 60);
 		var form = b.Add("form", "Formation Input", 0, 120);
 
-		var missingEnergy = b.AddBoolStub("missing-energy", true,
-			"MISSING: Energy > EnoughEnergy and else-branch of Stem|Meristem block");
+		var enough = b.WireEnoughEnergy(organ, state);
 		var and1 = b.Add("and1", "And", 760, 20);
 		b.Connect(organ, "petiole", and1, "a");
-		b.Connect(missingEnergy, "bool", and1, "b");
+		b.Connect(enough, "out", and1, "b");
 
 		var coverSum = b.Add("cover-sum", "Add", 1000, 80);
 		b.Connect(state, "parentRadiusAtBirth", coverSum, "a");
@@ -655,10 +747,14 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and1, "out", and2, "a");
 		b.Connect(coverLt, "out", and2, "b");
 
+		var makeBudTrig = b.AddBool("make-bud-trig", true, 1240, 200);
+		var makeBud = b.Add("make-bud", "Make Bud", 1480, 200);
+		b.Connect(makeBudTrig, "bool", makeBud, "trigger");
+
 		return b.FinishWithActive(and2, "out").Build();
 	}
 
-	/// <summary>TickDefault lines 690–706 — partial; production ratio and RNG missing.</summary>
+	/// <summary>TickDefault lines 690–706.</summary>
 	public static global::ExportedGraph BuildPetioleUnproductiveDeathSubgraph()
 	{
 		var b = SubgraphBuilder.Create("pud");
@@ -701,12 +797,16 @@ public static class DefaultSpeciesGraphBuilder
 		b.Connect(and3, "out", and4, "a");
 		b.Connect(prodLow, "out", and4, "b");
 
-		var missingRng = b.AddBoolStub("missing-rng", true,
-			"MISSING: NextFloatAccum for unproductive petiole death");
+		var deathP = b.WireUnproductiveDeathProbability(prodRatio, "out");
+		var rng = b.WireRandomAccumChance(deathP, "out");
 
-		var and5 = b.Add("and5", "And", 1720, 100);
+		var and5 = b.Add("and5", "And", 1960, 100);
 		b.Connect(and4, "out", and5, "a");
-		b.Connect(missingRng, "bool", and5, "b");
+		b.Connect(rng, "out", and5, "b");
+
+		var deathTrig = b.AddBool("death-trig", true, 2200, 200);
+		var death = b.Add("death", "Death", 2440, 200);
+		b.Connect(deathTrig, "bool", death, "trigger");
 
 		return b.FinishWithActive(and5, "out").Build();
 	}
@@ -715,21 +815,69 @@ public static class DefaultSpeciesGraphBuilder
 	public static global::ExportedGraph BuildEnergyDepletionSubgraph()
 	{
 		var b = SubgraphBuilder.Create("ed");
-		var state = b.Add("state", "Agent State Input", 0, 0);
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
 		var c0 = b.AddNum("c0", 0f, 280, 0);
 
 		var starved = b.Add("starved", "Less Than or Equal", 520, 0);
 		b.Connect(state, "energy", starved, "a");
 		b.Connect(c0, "num", starved, "b");
 
+		var makeBud = b.Add("make-bud", "Make Bud", 1000, 160);
+		var andPetiole = b.Add("and-pet", "And", 760, 160);
+		b.Connect(starved, "out", andPetiole, "a");
+		b.Connect(organ, "petiole", andPetiole, "b");
+		b.Connect(andPetiole, "out", makeBud, "trigger");
+
+		var deathLeaf = b.Add("death-leaf", "Death", 1000, 200);
+		var andLeaf = b.Add("and-leaf", "And", 760, 200);
+		b.Connect(starved, "out", andLeaf, "a");
+		b.Connect(organ, "leaf", andLeaf, "b");
+		b.Connect(andLeaf, "out", deathLeaf, "trigger");
+
+		var deathParent = b.Add("death-parent", "Death Parent", 1240, 200);
+		b.Connect(andLeaf, "out", deathParent, "trigger");
+
+		var deathDefault = b.Add("death-default", "Death", 1000, 280);
+		var notPetiole = b.Add("not-pet", "Not", 760, 280);
+		b.Connect(organ, "petiole", notPetiole, "a");
+		var notLeaf = b.Add("not-leaf", "Not", 760, 320);
+		b.Connect(organ, "leaf", notLeaf, "a");
+		var andOther = b.Add("and-other", "And", 1000, 300);
+		b.Connect(starved, "out", andOther, "a");
+		b.Connect(notPetiole, "out", andOther, "b");
+		var andOther2 = b.Add("and-other2", "And", 1240, 300);
+		b.Connect(andOther, "out", andOther2, "a");
+		b.Connect(notLeaf, "out", andOther2, "b");
+		b.Connect(andOther2, "out", deathDefault, "trigger");
+
 		return b.FinishWithActive(starved, "out").Build();
 	}
 
 	/// <summary>TickDefault line 730 — unconditional auxins update.</summary>
-	public static global::ExportedGraph BuildAuxinsUpdateSubgraph() =>
-		SubgraphBuilder.Create("aux")
-			.GateAlwaysTrue()
-			.Build();
+	public static global::ExportedGraph BuildAuxinsUpdateSubgraph()
+	{
+		var b = SubgraphBuilder.Create("aux");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var auxinsProd = b.AddConfig("auxins", ConfigIds.AuxinsProduction, false, 280, 0,
+			"SpeciesSettings.Default.AuxinsProduction");
+		var c0 = b.AddNum("c0", 0f, 280, 40);
+
+		var meristemOrWas = b.Add("mer-or-was", "Or", 520, 20);
+		b.Connect(organ, "meristem", meristemOrWas, "a");
+		b.Connect(state, "wasMeristemThisTick", meristemOrWas, "b");
+
+		var auxinsVal = b.Add("aux-val", "If / Else", 760, 40);
+		b.Connect(meristemOrWas, "out", auxinsVal, "condition");
+		b.Connect(auxinsProd, "num", auxinsVal, "trueValue");
+		b.Connect(c0, "num", auxinsVal, "falseValue");
+
+		var setAuxins = b.Add("set-auxins", "Set Auxins", 1000, 40);
+		b.Connect(auxinsVal, "out", setAuxins, "value");
+
+		return b.GateAlwaysTrue().Build();
+	}
 
 	sealed class SubgraphBuilder
 	{
@@ -1036,6 +1184,141 @@ public static class DefaultSpeciesGraphBuilder
 			Connect(m3, "out", deltaRad, "a");
 			Connect(simId, "hoursPerTick", deltaRad, "b");
 			return deltaRad;
+		}
+
+		/// <summary>NextFloatAccum(p, hoursPerTick) — returns RNG node id (out socket).</summary>
+		public string WireRandomAccumChance(string pNodeId, string pOutput)
+		{
+			var rng = Add("rng-accum", "Random Accum Chance Input", 1680, 120);
+			Connect(pNodeId, pOutput, rng, "p");
+			return rng;
+		}
+
+		/// <summary>Stem dominance death probability p = base / (q*q).</summary>
+		public string WireStemDeathProbability(string stateId, string formId)
+		{
+			var hCoeff = AddConfig("h-coeff", ConfigIds.StemDeathHeightCoeff, false, 280, 200);
+			var eCoeff = AddConfig("e-coeff", ConfigIds.StemDeathEfficiencyCoeff, false, 280, 240);
+			var rCoeff = AddConfig("r-coeff", ConfigIds.StemDeathRadiusCoeff, false, 280, 280);
+			var baseP = AddConfig("base-p", ConfigIds.StemDeathProbabilityBase, false, 280, 320);
+
+			var h = Add("h", "Multiply", 520, 200);
+			Connect(hCoeff, "num", h, "a");
+			Connect(formId, "agentHeightRatio", h, "b");
+
+			var hSq = Add("h-sq", "Multiply", 760, 200);
+			Connect(h, "out", hSq, "a");
+			Connect(h, "out", hSq, "b");
+
+			var eNum = Add("e-num", "Multiply", 520, 240);
+			Connect(eCoeff, "num", eNum, "a");
+			Connect(stateId, "previousDayEnvResources", eNum, "b");
+			var eDiv = Add("e-div", "Divide", 760, 240);
+			Connect(eNum, "out", eDiv, "a");
+			Connect(formId, "dailyEfficiencyMax", eDiv, "b");
+
+			var eSq = Add("e-sq", "Multiply", 760, 280);
+			Connect(eDiv, "out", eSq, "a");
+			Connect(eDiv, "out", eSq, "b");
+
+			var one = AddNum("one", 1f, 520, 320);
+			var rTerm = Add("r-term", "Multiply", 760, 320);
+			Connect(rCoeff, "num", rTerm, "a");
+			Connect(stateId, "radius", rTerm, "b");
+
+			var q1 = Add("q1", "Add", 1000, 280);
+			Connect(one, "num", q1, "a");
+			Connect(hSq, "out", q1, "b");
+
+			var q2 = Add("q2", "Add", 1240, 280);
+			Connect(q1, "out", q2, "a");
+			Connect(rTerm, "out", q2, "b");
+
+			var q = Add("q", "Add", 1480, 280);
+			Connect(q2, "out", q, "a");
+			Connect(eSq, "out", q, "b");
+
+			var qWood = Add("q-wood", "Add", 1720, 280);
+			Connect(q, "out", qWood, "a");
+			Connect(stateId, "wood", qWood, "b");
+
+			var qSq = Add("q-sq", "Multiply", 1960, 280);
+			Connect(qWood, "out", qSq, "a");
+			Connect(qWood, "out", qSq, "b");
+
+			var p = Add("death-p", "Divide", 2200, 280);
+			Connect(baseP, "num", p, "a");
+			Connect(qSq, "out", p, "b");
+			return p;
+		}
+
+		/// <summary>Unproductive petiole death: p = (1 - 2*production)^2.</summary>
+		public string WireUnproductiveDeathProbability(string prodRatioNodeId, string prodRatioOutput)
+		{
+			var two = AddNum("two", 2f, 1480, 160);
+			var doubled = Add("doubled", "Multiply", 1720, 160);
+			Connect(two, "num", doubled, "a");
+			Connect(prodRatioNodeId, prodRatioOutput, doubled, "b");
+
+			var one = AddNum("one", 1f, 1720, 200);
+			var inverted = Add("inverted", "Subtract", 1960, 160);
+			Connect(one, "num", inverted, "a");
+			Connect(doubled, "out", inverted, "b");
+
+			var p = Add("death-p", "Multiply", 2200, 160);
+			Connect(inverted, "out", p, "a");
+			Connect(inverted, "out", p, "b");
+			return p;
+		}
+
+		/// <summary>Composable auxin-twig activation chain (phase 2).</summary>
+		public void WireTwigEffectChain(string organId, string formId)
+		{
+			var notParentMer = Add("not-parent-mer", "Not", 1480, 360);
+			Connect(formId, "parentMeristem", notParentMer, "a");
+
+			var petiolePath = Add("petiole-path", "And", 1720, 380);
+			Connect(organId, "petiole", petiolePath, "a");
+			Connect(notParentMer, "out", petiolePath, "b");
+
+			var death = Add("death-children", "Death Children", 1960, 360);
+			Connect(petiolePath, "out", death, "trigger");
+
+			var becomeTrig = Add("become-trig", "Or", 1960, 400);
+			Connect(organId, "bud", becomeTrig, "a");
+			Connect(death, "seq", becomeTrig, "b");
+
+			var become = Add("become-mer", "Become Meristem", 2200, 400);
+			Connect(becomeTrig, "out", become, "trigger");
+
+			var latAngle = AddConfig("lat-angle", ConfigIds.TwigLateralAngle, false, 2200, 440);
+			var setLat = Add("set-lat", "Set Lateral Angle", 2440, 400);
+			Connect(become, "seq", setLat, "trigger");
+			Connect(latAngle, "num", setLat, "value");
+
+			var one = AddNum("one", 1f, 2440, 480);
+			var deltaDom = Add("delta-dom", "Delta Dominance", 2680, 400);
+			Connect(setLat, "seq", deltaDom, "trigger");
+			Connect(one, "num", deltaDom, "count");
+
+			var turn = Add("turn-up", "Turn Upwards", 2920, 400);
+			Connect(deltaDom, "seq", turn, "trigger");
+
+			var nodeDist = AddConfig("node-dist", ConfigIds.NodeDistance, false, 2920, 440);
+			var nodeDistVar = AddConfig("node-dist-var", ConfigIds.NodeDistanceVar, false, 2920, 480);
+			var rngVar = Add("rng-var", "Random Float Var Input", 3160, 480);
+			Connect(nodeDistVar, "num", rngVar, "variance");
+
+			var lengthVar = Add("length-var", "Add", 3400, 440);
+			Connect(nodeDist, "num", lengthVar, "a");
+			Connect(rngVar, "out", lengthVar, "b");
+
+			var setLen = Add("set-len", "Set Length Var", 3160, 400);
+			Connect(turn, "seq", setLen, "trigger");
+			Connect(lengthVar, "out", setLen, "value");
+
+			var createLeaves = Add("create-leaves", "Create Leaves", 3400, 400);
+			Connect(setLen, "seq", createLeaves, "trigger");
 		}
 	}
 }

@@ -227,11 +227,14 @@ public class BehaviorGraphCompilerTests
 	}
 
 	[Theory]
-	[InlineData("Phase Input")]
-	[InlineData("Agent State Input")]
-	[InlineData("Formation Input")]
-	[InlineData("Irradiance Input")]
 	[InlineData("Random Chance Input")]
+	[InlineData("Random Accum Chance Input")]
+	[InlineData("Random Float Var Input")]
+	[InlineData("Set Lateral Angle")]
+	[InlineData("Delta Dominance")]
+	[InlineData("Set Length Var")]
+	[InlineData("Turn Upwards")]
+	[InlineData("Set Was Meristem")]
 	[InlineData("Delta Energy")]
 	[InlineData("Set trySpawn")]
 	[InlineData("Parent Wood Cap")]
@@ -254,16 +257,6 @@ public class BehaviorGraphCompilerTests
 	[Fact]
 	public void TryCompile_AllDefaultSpeciesSubgraphs_Ok()
 	{
-		var withEffects = new HashSet<string>(StringComparer.Ordinal)
-		{
-			"Life support",
-			"Photosynthesis",
-			"Growth leaf",
-			"Growth petiole",
-			"Growth meristem",
-			"Growth stem",
-		};
-
 		foreach (var (name, graph) in DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs())
 		{
 			Assert.True(BehaviorGraphCompiler.TryCompile(graph, out var compiled, out var err),
@@ -289,21 +282,82 @@ public class BehaviorGraphCompilerTests
 				continue;
 			}
 
-			if (withEffects.Contains(name))
+			if (name == "Petiole age bud")
 			{
-				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.Growth);
-				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.MakeBud);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.RandomAccumChanceInput);
 				continue;
 			}
 
-			Assert.DoesNotContain(compiled.NodesInOrder, n =>
-				n.Kind is GraphNodeKind.DeltaEnergy or GraphNodeKind.DeltaWater or GraphNodeKind.Growth
-					or GraphNodeKind.Death or GraphNodeKind.MakeBud or GraphNodeKind.SetAuxins
-					or GraphNodeKind.AccumulateProduction or GraphNodeKind.AccumulateEnvResources
-					or GraphNodeKind.AccumulateEnvResourcesInv);
+			if (name == "Stem dominance death")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SetEnergy);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.RandomAccumChanceInput);
+				continue;
+			}
+
+			if (name == "Meristem tick marker")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SetWasMeristem);
+				continue;
+			}
+
+			if (name == "Auxin twig")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.BecomeMeristem);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.TurnUpwards);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.CreateLeaves);
+				continue;
+			}
+
+			if (name is "Wood lignify")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SetWood);
+				continue;
+			}
+
+			if (name is "Meristem chain")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.BecomeStem);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SpawnMeristem);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SetWasMeristem);
+				continue;
+			}
+
+			if (name is "Petiole cover bud")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.MakeBud);
+				continue;
+			}
+
+			if (name is "Petiole unproductive death")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.Death);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.RandomAccumChanceInput);
+				continue;
+			}
+
+			if (name is "Energy depletion")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.MakeBud);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.Death);
+				continue;
+			}
+
+			if (name is "Auxins update")
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.SetAuxins);
+				continue;
+			}
+
+			if (name.StartsWith("Growth ", StringComparison.Ordinal))
+			{
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.Growth);
+				Assert.Contains(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ConfigurationValueInput);
+			}
 		}
 
-		Assert.Equal(6, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
+		Assert.Equal(16, DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs().Count);
 	}
 
 	[Fact]
@@ -318,7 +372,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(23, entries.Count);
+		Assert.Equal(27, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -357,6 +411,10 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
 		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
+		Assert.Equal(s.AuxinsProduction, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
+		Assert.Equal(s.NodeDistance, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance).Value.GetSingle());
+		Assert.Equal(s.NodeDistanceVar, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar).Value.GetSingle());
+		Assert.Equal(MathF.PI * 0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.TwigLateralAngle).Value.GetSingle(), 5);
 	}
 
 	[Fact]
