@@ -94,6 +94,8 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
 - input
   - `Number Input` — control `value` (numeric); output `num: Number`.
   - `Boolean Input` — control `switch` (boolean); output `bool: Boolean`.
+  - `Configuration Value Input` — binds `configId` to a species configuration entry; output `num` or `bool`.
+  - `Configuration Array Input` — binds `configId` to a `number[]` configuration entry; input `index` (number); output `out` (indexed value, clamped).
   - `Agent Type Input` — organ-type flags: `leaf`, `stem`, `meristem`, `petiole`, `bud`, `flowerStem`, `flowerMeristem`, `flowerBud`, `flowerPadel`, `flowerPetiol` (display labels e.g. "Is Leaf", "Is Stem").
   - `Phase Input` — `preFlower`, `flowering`, `postFlower`, `resetPending` (bool) from `formation.GetPhase`.
   - `Agent State Input` — `energy`, `water`, `length`, `radius`, `wood`, `ageHours`, `isRizome`, `trySpawn`, `wasMeristemThisTick`, `lengthVar`, `radiusVar`, `growthTimeVar`, `dominanceLevel`, `parentRadiusAtBirth`, `previousDayEnvResources`, `previousDayProductionInv`, `energyStorageCapacity`.

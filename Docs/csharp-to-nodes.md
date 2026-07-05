@@ -347,6 +347,25 @@ C#: leaf + `Water_g > 0` + `irradiance > 0.01` → energy gain, water loss, prod
 | `Math.Min` | `Less Than` + `If / Else` |
 | Effects | `Delta Energy`, `Delta Water`, `Accumulate Production` |
 | Gaps | `CurrentDayEnvResources` increments — commented stub, no effect node yet |
+
+### Dominance factor lookup (resolved)
+
+Legacy `DominanceFactors[DominanceLevel]` maps to:
+
+| Piece | Implementation |
+|-------|----------------|
+| Table | `number[]` config `Dominance factors` (17 entries from `BuildDominanceFactorsTable`) |
+| Index | `Agent State Input` → `dominanceLevel` → `Configuration Array Input` |
+| Growth | Meristem/stem multiply chains use array `out` instead of scalar config |
+
+### Known gaps (multi-species rollout)
+
+| Legacy | Status |
+|--------|--------|
+| `bendPetiol` | Not implemented — document in graph comments |
+| `FlowerHelper` | Bergenia flower organs inactive in node mode (`Flower organs gap` graph) |
+| Bergania `growthFactor` / `MaxRadius` on meristem growth | Config entries exist; full multiply wiring partial |
+| Rhizome collision / `rizomeInfo` flags | Simplified `Spawn Rhizome` + random chance only |
 | Config debt | `mPhotoEfficiency`, irradiance threshold, surface factor still `Number Input` — migrate to configuration |
 
 ---
