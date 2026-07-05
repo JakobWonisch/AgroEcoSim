@@ -59,6 +59,7 @@ import { applyNodeComment } from "./nodeComment";
 import { applyNodeCollapsed } from "./nodeCollapse";
 import {
     SpawnMeristemNode,
+    SpawnDichotomousMeristemsNode,
     SpawnBudNode,
     SpawnStemNode,
     SpawnFlowerStemNode,
@@ -127,6 +128,7 @@ export const canonicalBehaviorNodeLabels = [
     "Become Flower Stem",
     "Become Flower Meristem",
     "Spawn Meristem",
+    "Spawn Dichotomous Meristems",
     "Spawn Bud",
     "Spawn Stem",
     "Spawn Flower Stem",
@@ -209,6 +211,7 @@ const creators: Record<string, Creator> = {
     "Become Flower Stem": () => new BecomeFlowerStemNode(),
     "Become Flower Meristem": () => new BecomeFlowerMeristemNode(),
     "Spawn Meristem": () => new SpawnMeristemNode(),
+    "Spawn Dichotomous Meristems": () => new SpawnDichotomousMeristemsNode(),
     "Spawn Bud": () => new SpawnBudNode(),
     "Spawn Stem": () => new SpawnStemNode(),
     "Spawn Flower Stem": () => new SpawnFlowerStemNode(),

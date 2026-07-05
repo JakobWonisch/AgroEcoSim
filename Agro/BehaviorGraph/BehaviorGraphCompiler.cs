@@ -343,6 +343,9 @@ public static class BehaviorGraphCompiler
 			case "Spawn Meristem":
 				kind = GraphNodeKind.SpawnMeristem;
 				return true;
+			case "Spawn Dichotomous Meristems":
+				kind = GraphNodeKind.SpawnDichotomousMeristems;
+				return true;
 			case "Spawn Bud":
 				kind = GraphNodeKind.SpawnBud;
 				return true;
