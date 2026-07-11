@@ -333,6 +333,9 @@ public static class BehaviorGraphCompiler
 			case "Set Length Var":
 				kind = GraphNodeKind.SetLengthVar;
 				return true;
+			case "Set Radius":
+				kind = GraphNodeKind.SetRadius;
+				return true;
 			case "Turn Upwards":
 				kind = GraphNodeKind.TurnUpwards;
 				return true;

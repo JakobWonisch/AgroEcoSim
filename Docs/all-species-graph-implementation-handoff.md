@@ -167,16 +167,17 @@ These behaviors **cannot** or **do not yet** match legacy when using behavior gr
 | Legacy behavior | Status | Planned handling |
 |-----------------|--------|------------------|
 | `DominanceFactors[level]` | **Done** | Configuration Array Input + `DominanceFactors` config |
-| `pChaningSeaonns[phase]` (Bergania meristem chain) | **Config only** | `PChaining` array in config; **not wired** into meristem chain graph (still uses Default `MonopodialFactor` / dichotomous path) |
-| `growthFactor` on Bergania meristem/stem growth | **Config only** | `Growth factor` config exists; **not multiplied** in growth subgraphs |
-| `MaxRadius` cap on Bergania meristem/stem | **Config only** | Not wired — legacy stops radius growth when `radius >= MaxRadius` |
-| `pFloweringSeaonns` / flower meristem spawn (PreFlower) | **Not implemented** | Bergenia legacy only; needs phase + Random Chance + spawn nodes |
-| `bendPetiol` | **Not implemented** | Multi-agent mutation; document only |
+| `pChaningSeaonns[phase]` (Bergania meristem chain) | **Done** | `PChaining` array wired via Phase Input `phaseIndex` + Configuration Array Input in Bergania meristem chain |
+| `growthFactor` on Bergania meristem/stem growth | **Done** | Growth factor multiply in Bergania growth meristem/stem subgraphs |
+| `MaxRadius` cap on Bergania meristem/stem | **Done** | Radius delta gated when `radius >= MaxRadius` |
+| `pFloweringSeaonns` / flower meristem spawn (PreFlower) | **Partial** | PreFlower triggers `Spawn Flower Meristem` on chain success; `FlowerHelper` still gap |
+| `bendPetiol` | **Not implemented** | Comment node in meristem chain graph |
 | `FlowerHelper` | **Not implemented** | Bergenia flower organs inactive in node mode |
 | `FlowerAgent.flowerBase` size limits | **Not implemented** | Use normal leaf/petiole config; document difference |
-| Spring crown: `Set Energy` ← capacity, yaw orientation, `Set Length Var`, `Set Radius` | **Partial** | Graph has Become Meristem, Delta Dominance, Turn Upwards, Create Leaves only |
+| Spring crown: `Set Energy` ← capacity, yaw orientation, `Set Length Var`, `Set Radius` | **Partial** | Set Energy, Set Length Var, Set Radius wired; yaw orientation gap comment |
 | Rhizome `rizomeInfo.test*` + collision/soil | **Simplified** | Random Chance + Spawn Rhizome only |
-| Energy depletion: parent orientation on MakeBud | **Skipped** | No orientation-from-parent node |
+| Energy depletion: parent orientation on MakeBud | **Skipped** | Gap comment in Bergania energy depletion graph |
+| Bergania energy depletion stem + rhizome parent | **Done** | Make Bud path for stem/other when parent is rhizome |
 | Photosynthesis: `CurrentDayEnvResources` | **Partial** | `Accumulate Env Resources` nodes exist; verify parity vs legacy increments |
 | Legacy early `return` after energy depletion | **Approximation** | Multi-graph runs all entries; auxins may run after depletion |
 | `GraphCreateLeaves` parent energy by-value | **Intentional fix** | Graph version fixes legacy bug — keep |
@@ -184,7 +185,7 @@ These behaviors **cannot** or **do not yet** match legacy when using behavior gr
 | Meristem tick marker | **Stub** | Still uses `Boolean Input(true)` for `Set Was Meristem` — correct for meristem-only gate but not wired from chain |
 | Config debt: `AuxinsReach`, `MaxLeafLevel` | **TODO** | Comments in `DefaultSpeciesGraphBuilder.ConfigIds` |
 | `SpeciesGraphOptions` config id prefix | **Not done** | Persea/Bergania share `default-config-*` ids |
-| Optional platform nodes | **Not done** | `phaseIndex` on Phase Input, `Clamp Min`, `Set Radius`, full `Set Orientation` |
+| Optional platform nodes | **Partial** | `phaseIndex` on Phase Input and `Set Radius` **done**; `Clamp Min`, full `Set Orientation` still optional |
 
 ---
 
@@ -203,15 +204,15 @@ Use this as the continuation backlog. Order follows impact for Default parity fi
 
 ### B. Bergania-tick species — behavioral fidelity
 
-- [ ] **Parameterize growth subgraphs** for Bergania: multiply meristem/stem deltas by `Growth factor` config; cap radius growth with `Max radius` + `Less Than` gate.
-- [ ] **Replace Default meristem chain** in Bergania build with variant that:
-  - Selects `pChaining[phase]` via Configuration Array Input + phase index (implement `phaseIndex` output on Phase Input **or** 4-way If/Else selector)
-  - Optional PreFlower: `Spawn Flower Meristem` (Bergenia)
+- [x] **Parameterize growth subgraphs** for Bergania: multiply meristem/stem deltas by `Growth factor` config; cap radius growth with `Max radius` + `Less Than` gate.
+- [x] **Replace Default meristem chain** in Bergania build with variant that:
+  - Selects `pChaining[phase]` via Configuration Array Input + `phaseIndex` on Phase Input
+  - PreFlower: `Spawn Flower Meristem` on chain success (all Bergania species; legacy behavior)
   - Document `bendPetiol` gap in graph comment
-- [ ] **Spring crown recruitment:** add missing effects from legacy (`Set Energy`, length var random, orientation/yaw, radius reset) — may need `Set Radius` / orientation platform nodes.
-- [ ] **Energy depletion (Bergania):** stem + parent rhizome → `Make Bud` instead of `Death` (Default graph may still use Death).
-- [ ] **Petiole age bud:** confirm reference hours `17520` (8760×2) in config for all Bergania profiles (partially done in `BuildConfiguration`).
-- [ ] Add **simulation/parity tests** for Bergania species (none exist yet — only compile tests).
+- [x] **Spring crown recruitment:** Set Energy, length var random, Set Radius wired; yaw orientation gap comment
+- [x] **Energy depletion (Bergania):** stem + parent rhizome → `Make Bud` instead of `Death`
+- [x] **Petiole age bud:** reference hours `17520` (8760×2) in config for all Bergania profiles
+- [x] Add **simulation/parity tests** for Bergania species — `BerganiaSpecies_ParityHarness_RecordsBothTraces` (passes); `BerganiaSpecies_StructuralParity_Diagnostic` (expected fail, ~20–40s each)
 
 ### C. Architecture / maintainability
 
@@ -231,7 +232,7 @@ Use this as the continuation backlog. Order follows impact for Default parity fi
 
 ### Platform nodes policy
 
-**Already implemented (do not rebuild):** Random Accum/Float Var/Chance Input, Set Lateral Angle, Delta Dominance, Set Length Var, Turn Upwards, Set Was Meristem, Spawn Meristem (childId/seq), Spawn Dichotomous Meristems, Integer Divide, Parent Wood Cap, Clamp Max, Formation Input, Phase Input, Configuration Value Input, **Configuration Array Input**.
+**Already implemented (do not rebuild):** Random Accum/Float Var/Chance Input, Set Lateral Angle, Delta Dominance, Set Length Var, **Set Radius**, Turn Upwards, Set Was Meristem, Spawn Meristem (childId/seq), Spawn Dichotomous Meristems, Integer Divide, Parent Wood Cap, Clamp Max, Formation Input, Phase Input (**includes `phaseIndex`**), Configuration Value Input, **Configuration Array Input**.
 
 **Configuration Array Input contract:**
 
@@ -252,9 +253,7 @@ static float[] BuildDominanceFactorsTable(float baseFactor, int length = 17)
 
 | Node | Use case |
 |------|----------|
-| Phase Input → `phaseIndex` | Bergenia `pChaining[phase]` via Configuration Array Input |
 | Clamp Min | `Math.Clamp(energy/capacity, 0, 1)` |
-| Set Radius | Spring crown recruitment |
 | Set Orientation | Full quaternion/yaw (only Turn Upwards exists) |
 
 **Do not implement:** Flower delegate, `bendPetiol` mega-effect, one-off composite nodes per subgraph.
@@ -327,9 +326,9 @@ Helper: `SubgraphBuilder.WireDominanceLookup(stateId, ConfigIds.DominanceFactors
 | Configuration Array Input | **Done** |
 | Default 16 graphs + dominance array + growth guards | **Done** (parity not green) |
 | Persea 16 graphs + config | **Done** |
-| Bergania 3 species bootstrap graphs + config | **Done** (compile only; behavior partial) |
+| Bergania 3 species bootstrap graphs + config | **Done** (compile + harness; structural parity diagnostic not green) |
 | Default full legacy parity | **Not done** |
-| Bergania meristem chain / growthFactor / MaxRadius | **Not done** |
+| Bergania meristem chain / growthFactor / MaxRadius | **Done** |
 | FlowerHelper / bendPetiol | **Not done** (documented) |
 | SpeciesGraphOptions config prefixes | **Not done** |
 | Legacy tick code changes | **None** (by design) |

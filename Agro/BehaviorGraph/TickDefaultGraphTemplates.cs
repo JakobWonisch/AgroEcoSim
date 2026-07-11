@@ -283,7 +283,13 @@ namespace Agro.BehaviorGraph;
 			return WireMinFloat(deltaId, "out", remaining, "out", $"clamp-{suffix}");
 		}
 
-		public (string deltaLen, string deltaRad) WireMeristemGrowthDeltas(string stateId, string formId, string simId)
+		public (string deltaLen, string deltaRad) WireMeristemGrowthDeltas(
+			string stateId,
+			string formId,
+			string simId,
+			string? growthFactorConfigId = null,
+			string? maxRadiusConfigId = null,
+			bool gateLengthByLengthVar = false)
 		{
 			var cfgLen = AddConfig("mer-len", DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthLength, false, 240, 480);
 			var cfgRad = AddConfig("mer-rad", DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius, false, 240, 520);
@@ -318,11 +324,30 @@ namespace Agro.BehaviorGraph;
 			}
 
 			var deltaLen = WireAxisDelta(cfgLen, 480, "len");
-			var deltaRad = WireCapRadiusDeltaToParent(stateId, formId, WireAxisDelta(cfgRad, 520, "rad"), "mer");
+			var deltaRadRaw = WireAxisDelta(cfgRad, 520, "rad");
+			var deltaRad = WireCapRadiusDeltaToParent(stateId, formId, deltaRadRaw, "mer");
+
+			if (growthFactorConfigId is not null)
+			{
+				deltaLen = WireMultiplyByConfig(deltaLen, growthFactorConfigId, "mer-gf-len");
+				deltaRad = WireMultiplyByConfig(deltaRad, growthFactorConfigId, "mer-gf-rad");
+			}
+
+			if (maxRadiusConfigId is not null)
+				deltaRad = WireGateDeltaWhenRadiusBelowMax(stateId, maxRadiusConfigId, deltaRad, "mer-max-r");
+
+			if (gateLengthByLengthVar)
+				deltaLen = WireGateLengthDeltaWhenLengthLeLengthVar(stateId, deltaLen, "mer-len-gate");
+
 			return (deltaLen, deltaRad);
 		}
 
-		public string WireStemGrowthDelta(string stateId, string formId, string simId)
+		public string WireStemGrowthDelta(
+			string stateId,
+			string formId,
+			string simId,
+			string? growthFactorConfigId = null,
+			string? maxRadiusConfigId = null)
 		{
 			var cfgRad = AddConfig("stem-rad", DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius, false, 240, 480);
 			var dominance = WireDominanceLookup(stateId, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors, 240, 520, "stem");
@@ -345,7 +370,51 @@ namespace Agro.BehaviorGraph;
 			var deltaRad = Add("delta-r", "Multiply", 1440, 480);
 			Connect(m3, "out", deltaRad, "a");
 			Connect(simId, "hoursPerTick", deltaRad, "b");
-			return WireCapRadiusDeltaToParent(stateId, formId, deltaRad, "stem");
+			var capped = WireCapRadiusDeltaToParent(stateId, formId, deltaRad, "stem");
+
+			if (growthFactorConfigId is not null)
+				capped = WireMultiplyByConfig(capped, growthFactorConfigId, "stem-gf");
+
+			if (maxRadiusConfigId is not null)
+				capped = WireGateDeltaWhenRadiusBelowMax(stateId, maxRadiusConfigId, capped, "stem-max-r");
+
+			return capped;
+		}
+
+		public string WireMultiplyByConfig(string deltaNodeId, string configId, string suffix)
+		{
+			var cfg = AddConfig($"cfg-{suffix}", configId, false, 1920, 560);
+			var mul = Add($"mul-{suffix}", "Multiply", 2160, 560);
+			Connect(deltaNodeId, "out", mul, "a");
+			Connect(cfg, "num", mul, "b");
+			return mul;
+		}
+
+		public string WireGateDeltaWhenRadiusBelowMax(string stateId, string maxRadiusConfigId, string deltaNodeId, string suffix)
+		{
+			var maxR = AddConfig($"max-r-{suffix}", maxRadiusConfigId, false, 1920, 600);
+			var radiusLt = Add($"rad-lt-{suffix}", "Less Than", 2160, 600);
+			Connect(stateId, "radius", radiusLt, "a");
+			Connect(maxR, "num", radiusLt, "b");
+			var c0 = AddNum($"c0-{suffix}", 0f, 2160, 640);
+			var gated = Add($"gate-{suffix}", "If / Else", 2400, 600);
+			Connect(radiusLt, "out", gated, "condition");
+			Connect(deltaNodeId, "out", gated, "trueValue");
+			Connect(c0, "num", gated, "falseValue");
+			return gated;
+		}
+
+		public string WireGateLengthDeltaWhenLengthLeLengthVar(string stateId, string deltaNodeId, string suffix)
+		{
+			var lenGt = Add($"len-gt-{suffix}", "Greater Than", 1920, 480);
+			Connect(stateId, "length", lenGt, "a");
+			Connect(stateId, "lengthVar", lenGt, "b");
+			var c0 = AddNum($"c0-len-{suffix}", 0f, 1920, 520);
+			var gated = Add($"gate-len-{suffix}", "If / Else", 2160, 480);
+			Connect(lenGt, "out", gated, "condition");
+			Connect(c0, "num", gated, "trueValue");
+			Connect(deltaNodeId, "out", gated, "falseValue");
+			return gated;
 		}
 
 		/// <summary>TickDefault: growth.Y = min(growth.Y, parentRadius - radius).</summary>

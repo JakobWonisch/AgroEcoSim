@@ -342,4 +342,23 @@ public class GraphTickInterpreterTests
 		Assert.Equal(MathF.Pow(0.7f, 3), table[3], 5);
 		Assert.Equal(0f, table[16]);
 	}
+
+	[Fact]
+	public void Execute_SetRadius_MutatesRadius()
+	{
+		var compiled = CompileWithGate(
+			[
+				("t", "Boolean Input", new Dictionary<string, object> { ["bool"] = true }),
+				("v", "Number Input", new Dictionary<string, object> { ["value"] = 0.001f }),
+				("s", "Set Radius", null),
+			],
+			[
+				("c1", "t", "bool", "s", "trigger"),
+				("c2", "v", "num", "s", "value"),
+			]);
+		var agent = default(AboveGroundAgent);
+		agent.Radius = 0.5f;
+		GraphTickInterpreter.Execute(ref agent, null!, 0, 0, compiled);
+		Assert.Equal(0.001f, agent.Radius, 6);
+	}
 }

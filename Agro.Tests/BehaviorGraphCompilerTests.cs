@@ -580,4 +580,39 @@ public class BehaviorGraphCompilerTests
 			Assert.True(BehaviorGraphCompiler.TryCompile(graph, out _, out var err),
 				$"Subgraph '{name}' failed: {err}");
 	}
+
+	[Fact]
+	public void BerganiaConfiguration_GeraniumPChaining_MatchesLegacyDefaults()
+	{
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumMacrorrhizum);
+		var dict = BehaviorConfigurationCatalog.ParseSpeciesConfiguration(
+			new Dictionary<string, List<BehaviorConfigUploadEntry>> { ["Geranium Macrorrhizum"] = config },
+			"Geranium Macrorrhizum");
+		var chaining = dict[BerganiaTickGraphBuilder.ConfigIds.PChaining].FloatArrayValue;
+		var flowering = dict[BerganiaTickGraphBuilder.ConfigIds.PFlowering].FloatArrayValue;
+		Assert.Equal(BerganiaTickGraphBuilder.LegacyDefaultPChaining, chaining);
+		Assert.Equal(BerganiaTickGraphBuilder.LegacyDefaultPFlowering, flowering);
+	}
+
+	[Fact]
+	public void BerganiaConfiguration_BergeniaPChaining_MatchesSpeciesInit()
+	{
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
+		var dict = BehaviorConfigurationCatalog.ParseSpeciesConfiguration(
+			new Dictionary<string, List<BehaviorConfigUploadEntry>> { ["Bergenia Cordifolia"] = config },
+			"Bergenia Cordifolia");
+		var chaining = dict[BerganiaTickGraphBuilder.ConfigIds.PChaining].FloatArrayValue;
+		var flowering = dict[BerganiaTickGraphBuilder.ConfigIds.PFlowering].FloatArrayValue;
+		Assert.Equal(4, chaining.Length);
+		Assert.Equal(0.015f, chaining[0]);
+		Assert.Equal(0.02f, chaining[1]);
+		Assert.Equal(0.01f, chaining[2]);
+		Assert.Equal(0f, chaining[3]);
+		Assert.Equal(0.0005f, flowering[0]);
+		Assert.Equal(0.005f, flowering[1]);
+		Assert.Equal(0.0003f, flowering[2]);
+		Assert.Equal(0f, flowering[3]);
+	}
 }

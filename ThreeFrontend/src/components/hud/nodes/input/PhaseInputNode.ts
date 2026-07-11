@@ -1,5 +1,5 @@
 import { ClassicPreset } from "rete";
-import { boolSocket } from "../Sockets";
+import { boolSocket, numSocket } from "../Sockets";
 
 export class PhaseInputNode extends ClassicPreset.Node {
     constructor() {
@@ -8,5 +8,6 @@ export class PhaseInputNode extends ClassicPreset.Node {
         this.addOutput("flowering", new ClassicPreset.Output(boolSocket, "Is flowering"));
         this.addOutput("postFlower", new ClassicPreset.Output(boolSocket, "Is post-flower"));
         this.addOutput("resetPending", new ClassicPreset.Output(boolSocket, "Is reset pending"));
+        this.addOutput("phaseIndex", new ClassicPreset.Output(numSocket, "Phase index"));
     }
 }

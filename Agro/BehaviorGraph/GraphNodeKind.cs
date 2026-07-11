@@ -53,6 +53,7 @@ public enum GraphNodeKind : byte
 	SetLateralAngle,
 	DeltaDominance,
 	SetLengthVar,
+	SetRadius,
 	TurnUpwards,
 	SetWasMeristem,
 	BecomeStem,

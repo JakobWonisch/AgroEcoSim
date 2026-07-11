@@ -368,6 +368,15 @@ public static class GraphTickInterpreter
 				else
 					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
+			case GraphNodeKind.SetRadius:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetRadius(FirstFloat(node.Inputs, "value", outs));
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
 			case GraphNodeKind.TurnUpwards:
 				if (FirstBool(node.Inputs, "trigger", outs))
 				{
@@ -492,6 +501,7 @@ public static class GraphTickInterpreter
 			outs[(g, "flowering")] = WireValue.OfBool(false);
 			outs[(g, "postFlower")] = WireValue.OfBool(false);
 			outs[(g, "resetPending")] = WireValue.OfBool(false);
+			outs[(g, "phaseIndex")] = WireValue.OfFloat(0f);
 			return;
 		}
 
@@ -519,6 +529,7 @@ public static class GraphTickInterpreter
 		outs[(g, "flowering")] = WireValue.OfBool(phase == SeasonalPhase.Flowering);
 		outs[(g, "postFlower")] = WireValue.OfBool(phase == SeasonalPhase.PostFlower);
 		outs[(g, "resetPending")] = WireValue.OfBool(phase == SeasonalPhase.ResetPending);
+		outs[(g, "phaseIndex")] = WireValue.OfFloat((float)phase);
 	}
 
 	static void WriteAgentStateInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)

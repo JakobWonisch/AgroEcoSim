@@ -893,6 +893,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 	[M(AI)] internal void GraphSetLateralAngle(float value) => LateralAngle = value;
 	[M(AI)] internal void GraphDeltaDominance(float count) => DominanceLevel += (byte)MathF.Max(0f, count);
 	[M(AI)] internal void GraphSetLengthVar(float value) => LengthVar = value;
+	[M(AI)] internal void GraphSetRadius(float value) => Radius = value;
 	[M(AI)] internal void GraphTurnUpwards() => Orientation = TurnUpwards(Orientation);
 	bool graphWasMeristemThisTick;
 	#endregion

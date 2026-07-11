@@ -39,6 +39,7 @@ import { SetWoodNode } from './output/SetWoodNode';
 import { MultiplyEnergyNode } from './output/MultiplyEnergyNode';
 import { MultiplyWaterNode } from './output/MultiplyWaterNode';
 import { SetEnergyNode } from './output/SetEnergyNode';
+import { SetRadiusNode } from './output/SetRadiusNode';
 import { SetAuxinsNode } from './output/SetAuxinsNode';
 import { SetTrySpawnNode } from './output/SetTrySpawnNode';
 import { AccumulateProductionNode } from './output/AccumulateProductionNode';
@@ -202,6 +203,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Multiply Energy', () => new MultiplyEnergyNode()],
                 ['Multiply Water', () => new MultiplyWaterNode()],
                 ['Set Energy', () => new SetEnergyNode()],
+                ['Set Radius', () => new SetRadiusNode()],
                 ['Set Auxins', () => new SetAuxinsNode()],
                 ['Set trySpawn', () => new SetTrySpawnNode()],
                 ['Accumulate Production', () => new AccumulateProductionNode()],

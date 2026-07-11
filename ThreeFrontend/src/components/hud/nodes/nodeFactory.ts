@@ -51,6 +51,7 @@ import { BecomeMeristemNode } from "./output/BecomeMeristemNode";
 import { SetLateralAngleNode } from "./output/SetLateralAngleNode";
 import { DeltaDominanceNode } from "./output/DeltaDominanceNode";
 import { SetLengthVarNode } from "./output/SetLengthVarNode";
+import { SetRadiusNode } from "./output/SetRadiusNode";
 import { TurnUpwardsNode } from "./output/TurnUpwardsNode";
 import { SetWasMeristemNode } from "./output/SetWasMeristemNode";
 import { BecomeStemNode } from "./output/BecomeStemNode";
@@ -124,6 +125,7 @@ export const canonicalBehaviorNodeLabels = [
     "Set Lateral Angle",
     "Delta Dominance",
     "Set Length Var",
+    "Set Radius",
     "Turn Upwards",
     "Set Was Meristem",
     "Become Stem",
@@ -213,6 +215,7 @@ const creators: Record<string, Creator> = {
     "Set Lateral Angle": () => new SetLateralAngleNode(),
     "Delta Dominance": () => new DeltaDominanceNode(),
     "Set Length Var": () => new SetLengthVarNode(),
+    "Set Radius": () => new SetRadiusNode(),
     "Turn Upwards": () => new TurnUpwardsNode(),
     "Set Was Meristem": () => new SetWasMeristemNode(),
     "Become Stem": () => new BecomeStemNode(),
