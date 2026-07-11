@@ -6,8 +6,8 @@ namespace Agro;
 public partial struct AboveGroundAgent
 {
 	/// <summary>
-	/// Config-driven leaf creation. Unlike legacy <c>CreateLeavesBase</c>, parent energy is deducted via <c>ref</c>
-	/// (legacy passes parent by value so <c>Energy *= 0.9f</c> never persists).
+	/// Config-driven leaf creation. Matches legacy <c>CreateLeaves</c> by-value parent semantics:
+	/// energy used for child birth is taken from a local copy and is not deducted from <paramref name="parent"/>.
 	/// </summary>
 	internal static void GraphCreateLeaves(
 		ref AboveGroundAgent parent,
@@ -29,6 +29,10 @@ public partial struct AboveGroundAgent
 		var initialProduction = parent.PreviousDayProductionInvariant;
 		var angleStep = 2f * MathF.PI / laterals;
 
+		// Legacy CreateLeaves passes parent by value; energy deductions inside CreateLeavesBase
+		// do not persist on the tick agent (see AboveGroundAgent.CreateLeaves).
+		var leafEnergy = parent.Energy;
+
 		for (var l = 0; l < laterals; ++l)
 		{
 			var roll = plant.RNG.NextFloatVar(lateralRollVar);
@@ -40,24 +44,24 @@ public partial struct AboveGroundAgent
 				* Quaternion.CreateFromAxisAngle(Vector3.UnitX, roll)
 				* Quaternion.CreateFromAxisAngle(Vector3.UnitZ, pitch);
 
-			var petioleIdx = plant.AG.Birth(new(plant, meristem, OrganTypes.Petiole, orientation, parent.Energy * 0.1f,
+			var petioleIdx = plant.AG.Birth(new(plant, meristem, OrganTypes.Petiole, orientation, leafEnergy * 0.1f,
 				initialResources: initialResources, initialProduction: initialProduction)
 			{
 				DominanceLevel = parent.DominanceLevel,
 				ParentRadiusAtBirth = parent.Radius,
 			});
-			parent.Energy *= 0.9f;
+			leafEnergy *= 0.9f;
 
 			var leafPitchVar = plant.RNG.NextFloatVar(lateralPitchVar);
 			orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, leafPitchVar - leafPitch);
 
-			plant.AG.Birth(new(plant, petioleIdx, OrganTypes.Leaf, orientation, parent.Energy * 0.1f,
+			plant.AG.Birth(new(plant, petioleIdx, OrganTypes.Leaf, orientation, leafEnergy * 0.1f,
 				initialResources: initialResources, initialProduction: initialProduction)
 			{
 				DominanceLevel = parent.DominanceLevel,
 				ParentRadiusAtBirth = float.MaxValue,
 			});
-			parent.Energy *= 0.9f;
+			leafEnergy *= 0.9f;
 		}
 	}
 }

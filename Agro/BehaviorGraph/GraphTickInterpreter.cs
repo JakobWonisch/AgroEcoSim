@@ -40,12 +40,94 @@ public static class GraphTickInterpreter
 			EvaluateNode(node, ref agent, ctx, outs);
 		}
 
+		if (NeedsOrderedMeristemSpawns(graph))
+		{
+			for (var t = 0; t < graph.NodesInOrder.Length; t++)
+			{
+				if (graph.ActiveSubtreeMask[t])
+					continue;
+				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.Other);
+			}
+
+			for (var t = 0; t < graph.NodesInOrder.Length; t++)
+			{
+				if (graph.ActiveSubtreeMask[t])
+					continue;
+				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.FlowerMeristemSpawns);
+			}
+
+			for (var t = 0; t < graph.NodesInOrder.Length; t++)
+			{
+				if (graph.ActiveSubtreeMask[t])
+					continue;
+				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.MeristemSpawns);
+			}
+		}
+		else
+		{
+			for (var t = 0; t < graph.NodesInOrder.Length; t++)
+			{
+				if (graph.ActiveSubtreeMask[t])
+					continue;
+				if (IsDeferredRandomKind(graph.NodesInOrder[t].Kind))
+					continue;
+				EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
+			}
+		}
+	}
+
+	static void EvaluateInactiveDeferredRandom(
+		CompiledBehaviorGraph graph,
+		ref AboveGroundAgent agent,
+		TickEvalContext ctx,
+		Dictionary<(int NodeIndex, string Socket), WireValue> outs)
+	{
 		for (var t = 0; t < graph.NodesInOrder.Length; t++)
 		{
 			if (graph.ActiveSubtreeMask[t])
 				continue;
-			EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
+			var node = graph.NodesInOrder[t];
+			if (!IsDeferredRandomKind(node.Kind))
+				continue;
+			EvaluateNode(node, ref agent, ctx, outs);
 		}
+	}
+
+	static bool NeedsOrderedMeristemSpawns(CompiledBehaviorGraph graph)
+	{
+		var hasFlowerMeristem = false;
+		var hasMeristem = false;
+		foreach (var node in graph.NodesInOrder)
+		{
+			if (node.Kind == GraphNodeKind.SpawnFlowerMeristem)
+				hasFlowerMeristem = true;
+			else if (node.Kind == GraphNodeKind.SpawnMeristem)
+				hasMeristem = true;
+		}
+
+		return hasFlowerMeristem && hasMeristem;
+	}
+
+	enum InactivePassKind { FlowerMeristemSpawns, Other, MeristemSpawns }
+
+	static void EvaluateInactiveNode(
+		CompiledNode node,
+		ref AboveGroundAgent agent,
+		TickEvalContext ctx,
+		Dictionary<(int NodeIndex, string Socket), WireValue> outs,
+		InactivePassKind pass)
+	{
+		var run = pass switch
+		{
+			InactivePassKind.FlowerMeristemSpawns => node.Kind == GraphNodeKind.SpawnFlowerMeristem,
+			InactivePassKind.MeristemSpawns => node.Kind is GraphNodeKind.SpawnMeristem or GraphNodeKind.CreateLeaves,
+			InactivePassKind.Other => node.Kind is not GraphNodeKind.SpawnFlowerMeristem
+				and not GraphNodeKind.SpawnMeristem
+				and not GraphNodeKind.CreateLeaves,
+			_ => false,
+		};
+		if (run && !IsDeferredRandomKind(node.Kind))
+			EvaluateNode(node, ref agent, ctx, outs);
 	}
 
 	static bool IsDeferredRandomKind(GraphNodeKind kind) =>
@@ -502,7 +584,13 @@ public static class GraphTickInterpreter
 				break;
 			case GraphNodeKind.SpawnFlowerMeristem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerMeristem, ctx.BehaviorConfiguration);
+				{
+					SpawnEffects.SpawnFlowerMeristemChild(
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, ctx.BehaviorConfiguration);
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			case GraphNodeKind.SpawnFlowerBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))

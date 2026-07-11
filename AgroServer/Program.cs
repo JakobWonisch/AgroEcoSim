@@ -4,8 +4,6 @@ using AgroServer.Controllers;
 using AgroServer.Hubs;
 using AgroServer.Services;
 
-Console.WriteLine("HELLO THERE!");
-
 var builder = WebApplication.CreateSlimBuilder(args);
 
 const string Origins = "_AgroEcoSim";

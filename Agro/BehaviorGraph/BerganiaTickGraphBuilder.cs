@@ -302,13 +302,7 @@ public static class BerganiaTickGraphBuilder
 		var wasTrue = b.AddBool("was-val", true, 2200, 160);
 		var setWas = b.Add("set-was", "Set Was Meristem", 2440, 160);
 		b.Connect(wasTrue, "bool", setWas, "value");
-
-		var spawnMeristem = b.Add("spawn-mer", "Spawn Meristem", 2440, 120);
-		b.Connect(chainTrig, "out", spawnMeristem, "trigger");
-
-		var createLeaves = b.Add("create-leaves", "Create Leaves", 2680, 120);
-		b.Connect(spawnMeristem, "seq", createLeaves, "trigger");
-		b.Connect(spawnMeristem, "childId", createLeaves, "meristemId");
+		b.Connect(chainTrig, "out", setWas, "trigger");
 
 		var preFlower = b.Add("pre-flower", "Equal To", 1960, 120);
 		b.Connect(phase, "preFlower", preFlower, "a");
@@ -321,6 +315,13 @@ public static class BerganiaTickGraphBuilder
 
 		var spawnFlower = b.Add("spawn-flower", "Spawn Flower Meristem", 2440, 200);
 		b.Connect(preFlowerTrig, "out", spawnFlower, "trigger");
+
+		var spawnMeristem = b.Add("spawn-mer", "Spawn Meristem", 2440, 120);
+		b.Connect(chainTrig, "out", spawnMeristem, "trigger");
+
+		var createLeaves = b.Add("create-leaves", "Create Leaves", 2680, 120);
+		b.Connect(spawnMeristem, "seq", createLeaves, "trigger");
+		b.Connect(spawnMeristem, "childId", createLeaves, "meristemId");
 
 		b.Add("bend-gap", "Number Input", 2680, 200,
 			GraphNodePayload.FromComment("GAP: bendPetiol multi-agent orientation mutation not implemented in graph mode."));

@@ -153,6 +153,42 @@ public class BerganiaSpeciesParityTests
 	}
 
 	[Fact]
+	public void BergeniaCordifolia_ExtremalParity_FixedUnit0_Structural()
+	{
+		RunBergeniaExtremalStructuralParity(fixedUnit: 0f);
+	}
+
+	[Fact]
+	public void BergeniaCordifolia_ExtremalParity_FixedUnit1_Structural()
+	{
+		RunBergeniaExtremalStructuralParity(fixedUnit: 1f);
+	}
+
+	static void RunBergeniaExtremalStructuralParity(float fixedUnit, int maxHours = 50)
+	{
+		var request = BuildBerganiaNodeRequest("Bergenia Cordifolia", totalHours: maxHours, plantRngFixedUnit: fixedUnit);
+		var legacyPath = Path.Combine(Path.GetTempPath(), $"berg-legacy-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
+		var nodePath = Path.Combine(Path.GetTempPath(), $"berg-node-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
+		try
+		{
+			SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: maxHours);
+			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: maxHours);
+
+			var mismatch = TraceComparer.CompareFiles(legacyPath, nodePath, TraceCompareOptions.StructuralParity);
+			if (mismatch is not null)
+			{
+				Assert.Fail(
+					$"Bergenia extremal u={fixedUnit} structural parity mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected}, actual {mismatch.Actual}");
+			}
+		}
+		finally
+		{
+			if (File.Exists(legacyPath)) File.Delete(legacyPath);
+			if (File.Exists(nodePath)) File.Delete(nodePath);
+		}
+	}
+
+	[Fact]
 	public void BergeniaCordifolia_JsonRoundTrip_ResolvesGraphsAndConfiguration()
 	{
 		var entry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Bergenia Cordifolia");

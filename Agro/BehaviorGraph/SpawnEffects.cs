@@ -1,4 +1,5 @@
 using System.Numerics;
+using Agro.Plant.Flower;
 
 namespace Agro.BehaviorGraph;
 
@@ -42,6 +43,37 @@ public static class SpawnEffects
 			Water_g = waterFraction * parent.Water_g,
 			LateralAngle = lateralPitch,
 			DominanceLevel = parent.DominanceLevel,
+		});
+
+		parent.Energy *= 1f - energyFraction;
+		parent.Water_g *= 1f - waterFraction;
+		return childIndex;
+	}
+
+	/// <summary>Bergania.Tick commitToFlower — flower-base meristem before regular chaining meristem.</summary>
+	public static int SpawnFlowerMeristemChild(
+		ref AboveGroundAgent parent,
+		PlantSubFormation<AboveGroundAgent> formation,
+		int parentAgentId,
+		uint timestep,
+		IReadOnlyDictionary<string, BehaviorConfigEntry>? config,
+		float energyFraction = 0.1f,
+		float waterFraction = 0.1f)
+	{
+		var plant = formation.Plant;
+		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep);
+		var orientation = AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
+			ref parent, plant, parent.Orientation, config));
+		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
+		var lateralPitch = parent.LateralAngle + lateralRoll;
+
+		var childIndex = formation.Birth(new(plant, parentAgentId, OrganTypes.FlowerMeristem, orientation,
+			energyFraction * parent.Energy, initialResources: prevResources, initialProduction: prevProduction)
+		{
+			Water_g = waterFraction * parent.Water_g,
+			LateralAngle = lateralPitch,
+			DominanceLevel = parent.DominanceLevel,
+			FlowerAgent = new Flower { debth = 0, flowerBase = true },
 		});
 
 		parent.Energy *= 1f - energyFraction;
