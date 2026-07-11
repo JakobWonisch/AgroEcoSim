@@ -354,7 +354,7 @@ Legacy `DominanceFactors[DominanceLevel]` maps to:
 
 | Piece | Implementation |
 |-------|----------------|
-| Table | `number[]` config `Dominance factors` (17 entries from `BuildDominanceFactorsTable`) |
+| Table | `number[]` config `Dominance factors` — predefined species use `BuildUninitializedDominanceFactors` (single `[0.7]` element matching field default when `DominanceFactor` setter never runs); `BuildDominanceFactorsTable` remains for setter semantics |
 | Index | `Agent State Input` → `dominanceLevel` → `Configuration Array Input` |
 | Growth | Meristem/stem multiply chains use array `out` instead of scalar config |
 
@@ -362,11 +362,20 @@ Legacy `DominanceFactors[DominanceLevel]` maps to:
 
 | Legacy | Status |
 |--------|--------|
-| `bendPetiol` | Not implemented — document in graph comments |
-| `FlowerHelper` | Bergenia flower organs inactive in node mode (`Flower organs gap` graph) |
-| Bergania `growthFactor` / `MaxRadius` on meristem growth | Config entries exist; full multiply wiring partial |
-| Rhizome collision / `rizomeInfo` flags | Simplified `Spawn Rhizome` + random chance only |
-| Config debt | `mPhotoEfficiency`, irradiance threshold, surface factor still `Number Input` — migrate to configuration |
+| `DominanceFactors[level]` (predefined species) | **Fixed** — single-element array via `BuildUninitializedDominanceFactors` |
+| Bergania geranium lateral/leaf pitch & roll | **Fixed** — `BerganiaGraphOptions` orientation fields in `BuildConfiguration()` |
+| `PetioleCoverThreshold` per species | **Fixed** — `ComputePetioleCoverThreshold(lateralPitch, petioleLength)` in config bootstrap |
+| `WireEnergyReserve` lower clamp | **Fixed** — `If / Else` floors negative `energy/capacity` before `Clamp Max` |
+| `crownPitch` spring crown yaw | **Gap** — stored in `BerganiaGraphOptions`; graph uses `Turn Upwards` only (yaw gap comment) |
+| `bendPetiol` | **Gap** — comment node in Bergania meristem chain |
+| `FlowerHelper` | **Gap** — Bergenia flower organs inactive in node mode (`Flower organs gap` graph) |
+| Bergania `growthFactor` / `MaxRadius` on meristem growth | **Done** — multiply + radius gate wired |
+| Rhizome collision / `rizomeInfo` flags | **Gap** — simplified `Spawn Rhizome` + random chance only |
+| Multi-graph vs legacy early-return after depletion | **Gap** — documented approximation; auxins may run after depletion |
+| `AuxinsReach`, `MaxLeafLevel` | **Gap** — TODO in `DefaultSpeciesGraphBuilder.ConfigIds` |
+| Persea `LeafGrowthTime` / `Height` | **Morphology-only** — not in behavior configuration |
+| `SpeciesGraphOptions` config id prefixes | **Deferred** — Persea/Bergania still share `default-config-*` ids |
+| Config debt (photosynthesis literals) | **Partial** — `mPhotoEfficiency`, irradiance threshold, surface factor in configuration entries |
 
 ---
 

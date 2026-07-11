@@ -9,6 +9,8 @@ public static class BerganiaTickGraphBuilder
 	/// <summary>Legacy <see cref="SpeciesSettings.pFloweringSeaonns"/> default when species Init does not override.</summary>
 	public static readonly float[] LegacyDefaultPFlowering = [0.0005f, 0.005f, 0.0003f, 0f];
 
+	const float DegToRad = MathF.PI / 180f;
+
 	public sealed record BerganiaGraphOptions(
 		string SpeciesLabel,
 		float LeafLength,
@@ -27,7 +29,13 @@ public static class BerganiaTickGraphBuilder
 		float[] PFlowering,
 		float DominanceFactor = 0.7f,
 		float NodeDistance = 0f,
-		float NodeDistanceVar = 0f)
+		float NodeDistanceVar = 0f,
+		float LateralPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch,
+		float LateralPitchVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitchVar,
+		float LateralRoll = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralRoll,
+		float LateralRollVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralRollVar,
+		float LeafPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafPitch,
+		float CrownPitch = 0.5f)
 	{
 		public static BerganiaGraphOptions GeraniumMacrorrhizum => new(
 			SpeciesLabel: "Geranium Macrorrhizum",
@@ -44,7 +52,13 @@ public static class BerganiaTickGraphBuilder
 			RizomeLength: 0.045f,
 			RizomeRadius: 0.0035f,
 			PChaining: LegacyDefaultPChaining,
-			PFlowering: LegacyDefaultPFlowering);
+			PFlowering: LegacyDefaultPFlowering,
+			LateralPitch: 15f * DegToRad,
+			LateralPitchVar: 10f * DegToRad,
+			LateralRoll: 40f * DegToRad,
+			LateralRollVar: 5f * DegToRad,
+			LeafPitch: 85f * DegToRad,
+			CrownPitch: 0.38f);
 
 		public static BerganiaGraphOptions GeraniumCantabrigiense => new(
 			SpeciesLabel: "Geranium × Cantabrigiense",
@@ -61,7 +75,13 @@ public static class BerganiaTickGraphBuilder
 			RizomeLength: 0.05f,
 			RizomeRadius: 0.0030f,
 			PChaining: LegacyDefaultPChaining,
-			PFlowering: LegacyDefaultPFlowering);
+			PFlowering: LegacyDefaultPFlowering,
+			LateralPitch: 20f * DegToRad,
+			LateralPitchVar: 10f * DegToRad,
+			LateralRoll: 40f * DegToRad,
+			LateralRollVar: 10f * DegToRad,
+			LeafPitch: 85f * DegToRad,
+			CrownPitch: 0.36f);
 
 		public static BerganiaGraphOptions BergeniaCordifolia => new(
 			SpeciesLabel: "Bergenia Cordifolia",
@@ -78,7 +98,8 @@ public static class BerganiaTickGraphBuilder
 			RizomeLength: 0.04f,
 			RizomeRadius: 0.0025f,
 			PChaining: [0.015f, 0.02f, 0.01f, 0f],
-			PFlowering: [0.0005f, 0.005f, 0.0003f, 0f]);
+			PFlowering: [0.0005f, 0.005f, 0.0003f, 0f],
+			CrownPitch: 0.4f);
 	}
 
 	public static class ConfigIds
@@ -105,7 +126,14 @@ public static class BerganiaTickGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleAgeBudReferenceHours, 8760f * 2f);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor, opt.DominanceFactor);
 		SetArray(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors,
-			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(opt.DominanceFactor));
+			DefaultSpeciesGraphBuilder.BuildUninitializedDominanceFactors(opt.DominanceFactor));
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, opt.LateralPitch);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, opt.LateralPitchVar);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, opt.LateralRoll);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar, opt.LateralRollVar);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch, opt.LeafPitch);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold,
+			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(opt.LateralPitch, opt.PetioleLength));
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength, opt.RizomeLength);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius, opt.RizomeRadius);
 

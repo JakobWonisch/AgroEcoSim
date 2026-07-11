@@ -31,9 +31,9 @@ dotnet test Agro.Tests/Agro.Tests.csproj --filter "TryCompile|GraphTickInterpret
 | Test filter | Expected |
 |-------------|----------|
 | `TryCompile_AllDefault\|TryCompile_AllPersea\|TryCompile_AllBergania` | All pass (~49 compile/interpreter tests total with broader filter) |
-| `DefaultSpecies_FullParity_Diagnostic` | **Fails** — energy drift from t≈6 (see §Remaining work) |
-| `DefaultSpecies_ExtremalParity_FixedUnit0_Structural` | **Fails** — length mismatch at t=2 (growth magnitude) |
-| `DefaultSpecies_ExtremalParity_FixedUnit1_Structural` | May fail (same class of issues) |
+| `DefaultSpecies_FullParity_Diagnostic` | **Fails** — energy drift from t≈131 (was t≈6); extremal structural parity **passes** |
+| `DefaultSpecies_ExtremalParity_FixedUnit0_Structural` | **Passes** |
+| `DefaultSpecies_ExtremalParity_FixedUnit1_Structural` | **Passes** |
 
 Parity trace artifacts: `ignore/parity-traces/legacy.jsonl` and `ignore/parity-traces/node.jsonl`.
 
@@ -166,7 +166,7 @@ These behaviors **cannot** or **do not yet** match legacy when using behavior gr
 
 | Legacy behavior | Status | Planned handling |
 |-----------------|--------|------------------|
-| `DominanceFactors[level]` | **Done** | Configuration Array Input + `DominanceFactors` config |
+| `DominanceFactors[level]` | **Done** | Single-element `BuildUninitializedDominanceFactors` for predefined species (legacy field default); `BuildDominanceFactorsTable` for setter semantics |
 | `pChaningSeaonns[phase]` (Bergania meristem chain) | **Done** | `PChaining` array wired via Phase Input `phaseIndex` + Configuration Array Input in Bergania meristem chain |
 | `growthFactor` on Bergania meristem/stem growth | **Done** | Growth factor multiply in Bergania growth meristem/stem subgraphs |
 | `MaxRadius` cap on Bergania meristem/stem | **Done** | Radius delta gated when `radius >= MaxRadius` |
@@ -181,7 +181,9 @@ These behaviors **cannot** or **do not yet** match legacy when using behavior gr
 | Photosynthesis: `CurrentDayEnvResources` | **Partial** | `Accumulate Env Resources` nodes exist; verify parity vs legacy increments |
 | Legacy early `return` after energy depletion | **Approximation** | Multi-graph runs all entries; auxins may run after depletion |
 | `GraphCreateLeaves` parent energy by-value | **Intentional fix** | Graph version fixes legacy bug — keep |
-| `WireEnergyReserve` lower clamp at 0 | **Partial** | Only upper clamp via `Clamp Max`; legacy uses `Math.Clamp(..., 0, 1)` |
+| `WireEnergyReserve` lower clamp at 0 | **Done** | `If / Else` floors negative ratio before `Clamp Max` in `WireEnergyReserve` |
+| Bergania geranium orientation config | **Done** | `BerganiaGraphOptions` lateral/leaf pitch & roll + derived `PetioleCoverThreshold` |
+| `crownPitch` spring crown yaw | **Gap** | Value in `BerganiaGraphOptions`; graph uses `Turn Upwards` only |
 | Meristem tick marker | **Stub** | Still uses `Boolean Input(true)` for `Set Was Meristem` — correct for meristem-only gate but not wired from chain |
 | Config debt: `AuxinsReach`, `MaxLeafLevel` | **TODO** | Comments in `DefaultSpeciesGraphBuilder.ConfigIds` |
 | `SpeciesGraphOptions` config id prefix | **Not done** | Persea/Bergania share `default-config-*` ids |
@@ -195,9 +197,9 @@ Use this as the continuation backlog. Order follows impact for Default parity fi
 
 ### A. Default species — parity and completeness
 
-- [ ] **Fix or explain energy drift** in `DefaultSpecies_FullParity_Diagnostic` (starts ~t=6 on `AboveGround[*].Energy`). Investigate: life support formula, graph execution order, photosynthesis water/energy, multi-graph vs legacy early-return.
-- [ ] **Fix extremal structural parity** (`DefaultSpecies_ExtremalParity_FixedUnit0`) — length at t=2 (0.00071 vs 0.00101). Likely growth delta / size-limit / prod-ratio wiring.
-- [ ] **Energy reserve lower bound:** add `Clamp Min` platform node or `If/Else` so `energy/capacity` matches `Math.Clamp(..., 0, 1)`.
+- [ ] **Fix or explain energy drift** in `DefaultSpecies_FullParity_Diagnostic` (now starts ~t≥131; was t≈6 before energy-reserve clamp). Remaining: multi-graph order vs legacy early-return.
+- [x] **Fix extremal structural parity** (`DefaultSpecies_ExtremalParity_FixedUnit0/1`) — green after `BuildUninitializedDominanceFactors`.
+- [x] **Energy reserve lower bound:** `If / Else` in `WireEnergyReserve` so `energy/capacity` matches `Math.Clamp(..., 0, 1)`.
 - [ ] **Update stale XML summaries** in `DefaultSpeciesGraphBuilder` (e.g. growth leaf still says "size-limit guards deferred" in comment — code has guards; mark Complete/Partial accurately).
 - [ ] **Meristem tick marker:** confirm whether `Set Was Meristem` should fire from meristem chain `was-val` instead of standalone bool stub (legacy sets flag in switch, chain sets later — may be OK).
 - [ ] Enable or tighten `DefaultSpecies_LegacyAndNodeTraces_Match_FullParity` once diagnostic passes.
@@ -212,6 +214,7 @@ Use this as the continuation backlog. Order follows impact for Default parity fi
 - [x] **Spring crown recruitment:** Set Energy, length var random, Set Radius wired; yaw orientation gap comment
 - [x] **Energy depletion (Bergania):** stem + parent rhizome → `Make Bud` instead of `Death`
 - [x] **Petiole age bud:** reference hours `17520` (8760×2) in config for all Bergania profiles
+- [x] **Bergania orientation config:** lateral/leaf pitch & roll + derived `PetioleCoverThreshold` via `BerganiaGraphOptions`
 - [x] Add **simulation/parity tests** for Bergania species — `BerganiaSpecies_ParityHarness_RecordsBothTraces` (passes); `BerganiaSpecies_StructuralParity_Diagnostic` (expected fail, ~20–40s each)
 
 ### C. Architecture / maintainability
@@ -222,7 +225,7 @@ Use this as the continuation backlog. Order follows impact for Default parity fi
 
 ### D. Documentation and UI
 
-- [ ] Expand gap register in [csharp-to-nodes.md](csharp-to-nodes.md) as items close.
+- [x] Expand gap register in [csharp-to-nodes.md](csharp-to-nodes.md) as items close.
 - [ ] UI: species configuration editor for `number[]` could use row add/remove instead of comma-separated only.
 - [ ] Verify all predefined species in [Species.tsx](../ThreeFrontend/src/components/hud/Species.tsx) load bootstrap graphs from API.
 

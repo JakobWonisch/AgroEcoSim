@@ -149,8 +149,8 @@ public class DefaultSpeciesParityTests
 
 	/// <summary>
 	/// Records 168h legacy + node traces under ignore/parity-traces/ and reports up to 25 mismatches.
-	/// Traces are kept on disk for manual inspection. After dominance-array + size-limit guards,
-	/// remaining drift is mostly energy magnitude (multi-graph order vs legacy early-return).
+	/// Traces are kept on disk for manual inspection. After uninitialized dominance factors + energy
+	/// reserve clamp, drift is mostly late-tick magnitude (t≥131) from multi-graph order vs legacy early-return.
 	/// </summary>
 	[Fact]
 	public void DefaultSpecies_FullParity_Diagnostic()

@@ -227,16 +227,26 @@
 			return prodRatio;
 		}
 
-		/// <summary>Math.Clamp(energy / capacity, 0, 1) â€” upper clamp only (tier 1).</summary>
+		/// <summary>Math.Clamp(energy / capacity, 0, 1).</summary>
 		public string WireEnergyReserve(string stateId)
 		{
 			var ratio = Add("energy-ratio", "Divide", 480, 400);
 			Connect(stateId, "energy", ratio, "a");
 			Connect(stateId, "energyStorageCapacity", ratio, "b");
 
-			var one = AddNum("one", 1f, 480, 440);
-			var reserve = Add("energy-reserve", "Clamp Max", 720, 400);
-			Connect(ratio, "out", reserve, "value");
+			var zero = AddNum("zero", 0f, 480, 360);
+			var ltZero = Add("ratio-lt-zero", "Less Than", 600, 400);
+			Connect(ratio, "out", ltZero, "a");
+			Connect(zero, "num", ltZero, "b");
+
+			var floored = Add("ratio-floored", "If / Else", 720, 380);
+			Connect(ltZero, "out", floored, "condition");
+			Connect(zero, "num", floored, "trueValue");
+			Connect(ratio, "out", floored, "falseValue");
+
+			var one = AddNum("one", 1f, 720, 440);
+			var reserve = Add("energy-reserve", "Clamp Max", 920, 400);
+			Connect(floored, "out", reserve, "value");
 			Connect(one, "num", reserve, "max");
 			return reserve;
 		}

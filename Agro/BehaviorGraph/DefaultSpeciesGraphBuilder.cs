@@ -95,7 +95,15 @@ public static class DefaultSpeciesGraphBuilder
 			MathF.Cos(MathF.PI * 0.5f - LateralPitch) * PetioleLength * 0.25f;
 	}
 
-	static float DefaultPetioleCoverThreshold() => DefaultTickConstants.PetioleCoverThreshold;
+	static float DefaultPetioleCoverThreshold() =>
+		ComputePetioleCoverThreshold(DefaultTickConstants.LateralPitch, DefaultTickConstants.PetioleLength);
+
+	/// <summary>Matches <see cref="SpeciesSettings.Init"/> petiole cover formula.</summary>
+	public static float ComputePetioleCoverThreshold(float lateralPitch, float petioleLength) =>
+		MathF.Cos(MathF.PI * 0.5f - lateralPitch) * petioleLength * 0.25f;
+
+	/// <summary>Matches <see cref="SpeciesSettings.DominanceFactors"/> field default when <see cref="SpeciesSettings.DominanceFactor"/> setter never runs.</summary>
+	public static float[] BuildUninitializedDominanceFactors(float value = 0.7f) => [value];
 
 	/// <summary>Matches legacy <see cref="SpeciesSettings.DominanceFactor"/> setter table.</summary>
 	public static float[] BuildDominanceFactorsTable(float baseFactor, int length = 17)
@@ -302,9 +310,9 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.DominanceFactors,
 			Key = "Dominance factors",
 			Label = "Dominance factors",
-			Usage = "Per-level growth multiplier indexed by dominance level (legacy DominanceFactors table).",
+			Usage = "Per-level growth multiplier indexed by dominance level (legacy uninitialized DominanceFactors field default).",
 			Type = "number[]",
-			Value = BehaviorGraphJson.NumberArray(BuildDominanceFactorsTable(DefaultTickConstants.DominanceFactor)),
+			Value = BehaviorGraphJson.NumberArray(BuildUninitializedDominanceFactors(DefaultTickConstants.DominanceFactor)),
 		},
 		new()
 		{

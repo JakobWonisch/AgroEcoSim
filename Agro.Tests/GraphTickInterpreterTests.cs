@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Agro;
 using Agro.BehaviorGraph;
 using Xunit;
 
@@ -341,6 +342,25 @@ public class GraphTickInterpreterTests
 		Assert.Equal(0.7f, table[2]);
 		Assert.Equal(MathF.Pow(0.7f, 3), table[3], 5);
 		Assert.Equal(0f, table[16]);
+	}
+
+	[Fact]
+	public void BuildUninitializedDominanceFactors_MatchesLegacyLookup()
+	{
+		var table = DefaultSpeciesGraphBuilder.BuildUninitializedDominanceFactors(0.7f);
+		Assert.Single(table);
+		Assert.Equal(0.7f, table[0]);
+
+		var species = new SpeciesSettings();
+		Assert.Equal(species.DominanceFactors.Length, table.Length);
+		for (var level = 0; level < 5; ++level)
+		{
+			var legacy = level < species.DominanceFactors.Length
+				? species.DominanceFactors[level]
+				: species.DominanceFactors[^1];
+			var graph = level < table.Length ? table[level] : table[^1];
+			Assert.Equal(legacy, graph);
+		}
 	}
 
 	[Fact]

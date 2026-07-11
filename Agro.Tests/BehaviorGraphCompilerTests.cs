@@ -375,7 +375,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(45, entries.Count);
+		Assert.Equal(46, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -427,6 +427,9 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsThreshold).Value.GetSingle());
 		Assert.Equal(100f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime).Value.GetSingle());
 		Assert.Equal(2f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode).Value.GetSingle());
+		var dominance = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors);
+		Assert.Equal("number[]", dominance.Type);
+		Assert.Equal(0.7f, dominance.Value.EnumerateArray().Single().GetSingle());
 	}
 
 	[Fact]
@@ -614,5 +617,34 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(0.005f, flowering[1]);
 		Assert.Equal(0.0003f, flowering[2]);
 		Assert.Equal(0f, flowering[3]);
+	}
+
+	[Theory]
+	[InlineData("Geranium Macrorrhizum")]
+	[InlineData("Geranium × Cantabrigiense")]
+	public void BerganiaConfiguration_OrientationFields_MatchSpeciesInit(string speciesName)
+	{
+		var opt = speciesName switch
+		{
+			"Geranium Macrorrhizum" => BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumMacrorrhizum,
+			_ => BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumCantabrigiense,
+		};
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(opt);
+		var dict = BehaviorConfigurationCatalog.ParseSpeciesConfiguration(
+			new Dictionary<string, List<BehaviorConfigUploadEntry>> { [speciesName] = config },
+			speciesName);
+
+		Assert.Equal(opt.LateralPitch, dict[DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch].NumberValue, 6);
+		Assert.Equal(opt.LateralPitchVar, dict[DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar].NumberValue, 6);
+		Assert.Equal(opt.LateralRoll, dict[DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll].NumberValue, 6);
+		Assert.Equal(opt.LateralRollVar, dict[DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar].NumberValue, 6);
+		Assert.Equal(opt.LeafPitch, dict[DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch].NumberValue, 6);
+		Assert.Equal(
+			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(opt.LateralPitch, opt.PetioleLength),
+			dict[DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold].NumberValue,
+			6);
+		var dominance = dict[DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors].FloatArrayValue;
+		Assert.Single(dominance);
+		Assert.Equal(0.7f, dominance[0]);
 	}
 }
