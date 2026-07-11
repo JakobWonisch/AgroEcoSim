@@ -109,7 +109,7 @@ internal class Program
             world.ForEach(formation =>
             {
                 if (formation is PlantFormation2 plant)
-                    plantData.Add(@$"{{""P"":{JsonSerializer.Serialize(new Vector3Data(plant.Position))},""V"":{plant.AG.GetVolume()}}}");
+                    plantData.Add(@$"{{""P"":{JsonSerializer.Serialize(new Vector3Data(plant.Position), AgroJsonSerializerContext.Default.Vector3Data)},""V"":{plant.AG.GetVolume()}}}");
             });
 
             File.WriteAllText(options.ExportFile, $"[{string.Join(",",plantData)}]");

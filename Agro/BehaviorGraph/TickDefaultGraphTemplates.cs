@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace Agro.BehaviorGraph;
+﻿namespace Agro.BehaviorGraph;
 
 	sealed class SubgraphBuilder
 	{
@@ -36,7 +34,7 @@ namespace Agro.BehaviorGraph;
 			{
 				Id = fullId,
 				Label = label,
-				Data = payload?.ToJsonElement() ?? JsonSerializer.SerializeToElement(new { }),
+				Data = payload?.ToJsonElement() ?? BehaviorGraphJson.EmptyObject,
 				Position = new global::NodePosition { X = x, Y = y },
 			});
 			return fullId;

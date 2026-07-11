@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Agro.BehaviorGraph;
 
 /// <summary>Bootstrap graphs and configuration for Persea americana (TickDefault topology).</summary>
@@ -40,7 +38,7 @@ public static class PerseaSpeciesGraphBuilder
 			Label = e.Label,
 			Usage = e.Usage,
 			Type = e.Type,
-			Value = JsonSerializer.SerializeToElement(value),
+			Value = BehaviorGraphJson.Number(value),
 		};
 	}
 }

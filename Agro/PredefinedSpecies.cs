@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Agro.BehaviorGraph;
 
 namespace Agro;
 
@@ -70,8 +71,8 @@ public static class PredefinedSpeciesCatalog
 		var boolId = Guid.NewGuid().ToString();
 		var activeId = Guid.NewGuid().ToString();
 		var connId = Guid.NewGuid().ToString();
-		var boolData = JsonSerializer.SerializeToElement(new Dictionary<string, bool> { ["bool"] = true });
-		var emptyData = JsonSerializer.SerializeToElement(new Dictionary<string, object>());
+		var boolData = BehaviorGraphJson.BoolNodeData(true);
+		var emptyData = BehaviorGraphJson.EmptyObject;
 		return new global::ExportedGraph
 		{
 			Nodes =

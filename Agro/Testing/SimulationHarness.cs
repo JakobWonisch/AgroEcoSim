@@ -1,7 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Utils;
-using Utils.Json;
 
 namespace Agro.Testing;
 
@@ -13,22 +11,16 @@ public enum BehaviorRunMode
 
 public static class SimulationHarness
 {
-	static readonly JsonSerializerOptions JsonOptions = new()
-	{
-		PropertyNamingPolicy = null,
-		WriteIndented = false,
-	};
-
 	public static SimulationRequest PrepareForParity(SimulationRequest source, BehaviorRunMode mode, int? maxHours = null)
 	{
-		var node = JsonSerializer.SerializeToNode(source, JsonOptions)!.AsObject();
+		var node = JsonSerializer.SerializeToNode(source, AgroJsonSerializerContext.Default.SimulationRequest)!.AsObject();
 		node["RenderMode"] = 0;
 		node["RequestGeometry"] = false;
 		if (maxHours.HasValue)
 			node["TotalHours"] = maxHours.Value;
 		if (mode == BehaviorRunMode.Legacy)
 			node.Remove("SpeciesGraphs");
-		var prepared = node.Deserialize<SimulationRequest>(JsonOptions)
+		var prepared = node.Deserialize(AgroJsonSerializerContext.Default.SimulationRequest)
 			?? throw new InvalidOperationException("Failed to clone simulation request.");
 		return prepared;
 	}
@@ -52,12 +44,12 @@ public static class SimulationHarness
 
 		Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
 		using var writer = new StreamWriter(outputPath, append: false);
-		writer.WriteLine(JsonSerializer.Serialize(header, JsonOptions));
+		writer.WriteLine(JsonSerializer.Serialize(header, AgroJsonSerializerContext.Default.SimulationTraceHeader));
 
 		world.Run(steps, (_, timestep) =>
 		{
 			var step = PlantStateSnapshot.Capture(world, timestep);
-			writer.WriteLine(JsonSerializer.Serialize(step, JsonOptions));
+			writer.WriteLine(JsonSerializer.Serialize(step, AgroJsonSerializerContext.Default.StepSnapshot));
 		});
 	}
 
@@ -65,7 +57,7 @@ public static class SimulationHarness
 	{
 		using var reader = new StreamReader(path);
 		var line = reader.ReadLine() ?? throw new InvalidDataException("Empty trace file.");
-		return JsonSerializer.Deserialize<SimulationTraceHeader>(line, JsonOptions)
+		return JsonSerializer.Deserialize(line, AgroJsonSerializerContext.Default.SimulationTraceHeader)
 			?? throw new InvalidDataException("Invalid trace header.");
 	}
 
@@ -78,7 +70,7 @@ public static class SimulationHarness
 		{
 			if (string.IsNullOrWhiteSpace(line))
 				continue;
-			yield return JsonSerializer.Deserialize<StepSnapshot>(line, JsonOptions)
+			yield return JsonSerializer.Deserialize(line, AgroJsonSerializerContext.Default.StepSnapshot)
 				?? throw new InvalidDataException("Invalid trace step line.");
 		}
 	}

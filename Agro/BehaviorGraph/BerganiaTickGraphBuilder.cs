@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Agro.BehaviorGraph;
 
 /// <summary>Shared Bergania-tick behavior graphs (Geranium ×2, Bergenia).</summary>
@@ -779,7 +777,7 @@ public static class BerganiaTickGraphBuilder
 			Label = e.Label,
 			Usage = e.Usage,
 			Type = e.Type,
-			Value = JsonSerializer.SerializeToElement(value),
+			Value = BehaviorGraphJson.Number(value),
 		};
 	}
 
@@ -795,7 +793,7 @@ public static class BerganiaTickGraphBuilder
 			Label = e.Label,
 			Usage = e.Usage,
 			Type = "number[]",
-			Value = JsonSerializer.SerializeToElement(values),
+			Value = BehaviorGraphJson.NumberArray(values),
 		};
 	}
 
@@ -808,7 +806,7 @@ public static class BerganiaTickGraphBuilder
 			Key = label,
 			Label = label,
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(value),
+			Value = BehaviorGraphJson.Number(value),
 		};
 		if (i < 0) entries.Add(entry);
 		else entries[i] = entry;
@@ -823,7 +821,7 @@ public static class BerganiaTickGraphBuilder
 			Key = label,
 			Label = label,
 			Type = "number[]",
-			Value = JsonSerializer.SerializeToElement(values),
+			Value = BehaviorGraphJson.NumberArray(values),
 		};
 		if (i < 0) entries.Add(entry);
 		else entries[i] = entry;

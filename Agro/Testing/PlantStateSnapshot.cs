@@ -35,7 +35,7 @@ public sealed class PlantSnapshot
 public sealed class SeedSnapshot
 {
 	public int SoilIndex { get; init; }
-	public Vector3Snapshot Center { get; init; }
+	public required Vector3Snapshot Center { get; init; }
 	public float Radius { get; init; }
 	public float Water_g { get; init; }
 	public float GerminationProgress { get; init; }
@@ -51,7 +51,7 @@ public sealed class VirtualRootsSnapshot
 {
 	public float Water_g { get; init; }
 	public float Energy { get; init; }
-	public Vector3Snapshot Size { get; init; }
+	public required Vector3Snapshot Size { get; init; }
 }
 
 public sealed class Vector3Snapshot

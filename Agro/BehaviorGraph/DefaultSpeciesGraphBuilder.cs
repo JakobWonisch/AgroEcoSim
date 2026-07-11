@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace Agro.BehaviorGraph;
+﻿namespace Agro.BehaviorGraph;
 
 /// <summary>
 /// Bootstrap behavior graphs for the Default species â€” one subgraph per <see cref="AboveGroundAgent.TickDefault"/> topic.
@@ -120,7 +118,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf thickness",
 			Label = "Leaf thickness",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(AboveGroundAgent.LeafThickness),
+			Value = BehaviorGraphJson.Number(AboveGroundAgent.LeafThickness),
 		},
 		new()
 		{
@@ -128,7 +126,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Photo efficiency",
 			Label = "Photo efficiency",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(AboveGroundAgent.mPhotoEfficiency),
+			Value = BehaviorGraphJson.Number(AboveGroundAgent.mPhotoEfficiency),
 		},
 		new()
 		{
@@ -136,7 +134,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Min irradiance",
 			Label = "Min irradiance",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(0.01f),
+			Value = BehaviorGraphJson.Number(0.01f),
 		},
 		new()
 		{
@@ -144,7 +142,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf surface factor",
 			Label = "Leaf surface factor",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(2f),
+			Value = BehaviorGraphJson.Number(2f),
 		},
 		new()
 		{
@@ -152,7 +150,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole age bud min hours",
 			Label = "Petiole age bud min hours",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(36f),
+			Value = BehaviorGraphJson.Number(36f),
 		},
 		new()
 		{
@@ -160,7 +158,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole age bud reference hours",
 			Label = "Petiole age bud reference hours",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(4032f),
+			Value = BehaviorGraphJson.Number(4032f),
 		},
 		new()
 		{
@@ -168,7 +166,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole unproductive min age hours",
 			Label = "Petiole unproductive min age hours",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(48f),
+			Value = BehaviorGraphJson.Number(48f),
 		},
 		new()
 		{
@@ -176,7 +174,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Unproductive production threshold",
 			Label = "Unproductive production threshold",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(0.5f),
+			Value = BehaviorGraphJson.Number(0.5f),
 		},
 		new()
 		{
@@ -184,7 +182,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole cover threshold",
 			Label = "Petiole cover threshold",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultPetioleCoverThreshold()),
+			Value = BehaviorGraphJson.Number(DefaultPetioleCoverThreshold()),
 		},
 		new()
 		{
@@ -192,7 +190,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Min dominance for stem death",
 			Label = "Min dominance for stem death",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(1f),
+			Value = BehaviorGraphJson.Number(1f),
 		},
 		new()
 		{
@@ -200,7 +198,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Enough energy factor",
 			Label = "Enough energy factor",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(320f),
+			Value = BehaviorGraphJson.Number(320f),
 		},
 		new()
 		{
@@ -208,7 +206,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Stem death probability base",
 			Label = "Stem death probability base",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(0.004f),
+			Value = BehaviorGraphJson.Number(0.004f),
 		},
 		new()
 		{
@@ -216,7 +214,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Stem death height coeff",
 			Label = "Stem death height coeff",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(5f),
+			Value = BehaviorGraphJson.Number(5f),
 		},
 		new()
 		{
@@ -224,7 +222,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Stem death efficiency coeff",
 			Label = "Stem death efficiency coeff",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(4f),
+			Value = BehaviorGraphJson.Number(4f),
 		},
 		new()
 		{
@@ -232,7 +230,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Stem death radius coeff",
 			Label = "Stem death radius coeff",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(20f),
+			Value = BehaviorGraphJson.Number(20f),
 		},
 		new()
 		{
@@ -240,7 +238,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf length",
 			Label = "Leaf length",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LeafLength),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafLength),
 		},
 		new()
 		{
@@ -248,7 +246,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf radius",
 			Label = "Leaf radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LeafRadius),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafRadius),
 		},
 		new()
 		{
@@ -256,7 +254,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole length",
 			Label = "Petiole length",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.PetioleLength),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleLength),
 		},
 		new()
 		{
@@ -264,7 +262,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Petiole radius",
 			Label = "Petiole radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.PetioleRadius),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleRadius),
 		},
 		new()
 		{
@@ -272,7 +270,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Meristem growth length",
 			Label = "Meristem growth length",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(1e-3f),
+			Value = BehaviorGraphJson.Number(1e-3f),
 		},
 		new()
 		{
@@ -280,7 +278,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Meristem growth radius",
 			Label = "Meristem growth radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(2e-5f),
+			Value = BehaviorGraphJson.Number(2e-5f),
 		},
 		new()
 		{
@@ -288,7 +286,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Stem growth radius",
 			Label = "Stem growth radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(2e-5f),
+			Value = BehaviorGraphJson.Number(2e-5f),
 		},
 		new()
 		{
@@ -297,7 +295,7 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Dominance factor",
 			Usage = "Reduces the growth of lateral branches. Multiplies with each recursion level.",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.DominanceFactor),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.DominanceFactor),
 		},
 		new()
 		{
@@ -306,7 +304,7 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Dominance factors",
 			Usage = "Per-level growth multiplier indexed by dominance level (legacy DominanceFactors table).",
 			Type = "number[]",
-			Value = JsonSerializer.SerializeToElement(BuildDominanceFactorsTable(DefaultTickConstants.DominanceFactor)),
+			Value = BehaviorGraphJson.NumberArray(BuildDominanceFactorsTable(DefaultTickConstants.DominanceFactor)),
 		},
 		new()
 		{
@@ -315,7 +313,7 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Auxins production",
 			Usage = "Each meristem node generates this amount of auxins (given in unspecified units).",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.AuxinsProduction),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.AuxinsProduction),
 		},
 		new()
 		{
@@ -323,7 +321,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Node distance",
 			Label = "Node distance",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.NodeDistance),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.NodeDistance),
 		},
 		new()
 		{
@@ -331,7 +329,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Node distance var",
 			Label = "Node distance var",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.NodeDistanceVar),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.NodeDistanceVar),
 		},
 		new()
 		{
@@ -339,7 +337,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Twig lateral angle",
 			Label = "Twig lateral angle",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(MathF.PI * 0.5f),
+			Value = BehaviorGraphJson.Number(MathF.PI * 0.5f),
 		},
 		new()
 		{
@@ -347,7 +345,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Monopodial factor",
 			Label = "Monopodial factor",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.MonopodialFactor),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.MonopodialFactor),
 		},
 		new()
 		{
@@ -355,7 +353,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Lateral roll",
 			Label = "Lateral roll",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralRoll),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LateralRoll),
 		},
 		new()
 		{
@@ -363,7 +361,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Lateral roll var",
 			Label = "Lateral roll var",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralRollVar),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LateralRollVar),
 		},
 		new()
 		{
@@ -371,7 +369,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Lateral pitch",
 			Label = "Lateral pitch",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralPitch),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LateralPitch),
 		},
 		new()
 		{
@@ -379,7 +377,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Lateral pitch var",
 			Label = "Lateral pitch var",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LateralPitchVar),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LateralPitchVar),
 		},
 		new()
 		{
@@ -387,7 +385,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Leaf pitch",
 			Label = "Leaf pitch",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.LeafPitch),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafPitch),
 		},
 		new()
 		{
@@ -395,7 +393,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Auxins threshold",
 			Label = "Auxins threshold",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.AuxinsThreshold),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.AuxinsThreshold),
 		},
 		new()
 		{
@@ -403,7 +401,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Wood growth time",
 			Label = "Wood growth time (hours)",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.WoodGrowthTime),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.WoodGrowthTime),
 		},
 		new()
 		{
@@ -411,7 +409,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Wood growth time var",
 			Label = "Wood growth time var (hours)",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.WoodGrowthTimeVar),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.WoodGrowthTimeVar),
 		},
 		new()
 		{
@@ -419,7 +417,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Laterals per node",
 			Label = "Laterals per node",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement((float)DefaultTickConstants.LateralsPerNode),
+			Value = BehaviorGraphJson.Number((float)DefaultTickConstants.LateralsPerNode),
 		},
 		new()
 		{
@@ -427,7 +425,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Twig bending",
 			Label = "Twig bending",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.TwigsBending),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.TwigsBending),
 		},
 		new()
 		{
@@ -435,7 +433,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Twig bending level",
 			Label = "Twig bending level",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.TwigsBendingLevel),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.TwigsBendingLevel),
 		},
 		new()
 		{
@@ -443,7 +441,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Twig bending apical",
 			Label = "Twig bending apical",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.TwigsBendingApical),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.TwigsBendingApical),
 		},
 		new()
 		{
@@ -451,7 +449,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Shoot gravitaxis",
 			Label = "Shoot gravitaxis",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.ShootsGravitaxis),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.ShootsGravitaxis),
 		},
 		new()
 		{
@@ -459,7 +457,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Rhizome length",
 			Label = "Rhizome length",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.RizomeLength),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.RizomeLength),
 		},
 		new()
 		{
@@ -467,7 +465,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Rhizome radius",
 			Label = "Rhizome radius",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.RizomeRadius),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.RizomeRadius),
 		},
 		new()
 		{
@@ -475,7 +473,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Flowering start age (hours)",
 			Label = "Flowering start age (hours)",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.FloweringStartAgeHours),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.FloweringStartAgeHours),
 		},
 		new()
 		{
@@ -483,7 +481,7 @@ public static class DefaultSpeciesGraphBuilder
 			Key = "Flowering end age (hours)",
 			Label = "Flowering end age (hours)",
 			Type = "number",
-			Value = JsonSerializer.SerializeToElement(DefaultTickConstants.FloweringEndAgeHours),
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.FloweringEndAgeHours),
 		},
 	];
 
