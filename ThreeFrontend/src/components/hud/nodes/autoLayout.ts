@@ -1,6 +1,7 @@
 import { AreaPlugin } from "rete-area-plugin";
 import { NodeEditor } from "rete";
 import { AreaExtra, Schemes } from "./NodeTypes";
+import { buildAdjacency, topologicalSortForLayout } from "./graphValidation";
 
 /** Vertical gap in pixels between nodes stacked in the same column. */
 export const AUTO_LAYOUT_ROW_MARGIN = 48;
@@ -20,58 +21,6 @@ const ACTIVE_INPUT_KEY = "isActive";
 type Position = { x: number; y: number };
 type Size = { width: number; height: number };
 type Connection = { source: string; target: string; targetInput: string };
-
-function buildAdjacency(connections: { source: string; target: string }[]) {
-    const successors = new Map<string, string[]>();
-    const predecessors = new Map<string, string[]>();
-
-    const touch = (map: Map<string, string[]>, from: string, to: string) => {
-        let list = map.get(from);
-        if (!list) {
-            list = [];
-            map.set(from, list);
-        }
-        list.push(to);
-    };
-
-    for (const c of connections) {
-        touch(successors, c.source, c.target);
-        touch(predecessors, c.target, c.source);
-    }
-
-    return { successors, predecessors };
-}
-
-/** Kahn topological order; graphs are assumed acyclic. */
-function topologicalSort(
-    nodeIds: string[],
-    successors: Map<string, string[]>,
-    predecessors: Map<string, string[]>
-): string[] {
-    const inDegree = new Map<string, number>();
-    for (const id of nodeIds)
-        inDegree.set(id, (predecessors.get(id) ?? []).length);
-
-    const queue = nodeIds.filter(id => inDegree.get(id) === 0);
-    const order: string[] = [];
-
-    while (queue.length > 0) {
-        const id = queue.shift()!;
-        order.push(id);
-        for (const succ of successors.get(id) ?? []) {
-            const next = (inDegree.get(succ) ?? 0) - 1;
-            inDegree.set(succ, next);
-            if (next === 0)
-                queue.push(succ);
-        }
-    }
-
-    for (const id of nodeIds)
-        if (!order.includes(id))
-            order.push(id);
-
-    return order;
-}
 
 /** The single Active node id, if the graph has exactly one. */
 function findActiveNodeId(nodes: { id: string; label?: string }[]): string | null {
@@ -292,7 +241,7 @@ export function computeAutoLayoutPositions(
         targetInput: c.targetInput,
     }));
     const { successors, predecessors } = buildAdjacency(connectionsFull);
-    const topoOrder = topologicalSort(nodeIds, successors, predecessors);
+    const topoOrder = topologicalSortForLayout(nodeIds, successors, predecessors);
     const sizes = new Map(nodeIds.map(id => [id, measureNode(area, id)]));
 
     const activeId = findActiveNodeId(nodes);

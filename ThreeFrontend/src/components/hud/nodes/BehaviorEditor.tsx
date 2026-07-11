@@ -87,6 +87,7 @@ import type { NamedGraph } from './Conversion';
 import { fromJSON, toJSON } from './Conversion';
 import { createNodeFromExport } from './nodeFactory';
 import { applyAutoLayout } from './autoLayout';
+import { wouldCreateCycle } from './graphValidation';
 import { setEditorContext, getEditorContext } from './editorContext';
 import { notifyGraphUiUpdate } from './graphUpdate';
 import { setAllNodesCollapsed, refreshNodeAfterCollapse, isNodeCollapsed, type CollapsibleNode } from './nodeCollapse';
@@ -317,6 +318,10 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 }
                 return;
             }
+
+            const edges = editor.getConnections().map(c => ({ source: c.source, target: c.target }));
+            if (wouldCreateCycle(edges, source, target))
+                return;
         }
 
         if (c.type === 'nodecreated') {
