@@ -110,6 +110,11 @@ public static class PredefinedSpeciesCatalog
 		var list = new List<PredefinedSpeciesEntry>();
 		foreach (var s in SpeciesSettings.Predefined)
 		{
+			// Behavior.Geranium_Sanguineum has legacy tick code (AboveGroundAgent.GeraniumSanguineum.cs)
+			// but no node-graph translation. It was never a predefined species, no Init() assigns that
+			// Behavior, the UI cannot select it, and the WIP tick path was superseded by Bergania.Tick for
+			// the shipped geranium/bergenia species. A GeraniumSanguineumSpeciesGraphBuilder would be
+			// wired into the switch below if it were needed.
 			var (graphs, configuration) = s.Name switch
 			{
 				"Default" => (
