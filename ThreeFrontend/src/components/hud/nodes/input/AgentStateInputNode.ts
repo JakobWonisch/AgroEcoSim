@@ -21,5 +21,10 @@ export class AgentStateInputNode extends ClassicPreset.Node {
         this.addOutput("wasMeristemThisTick", new ClassicPreset.Output(boolSocket, "Was meristem this tick"));
         this.addOutput("isRizome", new ClassicPreset.Output(boolSocket, "Is rhizome"));
         this.addOutput("trySpawn", new ClassicPreset.Output(boolSocket, "Is try spawn"));
+        this.addOutput("rizomeDepth", new ClassicPreset.Output(numSocket, "Rizome depth"));
+        this.addOutput("rizomeTest", new ClassicPreset.Output(boolSocket, "Rizome test"));
+        this.addOutput("rizomeTest2", new ClassicPreset.Output(boolSocket, "Rizome test2"));
+        this.addOutput("rizomeTest3", new ClassicPreset.Output(boolSocket, "Rizome test3"));
+        this.addOutput("rizomeTest4", new ClassicPreset.Output(boolSocket, "Rizome test4"));
     }
 }

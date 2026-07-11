@@ -246,6 +246,9 @@ public static class BehaviorGraphCompiler
 			case "Agent State Input":
 				kind = GraphNodeKind.AgentStateInput;
 				return true;
+			case "Agent Id Input":
+				kind = GraphNodeKind.AgentIdInput;
+				return true;
 			case "Formation Input":
 				kind = GraphNodeKind.FormationInput;
 				return true;
@@ -296,6 +299,18 @@ public static class BehaviorGraphCompiler
 				return true;
 			case "Set trySpawn":
 				kind = GraphNodeKind.SetTrySpawn;
+				return true;
+			case "Set Rizome Test":
+				kind = GraphNodeKind.SetRizomeTest;
+				return true;
+			case "Set Rizome Test2":
+				kind = GraphNodeKind.SetRizomeTest2;
+				return true;
+			case "Set Rizome Test3":
+				kind = GraphNodeKind.SetRizomeTest3;
+				return true;
+			case "Set Rizome Test4":
+				kind = GraphNodeKind.SetRizomeTest4;
 				return true;
 			case "Accumulate Production":
 				kind = GraphNodeKind.AccumulateProduction;

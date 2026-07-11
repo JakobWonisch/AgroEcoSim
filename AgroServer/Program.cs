@@ -69,6 +69,7 @@ app.Run();
 [JsonSerializable(typeof(NodePosition))]
 [JsonSerializable(typeof(SpeciesGraphUploadEntry))]
 [JsonSerializable(typeof(List<SpeciesGraphUploadEntry>))]
+[JsonSerializable(typeof(Dictionary<string, List<BehaviorConfigUploadEntry>>))]
 [JsonSerializable(typeof(Dictionary<string, List<SpeciesGraphUploadEntry>>))]
 [JsonSerializable(typeof(SpeciesSettings))]
 [JsonSerializable(typeof(SpeciesSettings[]))]

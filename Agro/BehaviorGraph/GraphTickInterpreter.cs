@@ -90,6 +90,9 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.AgentStateInput:
 				WriteAgentStateInput(ref agent, ctx, outs, g);
 				break;
+			case GraphNodeKind.AgentIdInput:
+				outs[(g, "agentId")] = WireValue.OfFloat(ctx.AgentId);
+				break;
 			case GraphNodeKind.FormationInput:
 				WriteFormationInput(ref agent, ctx, outs, g);
 				break;
@@ -279,7 +282,44 @@ public static class GraphTickInterpreter
 				agent.Auxins = FirstFloat(node.Inputs, "value", outs);
 				break;
 			case GraphNodeKind.SetTrySpawn:
+				if (node.Inputs.TryGetValue("trigger", out var setTryTriggers) && setTryTriggers.Count > 0)
+				{
+					if (!FirstBool(node.Inputs, "trigger", outs))
+						break;
+				}
 				agent.trySpawn = FirstBool(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.SetRizomeTest:
+				if (node.Inputs.TryGetValue("trigger", out var setRizomeTestTriggers) && setRizomeTestTriggers.Count > 0)
+				{
+					if (!FirstBool(node.Inputs, "trigger", outs))
+						break;
+				}
+				agent.rizomeInfo.test = FirstBool(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.SetRizomeTest2:
+				if (node.Inputs.TryGetValue("trigger", out var setRizomeTest2Triggers) && setRizomeTest2Triggers.Count > 0)
+				{
+					if (!FirstBool(node.Inputs, "trigger", outs))
+						break;
+				}
+				agent.rizomeInfo.test2 = FirstBool(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.SetRizomeTest3:
+				if (node.Inputs.TryGetValue("trigger", out var setRizomeTest3Triggers) && setRizomeTest3Triggers.Count > 0)
+				{
+					if (!FirstBool(node.Inputs, "trigger", outs))
+						break;
+				}
+				agent.rizomeInfo.test3 = FirstBool(node.Inputs, "value", outs);
+				break;
+			case GraphNodeKind.SetRizomeTest4:
+				if (node.Inputs.TryGetValue("trigger", out var setRizomeTest4Triggers) && setRizomeTest4Triggers.Count > 0)
+				{
+					if (!FirstBool(node.Inputs, "trigger", outs))
+						break;
+				}
+				agent.rizomeInfo.test4 = FirstBool(node.Inputs, "value", outs);
 				break;
 			case GraphNodeKind.AccumulateProduction:
 				agent.GraphAccumulateProduction(FirstFloat(node.Inputs, "amount", outs));
@@ -403,7 +443,10 @@ public static class GraphTickInterpreter
 						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTimeVar);
 					agent.Organ = OrganTypes.Stem;
 					agent.GraphSetGrowthTimeVar(world.HoursPerTick / (woodTime + plant.RNG.NextFloatVar(woodTimeVar)));
+					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			case GraphNodeKind.BecomeFlowerStem:
 				if (FirstBool(node.Inputs, "trigger", outs))
@@ -471,7 +514,12 @@ public static class GraphTickInterpreter
 				break;
 			case GraphNodeKind.SpawnRhizome:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
 					SpawnEffects.SpawnRhizome(ref agent, ctx.Formation!, ctx.AgentId, agent.Orientation, ctx.BehaviorConfiguration);
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			default:
 				break;
@@ -553,6 +601,11 @@ public static class GraphTickInterpreter
 		outs[(g, "previousDayProductionInv")] = WireValue.OfFloat(agent.GraphPreviousDayProductionInv());
 		outs[(g, "energyStorageCapacity")] = WireValue.OfFloat(agent.GraphEnergyStorageCapacity());
 		outs[(g, "wasMeristemThisTick")] = WireValue.OfBool(agent.GraphWasMeristemThisTick());
+		outs[(g, "rizomeDepth")] = WireValue.OfFloat(agent.rizomeInfo.rizomeDepth);
+		outs[(g, "rizomeTest")] = WireValue.OfBool(agent.rizomeInfo.test);
+		outs[(g, "rizomeTest2")] = WireValue.OfBool(agent.rizomeInfo.test2);
+		outs[(g, "rizomeTest3")] = WireValue.OfBool(agent.rizomeInfo.test3);
+		outs[(g, "rizomeTest4")] = WireValue.OfBool(agent.rizomeInfo.test4);
 	}
 
 	static void WriteFormationInput(ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)

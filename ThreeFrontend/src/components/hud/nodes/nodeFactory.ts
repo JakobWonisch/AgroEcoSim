@@ -7,6 +7,7 @@ import { ActiveOutputNode } from "./output/ActiveOutputNode";
 import { GrowthNode } from "./output/GrowthNode";
 import { PhaseInputNode } from "./input/PhaseInputNode";
 import { AgentStateInputNode } from "./input/AgentStateInputNode";
+import { AgentIdInputNode } from "./input/AgentIdInputNode";
 import { FormationInputNode } from "./input/FormationInputNode";
 import { IrradianceInputNode } from "./input/IrradianceInputNode";
 import { SimulationSettingsInputNode } from "./input/SimulationSettingsInputNode";
@@ -39,6 +40,7 @@ import { MultiplyWaterNode } from "./output/MultiplyWaterNode";
 import { SetEnergyNode } from "./output/SetEnergyNode";
 import { SetAuxinsNode } from "./output/SetAuxinsNode";
 import { SetTrySpawnNode } from "./output/SetTrySpawnNode";
+import { SetRizomeTestNode, SetRizomeTest2Node, SetRizomeTest3Node, SetRizomeTest4Node } from "./output/SetRizomeFlagNodes";
 import { AccumulateProductionNode } from "./output/AccumulateProductionNode";
 import { AccumulateEnvResourcesNode } from "./output/AccumulateEnvResourcesNode";
 import { AccumulateEnvResourcesInvNode } from "./output/AccumulateEnvResourcesInvNode";
@@ -80,6 +82,7 @@ export const canonicalBehaviorNodeLabels = [
     "Agent Type Input",
     "Phase Input",
     "Agent State Input",
+    "Agent Id Input",
     "Formation Input",
     "Irradiance Input",
     "Simulation Settings Input",
@@ -113,6 +116,10 @@ export const canonicalBehaviorNodeLabels = [
     "Set Energy",
     "Set Auxins",
     "Set trySpawn",
+    "Set Rizome Test",
+    "Set Rizome Test2",
+    "Set Rizome Test3",
+    "Set Rizome Test4",
     "Accumulate Production",
     "Accumulate Env Resources",
     "Accumulate Env Resources Inv",
@@ -169,6 +176,7 @@ const creators: Record<string, Creator> = {
     "Agent Type Input": () => new AgentTypeInputNode(),
     "Phase Input": () => new PhaseInputNode(),
     "Agent State Input": () => new AgentStateInputNode(),
+    "Agent Id Input": () => new AgentIdInputNode(),
     "Formation Input": () => new FormationInputNode(),
     "Irradiance Input": () => new IrradianceInputNode(),
     "Simulation Settings Input": () => new SimulationSettingsInputNode(),
@@ -203,6 +211,10 @@ const creators: Record<string, Creator> = {
     "Set Energy": () => new SetEnergyNode(),
     "Set Auxins": () => new SetAuxinsNode(),
     "Set trySpawn": () => new SetTrySpawnNode(),
+    "Set Rizome Test": () => new SetRizomeTestNode(),
+    "Set Rizome Test2": () => new SetRizomeTest2Node(),
+    "Set Rizome Test3": () => new SetRizomeTest3Node(),
+    "Set Rizome Test4": () => new SetRizomeTest4Node(),
     "Accumulate Production": () => new AccumulateProductionNode(),
     "Accumulate Env Resources": () => new AccumulateEnvResourcesNode(),
     "Accumulate Env Resources Inv": () => new AccumulateEnvResourcesInvNode(),

@@ -145,6 +145,53 @@ namespace Agro.BehaviorGraph;
 			return andGate;
 		}
 
+		/// <summary>Bergania.Tick growth gate: enough energy, not bud, not rhizome.</summary>
+		public string WireBerganiaGrowthActiveGate(string organId, string stateId, string organSocket)
+		{
+			var gate = WireGrowthActiveGate(organId, stateId, organSocket);
+			var notRizome = Add("not-riz", "Not", 1120, 40);
+			Connect(stateId, "isRizome", notRizome, "a");
+			var andGate = Add("and-berg-growth", "And", 1360, 20);
+			Connect(gate, "out", andGate, "a");
+			Connect(notRizome, "out", andGate, "b");
+			return andGate;
+		}
+
+		/// <summary>Legacy Bergania stem radius growth: no production ratio; Min(water, energyReserve).</summary>
+		public string WireBerganiaStemGrowthDelta(
+			string stateId,
+			string formId,
+			string simId,
+			string growthFactorConfigId,
+			string maxRadiusConfigId)
+		{
+			var cfgRad = AddConfig("stem-rad", DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius, false, 240, 480);
+			var dominance = WireDominanceLookup(stateId, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors, 240, 520, "stem");
+
+			var energyReserve = WireEnergyReserve(stateId);
+			var waterMinReserve = WireMinFloat(formId, "waterBalance", energyReserve, "out", "stem-water");
+
+			var m1 = Add("m1", "Multiply", 720, 480);
+			Connect(cfgRad, "num", m1, "a");
+			Connect(dominance, "out", m1, "b");
+
+			var m2 = Add("m2", "Multiply", 960, 480);
+			Connect(m1, "out", m2, "a");
+			Connect(energyReserve, "out", m2, "b");
+
+			var m3 = Add("m3", "Multiply", 1200, 480);
+			Connect(m2, "out", m3, "a");
+			Connect(waterMinReserve, "out", m3, "b");
+
+			var deltaRad = Add("delta-r", "Multiply", 1440, 480);
+			Connect(m3, "out", deltaRad, "a");
+			Connect(simId, "hoursPerTick", deltaRad, "b");
+			var capped = WireCapRadiusDeltaToParent(stateId, formId, deltaRad, "stem");
+			capped = WireMultiplyByConfig(capped, growthFactorConfigId, "stem-gf");
+			capped = WireGateDeltaWhenRadiusBelowMax(stateId, maxRadiusConfigId, capped, "stem-max-r");
+			return capped;
+		}
+
 		/// <summary>Math.Min(1f, value).</summary>
 		public string WireMinOne(string valueNodeId, string valueOutput, string id)
 		{
