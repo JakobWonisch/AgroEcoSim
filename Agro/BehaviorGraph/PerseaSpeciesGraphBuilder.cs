@@ -20,6 +20,10 @@ public static class PerseaSpeciesGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius, PerseaTickConstants.LeafRadius);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength, PerseaTickConstants.PetioleLength);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius, PerseaTickConstants.PetioleRadius);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold,
+			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(
+				DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch,
+				PerseaTickConstants.PetioleLength));
 		return entries;
 	}
 

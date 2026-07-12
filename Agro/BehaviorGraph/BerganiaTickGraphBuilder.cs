@@ -600,19 +600,11 @@ public static class BerganiaTickGraphBuilder
 
 		b.Add("yaw-gap", "Number Input", 3760, 260,
 			GraphNodePayload.FromComment("GAP: spring crown yaw orientation from RNG not implemented (Turn Upwards only)."));
+		b.Add("tryspawn-fail-gap", "Number Input", 4000, 260,
+			GraphNodePayload.FromComment("GAP: trySpawn=false on failed pNewCrown roll not wired (see legacy Bergania spring crown else branch)."));
 
-		var leaves = b.Add("leaves", "Create Leaves", 4000, 220);
+		var leaves = b.Add("leaves", "Create Leaves", 4240, 220);
 		b.Connect(turn, "seq", leaves, "trigger");
-
-		var notRng = b.Add("not-rng", "Not", 2080, 180);
-		b.Connect(rng, "out", notRng, "a");
-		var failGate = b.Add("fail-gate", "And", 2320, 180);
-		b.Connect(and3, "out", failGate, "a");
-		b.Connect(notRng, "out", failGate, "b");
-		var tryFalse = b.AddBool("try-false", false, 2560, 220);
-		var setTryFalse = b.Add("set-try-false", "Set trySpawn", 2560, 180);
-		b.Connect(tryFalse, "bool", setTryFalse, "value");
-		b.Connect(failGate, "out", setTryFalse, "trigger");
 
 		return b.FinishWithActive(andRiz, "out").Build();
 	}

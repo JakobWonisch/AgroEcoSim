@@ -69,27 +69,8 @@ public static class GraphTickInterpreter
 			{
 				if (graph.ActiveSubtreeMask[t])
 					continue;
-				if (IsDeferredRandomKind(graph.NodesInOrder[t].Kind))
-					continue;
 				EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
 			}
-		}
-	}
-
-	static void EvaluateInactiveDeferredRandom(
-		CompiledBehaviorGraph graph,
-		ref AboveGroundAgent agent,
-		TickEvalContext ctx,
-		Dictionary<(int NodeIndex, string Socket), WireValue> outs)
-	{
-		for (var t = 0; t < graph.NodesInOrder.Length; t++)
-		{
-			if (graph.ActiveSubtreeMask[t])
-				continue;
-			var node = graph.NodesInOrder[t];
-			if (!IsDeferredRandomKind(node.Kind))
-				continue;
-			EvaluateNode(node, ref agent, ctx, outs);
 		}
 	}
 
@@ -126,12 +107,12 @@ public static class GraphTickInterpreter
 				and not GraphNodeKind.CreateLeaves,
 			_ => false,
 		};
-		if (run && !IsDeferredRandomKind(node.Kind))
+		if (run)
 			EvaluateNode(node, ref agent, ctx, outs);
 	}
 
 	static bool IsDeferredRandomKind(GraphNodeKind kind) =>
-		kind is GraphNodeKind.RandomChanceInput or GraphNodeKind.RandomAccumChanceInput or GraphNodeKind.RandomFloatVarInput;
+		kind is GraphNodeKind.RandomAccumChanceInput or GraphNodeKind.RandomFloatVarInput;
 
 	static void EvaluateNode(CompiledNode node, ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int NodeIndex, string Socket), WireValue> outs)
 	{

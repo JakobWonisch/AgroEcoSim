@@ -147,6 +147,7 @@ public static class SpawnEffects
 		{
 			LateralAngle = lateralPitch,
 			Radius = 0f,
+			trySpawn = true,
 		};
 		formation.Birth(bud);
 	}

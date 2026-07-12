@@ -257,6 +257,38 @@ public class BehaviorGraphCompilerTests
 	}
 
 	[Fact]
+	public void SpringCrown_RngIsEvaluatedBeforeBecomeMeristem()
+	{
+		var graph = PredefinedSpeciesCatalog.All
+			.First(s => s.Name == "Geranium Macrorrhizum")
+			.Graphs.First(g => g.Name == "Spring crown recruitment").Graph;
+		Assert.True(BehaviorGraphCompiler.TryCompile(graph, out var compiled, out var err), err);
+
+		var rngIdx = Array.FindIndex(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.RandomChanceInput);
+		var becomeIdx = Array.FindIndex(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.BecomeMeristem);
+		Assert.True(rngIdx >= 0 && becomeIdx >= 0);
+		Assert.True(rngIdx < becomeIdx, $"rng@{rngIdx} must precede become@{becomeIdx}");
+
+		var and4Idx = -1;
+		for (var i = 0; i < compiled.NodesInOrder.Length; i++)
+		{
+			var n = compiled.NodesInOrder[i];
+			if (n.Kind != GraphNodeKind.And)
+				continue;
+			if (!n.Inputs.TryGetValue("b", out var bIn) || bIn.Count == 0)
+				continue;
+			if (bIn[0].ProducerIndex == compiled.NodesInOrder[rngIdx].GraphNodeIndex)
+			{
+				and4Idx = i;
+				break;
+			}
+		}
+		Assert.True(and4Idx > rngIdx, $"and4 must follow rng (rng@{rngIdx}, and4@{and4Idx})");
+
+		Assert.False(compiled.ActiveSubtreeMask[rngIdx], "crown RNG must be inactive (downstream of deferred gate)");
+	}
+
+	[Fact]
 	public void TryCompile_AllDefaultSpeciesSubgraphs_Ok()
 	{
 		foreach (var (name, graph) in DefaultSpeciesGraphBuilder.BuildDefaultSpeciesSubgraphs())

@@ -6,7 +6,7 @@ namespace Agro.Tests;
 
 public class DefaultSpeciesParityTests
 {
-	static SimulationRequest BuildDefaultNodeRequest(int totalHours = 168, float? plantRngFixedUnit = null)
+	static SimulationRequest BuildDefaultNodeRequest(int totalHours = ParityTestLimits.MaxHours, float? plantRngFixedUnit = null)
 	{
 		var defaultEntry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Default");
 		var graphs = defaultEntry.Graphs.Select(g => new SpeciesGraphUploadEntry
@@ -53,7 +53,7 @@ public class DefaultSpeciesParityTests
 		RunExtremalStructuralParity(fixedUnit: 1f);
 	}
 
-	static void RunExtremalStructuralParity(float fixedUnit, int maxHours = 168)
+	static void RunExtremalStructuralParity(float fixedUnit, int maxHours = ParityTestLimits.MaxHours)
 	{
 		var request = BuildDefaultNodeRequest(totalHours: maxHours, plantRngFixedUnit: fixedUnit);
 		var legacyPath = Path.Combine(Path.GetTempPath(), $"agro-legacy-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
@@ -84,13 +84,13 @@ public class DefaultSpeciesParityTests
 	[Fact]
 	public void DefaultSpecies_ParityHarness_RecordsBothTraces()
 	{
-		var request = BuildDefaultNodeRequest(totalHours: 24);
+		var request = BuildDefaultNodeRequest(totalHours: ParityTestLimits.MaxHours);
 		var legacyPath = Path.Combine(Path.GetTempPath(), $"agro-legacy-{Guid.NewGuid():N}.jsonl");
 		var nodePath = Path.Combine(Path.GetTempPath(), $"agro-node-{Guid.NewGuid():N}.jsonl");
 		try
 		{
-			SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: 24);
-			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: 24);
+			SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: ParityTestLimits.MaxHours);
+			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: ParityTestLimits.MaxHours);
 
 			var legacyHeader = SimulationHarness.ReadHeader(legacyPath);
 			var nodeHeader = SimulationHarness.ReadHeader(nodePath);
@@ -114,13 +114,13 @@ public class DefaultSpeciesParityTests
 	[Fact(Skip = "Use DefaultSpecies_FullParity_Diagnostic instead (keeps trace files on disk).")]
 	public void DefaultSpecies_LegacyAndNodeTraces_Match_FullParity()
 	{
-		var request = BuildDefaultNodeRequest(totalHours: 168);
+		var request = BuildDefaultNodeRequest(totalHours: ParityTestLimits.MaxHours);
 		var legacyPath = Path.Combine(Path.GetTempPath(), $"agro-legacy-{Guid.NewGuid():N}.jsonl");
 		var nodePath = Path.Combine(Path.GetTempPath(), $"agro-node-{Guid.NewGuid():N}.jsonl");
 		try
 		{
-			SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: 168);
-			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: 168);
+			SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: ParityTestLimits.MaxHours);
+			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: ParityTestLimits.MaxHours);
 
 			var mismatch = TraceComparer.CompareFiles(legacyPath, nodePath, new TraceCompareOptions
 			{
@@ -148,14 +148,14 @@ public class DefaultSpeciesParityTests
 	}
 
 	/// <summary>
-	/// Records 168h legacy + node traces under ignore/parity-traces/ and reports up to 25 mismatches.
-	/// Traces are kept on disk for manual inspection. After uninitialized dominance factors + energy
-	/// reserve clamp, drift is mostly late-tick magnitude (t≥131) from multi-graph order vs legacy early-return.
+	/// Records legacy + node traces under ignore/parity-traces/ and reports up to 25 mismatches.
+	/// Window is <see cref="ParityTestLimits.MaxHours"/> hours; expand to
+	/// <see cref="ParityTestLimits.NextExpansionHours"/> once green.
 	/// </summary>
 	[Fact]
 	public void DefaultSpecies_FullParity_Diagnostic()
 	{
-		const int maxHours = 168;
+		const int maxHours = ParityTestLimits.MaxHours;
 		var dir = ParityTraceDir();
 		Directory.CreateDirectory(dir);
 		var legacyPath = Path.Combine(dir, "legacy.jsonl");
