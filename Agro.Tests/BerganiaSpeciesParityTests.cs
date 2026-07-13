@@ -57,7 +57,7 @@ public class BerganiaSpeciesParityTests
 	[Fact]
 	public void BerganiaSpecies_SpringCrownRecruitsRhizomeBuds_AtTimestep3()
 	{
-		const int maxHours = 3;
+		const int maxHours = 4;
 		var request = BuildBerganiaNodeRequest("Geranium Macrorrhizum", totalHours: maxHours, plantRngFixedUnit: 0f);
 		var legacyPath = Path.Combine(Path.GetTempPath(), $"berg-crown-legacy-{Guid.NewGuid():N}.jsonl");
 		var nodePath = Path.Combine(Path.GetTempPath(), $"berg-crown-node-{Guid.NewGuid():N}.jsonl");
@@ -72,6 +72,7 @@ public class BerganiaSpeciesParityTests
 			var nodeBuds = node.Plants[0].AboveGround.Count(a => a.Organ == "Bud");
 
 			Assert.Equal(0, legacyBuds);
+			Assert.Equal(0, nodeBuds);
 			Assert.Equal(legacy.Plants[0].AboveGround.Length, node.Plants[0].AboveGround.Length);
 		}
 		finally

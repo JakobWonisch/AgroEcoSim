@@ -294,6 +294,9 @@ public static class BehaviorGraphCompiler
 			case "Set Energy":
 				kind = GraphNodeKind.SetEnergy;
 				return true;
+			case "Set Energy To Capacity":
+				kind = GraphNodeKind.SetEnergyToCapacity;
+				return true;
 			case "Set Auxins":
 				kind = GraphNodeKind.SetAuxins;
 				return true;
@@ -345,6 +348,9 @@ public static class BehaviorGraphCompiler
 			case "Delta Dominance":
 				kind = GraphNodeKind.DeltaDominance;
 				return true;
+			case "Set Dominance":
+				kind = GraphNodeKind.SetDominance;
+				return true;
 			case "Set Length Var":
 				kind = GraphNodeKind.SetLengthVar;
 				return true;
@@ -353,6 +359,9 @@ public static class BehaviorGraphCompiler
 				return true;
 			case "Turn Upwards":
 				kind = GraphNodeKind.TurnUpwards;
+				return true;
+			case "Apply Crown Pitch":
+				kind = GraphNodeKind.ApplyCrownPitch;
 				return true;
 			case "Set Was Meristem":
 				kind = GraphNodeKind.SetWasMeristem;

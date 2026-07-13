@@ -39,6 +39,7 @@ import { SetWoodNode } from './output/SetWoodNode';
 import { MultiplyEnergyNode } from './output/MultiplyEnergyNode';
 import { MultiplyWaterNode } from './output/MultiplyWaterNode';
 import { SetEnergyNode } from './output/SetEnergyNode';
+import { SetEnergyToCapacityNode } from './output/SetEnergyToCapacityNode';
 import { SetRadiusNode } from './output/SetRadiusNode';
 import { SetAuxinsNode } from './output/SetAuxinsNode';
 import { SetTrySpawnNode } from './output/SetTrySpawnNode';
@@ -54,6 +55,8 @@ import { BecomeMeristemNode } from './output/BecomeMeristemNode';
 import { BecomeStemNode } from './output/BecomeStemNode';
 import { BecomeFlowerStemNode } from './output/BecomeFlowerStemNode';
 import { BecomeFlowerMeristemNode } from './output/BecomeFlowerMeristemNode';
+import { SetDominanceNode } from './output/SetDominanceNode';
+import { ApplyCrownPitchNode } from './output/ApplyCrownPitchNode';
 import {
     SpawnMeristemNode,
     SpawnBudNode,
@@ -204,7 +207,10 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Multiply Energy', () => new MultiplyEnergyNode()],
                 ['Multiply Water', () => new MultiplyWaterNode()],
                 ['Set Energy', () => new SetEnergyNode()],
+                ['Set Energy To Capacity', () => new SetEnergyToCapacityNode()],
                 ['Set Radius', () => new SetRadiusNode()],
+                ['Set Dominance', () => new SetDominanceNode()],
+                ['Apply Crown Pitch', () => new ApplyCrownPitchNode()],
                 ['Set Auxins', () => new SetAuxinsNode()],
                 ['Set trySpawn', () => new SetTrySpawnNode()],
                 ['Accumulate Production', () => new AccumulateProductionNode()],

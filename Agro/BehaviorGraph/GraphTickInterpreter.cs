@@ -341,6 +341,15 @@ public static class GraphTickInterpreter
 				}
 				agent.Energy = FirstFloat(node.Inputs, "value", outs);
 				break;
+			case GraphNodeKind.SetEnergyToCapacity:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetEnergyToCapacity();
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
 			case GraphNodeKind.SetAuxins:
 				agent.Auxins = FirstFloat(node.Inputs, "value", outs);
 				break;
@@ -462,6 +471,15 @@ public static class GraphTickInterpreter
 				else
 					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
+			case GraphNodeKind.SetDominance:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetDominance(FirstFloat(node.Inputs, "value", outs));
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
 			case GraphNodeKind.SetLengthVar:
 				if (FirstBool(node.Inputs, "trigger", outs))
 				{
@@ -484,6 +502,15 @@ public static class GraphTickInterpreter
 				if (FirstBool(node.Inputs, "trigger", outs))
 				{
 					agent.GraphTurnUpwards();
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.ApplyCrownPitch:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphApplyCrownPitch(FirstFloat(node.Inputs, "crownPitch", outs));
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else
@@ -584,8 +611,15 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.SpawnRhizome:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
-					SpawnEffects.SpawnRhizome(ref agent, ctx.Formation!, ctx.AgentId, agent.Orientation, ctx.BehaviorConfiguration);
-					outs[(g, "seq")] = WireValue.OfBool(true);
+					var yawOffset = node.Inputs.ContainsKey("yawOffset") && node.Inputs["yawOffset"].Count > 0
+						? FirstFloat(node.Inputs, "yawOffset", outs)
+						: 0f;
+					var rootYaw = node.Inputs.ContainsKey("rootYawOffset") && node.Inputs["rootYawOffset"].Count > 0
+						? FirstFloat(node.Inputs, "rootYawOffset", outs)
+						: yawOffset;
+					var spawned = SpawnEffects.TrySpawnRhizome(
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.BehaviorConfiguration, yawOffset, rootYaw);
+					outs[(g, "seq")] = WireValue.OfBool(spawned);
 				}
 				else
 					outs[(g, "seq")] = WireValue.OfBool(false);

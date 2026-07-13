@@ -892,9 +892,15 @@ public partial struct AboveGroundAgent : IPlantAgent
 	[M(AI)] internal void GraphSetWasMeristemThisTick(bool value) => graphWasMeristemThisTick = value;
 	[M(AI)] internal void GraphSetLateralAngle(float value) => LateralAngle = value;
 	[M(AI)] internal void GraphDeltaDominance(float count) => DominanceLevel += (byte)MathF.Max(0f, count);
+	[M(AI)] internal void GraphSetDominance(float value) =>
+		DominanceLevel = (byte)Math.Clamp(MathF.Round(value), 0f, 255f);
 	[M(AI)] internal void GraphSetLengthVar(float value) => LengthVar = value;
 	[M(AI)] internal void GraphSetRadius(float value) => Radius = value;
+	[M(AI)] internal void GraphSetEnergyToCapacity() => Energy = EnergyStorageCapacity();
 	[M(AI)] internal void GraphTurnUpwards() => Orientation = TurnUpwards(Orientation);
+	/// <summary>Legacy spring crown: <c>Orientation *= AxisAngle(Z, crownPitch * PI)</c>.</summary>
+	[M(AI)] internal void GraphApplyCrownPitch(float crownPitch) =>
+		Orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, crownPitch * MathF.PI);
 	bool graphWasMeristemThisTick;
 	#endregion
 

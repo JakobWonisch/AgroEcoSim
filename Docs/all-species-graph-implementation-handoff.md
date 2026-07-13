@@ -30,19 +30,20 @@ dotnet test Agro.Tests/Agro.Tests.csproj --filter "TryCompile|GraphTickInterpret
 
 | Test filter | Expected |
 |-------------|----------|
-| `TryCompile_AllDefault\|TryCompile_AllPersea\|TryCompile_AllBergania` | All pass (~49 compile/interpreter tests total with broader filter) |
-| `DefaultSpecies_FullParity_Diagnostic` | **Fails** — energy drift from t≈131 (was t≈6); extremal structural parity **passes** |
-| `DefaultSpecies_ExtremalParity_FixedUnit0_Structural` | **Passes** |
-| `DefaultSpecies_ExtremalParity_FixedUnit1_Structural` | **Passes** |
+| `TryCompile_AllDefault\|TryCompile_AllPersea\|TryCompile_AllBergania` | All pass |
+| `BerganiaSpecies_StructuralParity_Diagnostic` | **Passes** for both geraniums at `ParityTestLimits.MaxHours` (24) |
+| `BergeniaCordifolia_ExtremalParity_FixedUnit0/1_Structural` | **Passes** at MaxHours=24 |
+| `DefaultSpecies_ExtremalParity_FixedUnit0/1_Structural` | **Passes** |
+| `DefaultSpecies_FullParity_Diagnostic` | May still fail on energy drift |
 
-Parity trace artifacts: `ignore/parity-traces/legacy.jsonl` and `ignore/parity-traces/node.jsonl`.
+Parity window: `Agro.Tests/ParityTestLimits.cs` — MaxHours=24 green for Bergania structural; NextExpansionHours=48 (Geranium Macrorrhizum radius drift ~t=45 under FixedUnit=0).
 
 ### UI smoke check
 
 1. Run backend + `ThreeFrontend`.
 2. Open **Species** tab — all 5 predefined species should list graphs + **Configuration**.
 3. Confirm **Configuration Array Input** appears in behavior editor context menu.
-4. Default species should show **16 graphs**; Bergania-tick species **18** (Bergenia **19** with flower gap graph).
+4. Default species should show **16 graphs**; Bergania-tick species **21** (flower meristem/stem growth + flower reset death).
 
 ---
 
@@ -99,9 +100,9 @@ flowchart TB
 |---------|-------------|--------|---------------|---------------|
 | **Default** | `TickDefault` | 16 | Full bootstrap | `TryCompile_AllDefaultSpeciesSubgraphs_Ok` |
 | **Persea americana** | `TickDefault` | 16 (same topology) | Morphology overrides | `TryCompile_AllPerseaSubgraphs_Ok` |
-| **Geranium Macrorrhizum** | `Bergania.Tick` | 18 | Bergania profile | `TryCompile_AllBerganiaSubgraphs_Ok` |
-| **Geranium × Cantabrigiense** | `Bergania.Tick` | 18 | Bergania profile | same |
-| **Bergenia Cordifolia** | `Bergania.Tick` + FlowerHelper | 19 (+ flower gap) | Bergania profile + `pChaining` array | same |
+| **Geranium Macrorrhizum** | `Bergania.Tick` | 21 | Bergania profile | `TryCompile_AllBerganiaSubgraphs_Ok` |
+| **Geranium × Cantabrigiense** | `Bergania.Tick` | 21 | Bergania profile | same |
+| **Bergenia Cordifolia** | `Bergania.Tick` + FlowerHelper growth | 21 | Bergania profile + `pChaining` array | same |
 
 ### Default graph list (order matters at runtime)
 
@@ -111,8 +112,10 @@ flowchart TB
 
 - **Omit:** Auxin twig
 - **Replace:** Life support (skip rhizome energy drain), Stem dominance death (skip rhizome)
-- **Add:** Spring crown recruitment, trySpawn reset, Rhizome expansion
-- **Bergenia only:** Flower organs gap (comment-only graph, gate always false)
+- **Add:** Spring crown recruitment, trySpawn reset, Rhizome expansion (before test3 arm), Rhizome test3 arm, Flower meristem/stem growth, Flower reset death
+- **Spring crown:** `Set Energy To Capacity` after `Set Radius`; absolute `Set Dominance`; `Apply Crown Pitch`; failed `pNewCrown` → `trySpawn=false`
+- **Rhizome:** per-arm yaw offsets + BVH/soil abort in `SpawnEffects.TrySpawnRhizome`; expansion graph runs **before** test3 arm to match legacy if/else timing
+- **FlowerHelper.grow / ResetPending death:** encoded; `chaning` / createFlower still gap
 
 ---
 
@@ -170,12 +173,12 @@ These behaviors **cannot** or **do not yet** match legacy when using behavior gr
 | `pChaningSeaonns[phase]` (Bergania meristem chain) | **Done** | `PChaining` array wired via Phase Input `phaseIndex` + Configuration Array Input in Bergania meristem chain |
 | `growthFactor` on Bergania meristem/stem growth | **Done** | Growth factor multiply in Bergania growth meristem/stem subgraphs |
 | `MaxRadius` cap on Bergania meristem/stem | **Done** | Radius delta gated when `radius >= MaxRadius` |
-| `pFloweringSeaonns` / flower meristem spawn (PreFlower) | **Partial** | PreFlower triggers `Spawn Flower Meristem` on chain success; `FlowerHelper` still gap |
+| `pFloweringSeaonns` / flower meristem spawn (PreFlower) | **Partial** | PreFlower triggers `Spawn Flower Meristem` on chain success; FlowerHelper.grow + ResetPending death graph-encoded |
 | `bendPetiol` | **Not implemented** | Comment node in meristem chain graph |
-| `FlowerHelper` | **Not implemented** | Bergenia flower organs inactive in node mode |
+| `FlowerHelper.chaning` / createFlower | **Not implemented** | Gap comment on flower reset death graph; growth/radius paths done |
 | `FlowerAgent.flowerBase` size limits | **Not implemented** | Use normal leaf/petiole config; document difference |
-| Spring crown: `Set Energy` ← capacity, yaw orientation, `Set Length Var`, `Set Radius` | **Partial** | Set Energy, Set Length Var, Set Radius wired; yaw orientation gap comment |
-| Rhizome `rizomeInfo.test*` + collision/soil | **Simplified** | Random Chance + Spawn Rhizome only |
+| Spring crown: `Set Energy` ← capacity, yaw orientation, `Set Length Var`, `Set Radius` | **Done** | Set Energy To Capacity after Set Radius; Apply Crown Pitch; LengthVar; failed roll clears trySpawn |
+| Rhizome `rizomeInfo.test*` + collision/soil | **Done** | Yaw offsets + BVH/soil abort; expansion before test3 arm |
 | Energy depletion: parent orientation on MakeBud | **Skipped** | Gap comment in Bergania energy depletion graph |
 | Bergania energy depletion stem + rhizome parent | **Done** | Make Bud path for stem/other when parent is rhizome |
 | Photosynthesis: `CurrentDayEnvResources` | **Partial** | `Accumulate Env Resources` nodes exist; verify parity vs legacy increments |
@@ -183,11 +186,11 @@ These behaviors **cannot** or **do not yet** match legacy when using behavior gr
 | `GraphCreateLeaves` parent energy by-value | **Intentional fix** | Graph version fixes legacy bug — keep |
 | `WireEnergyReserve` lower clamp at 0 | **Done** | `If / Else` floors negative ratio before `Clamp Max` in `WireEnergyReserve` |
 | Bergania geranium orientation config | **Done** | `BerganiaGraphOptions` lateral/leaf pitch & roll + derived `PetioleCoverThreshold` |
-| `crownPitch` spring crown yaw | **Gap** | Value in `BerganiaGraphOptions`; graph uses `Turn Upwards` only |
+| `crownPitch` spring crown yaw | **Done** | `Apply Crown Pitch` (legacy unused initialYaw documented as gap comment) |
 | Meristem tick marker | **Stub** | Still uses `Boolean Input(true)` for `Set Was Meristem` — correct for meristem-only gate but not wired from chain |
 | Config debt: `AuxinsReach`, `MaxLeafLevel` | **TODO** | Comments in `DefaultSpeciesGraphBuilder.ConfigIds` |
 | `SpeciesGraphOptions` config id prefix | **Not done** | Persea/Bergania share `default-config-*` ids |
-| Optional platform nodes | **Partial** | `phaseIndex` on Phase Input and `Set Radius` **done**; `Clamp Min`, full `Set Orientation` still optional |
+| Optional platform nodes | **Partial** | `phaseIndex`, `Set Radius`, `Set Energy To Capacity`, `Set Dominance`, `Apply Crown Pitch` **done**; `Clamp Min` still optional |
 
 ---
 
@@ -211,11 +214,13 @@ Use this as the continuation backlog. Order follows impact for Default parity fi
   - Selects `pChaining[phase]` via Configuration Array Input + `phaseIndex` on Phase Input
   - PreFlower: `Spawn Flower Meristem` on chain success (all Bergania species; legacy behavior)
   - Document `bendPetiol` gap in graph comment
-- [x] **Spring crown recruitment:** Set Energy, length var random, Set Radius wired; yaw orientation gap comment
+- [x] **Spring crown recruitment:** Set Energy To Capacity (after Set Radius), LengthVar, Set Dominance, Apply Crown Pitch, trySpawn fail path
 - [x] **Energy depletion (Bergania):** stem + parent rhizome → `Make Bud` instead of `Death`
 - [x] **Petiole age bud:** reference hours `17520` (8760×2) in config for all Bergania profiles
 - [x] **Bergania orientation config:** lateral/leaf pitch & roll + derived `PetioleCoverThreshold` via `BerganiaGraphOptions`
-- [x] Add **simulation/parity tests** for Bergania species — `BerganiaSpecies_ParityHarness_RecordsBothTraces` (passes); `BerganiaSpecies_StructuralParity_Diagnostic` (expected fail, ~20–40s each)
+- [x] **Rhizome collision/soil + expansion-before-test3 order**
+- [x] **FlowerHelper.grow + ResetPending death** (chaning still gap)
+- [x] Add **simulation/parity tests** for Bergania species — structural green through MaxHours=24; Geranium Macrorrhizum drifts ~t=45 at 48h FixedUnit=0
 
 ### C. Architecture / maintainability
 
@@ -329,9 +334,10 @@ Helper: `SubgraphBuilder.WireDominanceLookup(stateId, ConfigIds.DominanceFactors
 | Configuration Array Input | **Done** |
 | Default 16 graphs + dominance array + growth guards | **Done** (parity not green) |
 | Persea 16 graphs + config | **Done** |
-| Bergania 3 species bootstrap graphs + config | **Done** (compile + harness; structural parity diagnostic not green) |
+| Bergania 3 species bootstrap graphs + config | **Done** (structural parity green through 24h FixedUnit extremes) |
 | Default full legacy parity | **Not done** |
 | Bergania meristem chain / growthFactor / MaxRadius | **Done** |
-| FlowerHelper / bendPetiol | **Not done** (documented) |
+| FlowerHelper.grow / ResetPending | **Done** |
+| FlowerHelper.chaning / createFlower / bendPetiol | **Not done** (documented) |
 | SpeciesGraphOptions config prefixes | **Not done** |
 | Legacy tick code changes | **None** (by design) |

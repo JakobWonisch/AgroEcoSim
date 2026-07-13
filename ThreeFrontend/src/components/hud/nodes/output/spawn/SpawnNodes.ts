@@ -59,5 +59,8 @@ export class SpawnFlowerPadelNode extends SpawnTriggerNode {
 export class SpawnRhizomeNode extends SpawnTriggerNode {
     constructor() {
         super("Spawn Rhizome");
+        this.addInput("yawOffset", new ClassicPreset.Input(numSocket, "yawOffset"));
+        this.addInput("rootYawOffset", new ClassicPreset.Input(numSocket, "rootYawOffset"));
+        this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }
