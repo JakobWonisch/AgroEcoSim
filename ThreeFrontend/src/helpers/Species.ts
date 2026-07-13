@@ -11,8 +11,9 @@ const RadToDeg = 180.0 / Math.PI;
 const PREDEFINED_MORPHOLOGY_SUPPLEMENTS: Record<string, Partial<{
     height: number;
     leafGrowthTime: number;
+    lateralsPerNode: number;
 }>> = {
-    "Persea americana": { height: 12, leafGrowthTime: 720 },
+    "Persea americana": { height: 12, leafGrowthTime: 720, lateralsPerNode: 4 },
 };
 
 function configNumber(entries: BehaviorConfigEntry[], id: string): number | undefined {
@@ -42,11 +43,14 @@ function applyBehaviorConfigurationToMorphology(species: Species, entries: Behav
     if (n("default-config-twig-bending") !== undefined) species.twigsBending.value = n("default-config-twig-bending")!;
     if (n("default-config-twig-bending-level") !== undefined) species.bendingByLevel.value = n("default-config-twig-bending-level")!;
     if (n("default-config-twig-bending-apical") !== undefined) species.twigsBendingApical.value = n("default-config-twig-bending-apical")!;
-    if (n("default-config-shoots-gravitaxis") !== undefined) species.shootsGravitaxis.value = n("default-config-shoots-gravitaxis")!;
+    // ShootsGravitaxis in graph config is the post-Init effective value (0.08); morphology Init applies ×0.4 again.
+    if (n("default-config-wood-growth-time") !== undefined) species.woodGrowthTime.value = n("default-config-wood-growth-time")!;
+    if (n("default-config-wood-growth-time-var") !== undefined) species.woodGrowthTimeVar.value = n("default-config-wood-growth-time-var")!;
 
     const supplement = PREDEFINED_MORPHOLOGY_SUPPLEMENTS[species.name.peek()];
     if (supplement?.height !== undefined) species.height.value = supplement.height;
     if (supplement?.leafGrowthTime !== undefined) species.leafGrowthTime.value = supplement.leafGrowthTime;
+    if (supplement?.lateralsPerNode !== undefined) species.lateralsPerNode.value = supplement.lateralsPerNode;
 }
 
 export class Species {
@@ -256,11 +260,11 @@ export class Species {
 
             TwigsBending: this.twigsBending.peek(),
             TwigsBendingLevel: this.bendingByLevel.peek(),
-            TwigsBendingApical: 1.0 - this.twigsBendingApical.peek(),
+            TwigsBendingApical: this.twigsBendingApical.peek(),
             ShootsGravitaxis: this.shootsGravitaxis.peek(),
 
-            WoodGrowthTime: this.woodGrowthTime.peek() * 24,
-            WoodGrowthTimeVar: this.woodGrowthTimeVar.peek() * 24,
+            WoodGrowthTime: this.woodGrowthTime.peek(),
+            WoodGrowthTimeVar: this.woodGrowthTimeVar.peek(),
 
             //LeafLevel: this.leafLevel.peek(),
             LeafLength: this.leafLength.peek(),

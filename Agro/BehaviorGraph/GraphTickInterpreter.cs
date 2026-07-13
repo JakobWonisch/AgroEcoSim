@@ -406,8 +406,7 @@ public static class GraphTickInterpreter
 					var plant = ctx.Formation!.Plant;
 					var lateral = node.Inputs.ContainsKey("lateralAngle") && node.Inputs["lateralAngle"].Count > 0
 						? FirstFloat(node.Inputs, "lateralAngle", outs)
-						: agent.LateralAngle + BehaviorGraphConfig.Number(
-							ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
+						: agent.LateralAngle + plant.Parameters.LateralRoll;
 					var meristemId = node.Inputs.ContainsKey("meristemId")
 						? (int)FirstFloat(node.Inputs, "meristemId", outs)
 						: ctx.AgentId;
@@ -813,8 +812,38 @@ public static class GraphTickInterpreter
 		return value <= parentWood ? value : parentWood;
 	}
 
-	static float ResolveConfigNumber(string? configId, TickEvalContext ctx) =>
-		BehaviorGraphConfig.Number(ctx.BehaviorConfiguration, configId ?? "");
+	static float ResolveConfigNumber(string? configId, TickEvalContext ctx)
+	{
+		if (ctx.HasFormation && TryMorphologyNumber(ctx.Formation!.Plant.Parameters, configId, out var morph))
+			return morph;
+		return BehaviorGraphConfig.Number(ctx.BehaviorConfiguration, configId ?? "");
+	}
+
+	static bool TryMorphologyNumber(SpeciesSettings species, string? configId, out float value)
+	{
+		value = 0f;
+		if (string.IsNullOrEmpty(configId))
+			return false;
+
+		switch (configId)
+		{
+			case DefaultSpeciesGraphBuilder.ConfigIds.LeafLength: value = species.LeafLength; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius: value = species.LeafRadius; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength: value = species.PetioleLength; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius: value = species.PetioleRadius; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode: value = species.LateralsPerNode; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance: value = species.NodeDistance; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar: value = species.NodeDistanceVar; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.MonopodialFactor: value = species.MonopodialFactor; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll: value = species.LateralRoll; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar: value = species.LateralRollVar; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch: value = species.LateralPitch; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar: value = species.LateralPitchVar; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch: value = species.LeafPitch; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold: value = species.PetioleCoverThreshold; return true;
+			default: return false;
+		}
+	}
 
 	static bool ResolveConfigBool(string? configId, TickEvalContext ctx)
 	{

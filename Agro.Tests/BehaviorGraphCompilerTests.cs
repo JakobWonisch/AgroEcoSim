@@ -461,7 +461,8 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(2f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode).Value.GetSingle());
 		var dominance = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors);
 		Assert.Equal("number[]", dominance.Type);
-		Assert.Equal(0.7f, dominance.Value.EnumerateArray().Single().GetSingle());
+		var table = dominance.Value.EnumerateArray().Select(e => e.GetSingle()).ToArray();
+		Assert.Equal(DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(0.7f), table);
 	}
 
 	[Fact]

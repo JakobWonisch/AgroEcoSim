@@ -24,6 +24,7 @@ public static class PerseaSpeciesGraphBuilder
 			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(
 				DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch,
 				PerseaTickConstants.PetioleLength));
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, 4f);
 		return entries;
 	}
 
