@@ -34,8 +34,7 @@ public static class SpawnEffects
 		var orientation = orientationOverride
 			?? AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
 				ref parent, plant, parent.Orientation, config));
-		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
-		var lateralPitch = parent.LateralAngle + lateralRoll;
+		var lateralPitch = parent.LateralAngle + plant.Parameters.LateralRoll;
 
 		var childIndex = formation.Birth(new(plant, parentAgentId, organ, orientation, energyFraction * parent.Energy,
 			initialResources: prevResources, initialProduction: prevProduction)

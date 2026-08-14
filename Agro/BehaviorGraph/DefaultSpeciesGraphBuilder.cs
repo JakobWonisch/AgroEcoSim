@@ -310,9 +310,9 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.DominanceFactors,
 			Key = "Dominance factors",
 			Label = "Dominance factors",
-			Usage = "Per-level growth multiplier indexed by dominance level (legacy uninitialized DominanceFactors field default).",
+			Usage = "Per-level growth multiplier indexed by dominance level (legacy SpeciesSettings.DominanceFactor table).",
 			Type = "number[]",
-			Value = BehaviorGraphJson.NumberArray(BuildUninitializedDominanceFactors(DefaultTickConstants.DominanceFactor)),
+			Value = BehaviorGraphJson.NumberArray(BuildDominanceFactorsTable(DefaultTickConstants.DominanceFactor)),
 		},
 		new()
 		{

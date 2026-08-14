@@ -90,6 +90,15 @@ public class AgroWorld : SimulationWorld
 	/// <summary>When set, each plant RNG unit draw uses this fixed value (test harness).</summary>
 	internal float? PlantRngFixedUnit { get; }
 
+	/// <summary>
+	/// Parity harness: <see cref="PlantSubFormation{T}.Birth"/> becomes a no-op so spawn/create-leaf
+	/// paths cannot add agents (parent energy side-effects at call sites still run unless callers check this flag).
+	/// </summary>
+	internal bool ParitySuppressSpawn { get; set; }
+
+	/// <summary>Parity harness: <see cref="PlantSubFormation{T}.Death"/> becomes a no-op so the subject agent stays alive.</summary>
+	internal bool ParitySuppressDeath { get; set; }
+
 	public AgroWorld(SimulationRequest? settings = null) : base()
 	{
 		var ianaTimeZone = TimeZoneLookup.GetTimeZone(Latitude, Longitude).Result;
