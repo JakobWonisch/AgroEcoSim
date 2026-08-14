@@ -899,8 +899,13 @@ public partial struct AboveGroundAgent : IPlantAgent
 	[M(AI)] internal void GraphSetEnergyToCapacity() => Energy = EnergyStorageCapacity();
 	[M(AI)] internal void GraphTurnUpwards() => Orientation = TurnUpwards(Orientation);
 	/// <summary>Legacy spring crown: <c>Orientation *= AxisAngle(Z, crownPitch * PI)</c>.</summary>
-	[M(AI)] internal void GraphApplyCrownPitch(float crownPitch) =>
+	[M(AI)] internal void GraphApplyCrownPitch(float crownPitch)
+	{
 		Orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, crownPitch * MathF.PI);
+		baseOrientation = Orientation;
+		restOrientation = Orientation;
+		targetOrientation = Orientation;
+	}
 	bool graphWasMeristemThisTick;
 	#endregion
 

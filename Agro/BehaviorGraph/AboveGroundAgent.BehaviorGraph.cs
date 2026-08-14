@@ -17,5 +17,6 @@ public partial struct AboveGroundAgent
 	{
 		var parentCopy = parent;
 		parentCopy.CreateLeaves(parentCopy, plant, lateralAngle, meristem);
+		parent = parentCopy;
 	}
 }

@@ -405,9 +405,23 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.MakeBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
+					var organBefore = agent.Organ;
 					var children = ctx.Formation!.GetChildren(ctx.AgentId);
 					agent.MakeBud(ctx.Formation, children);
+					// Bergania energy depletion: non-petiole organs on a rhizome parent
+					// re-align to the parent so the next spring crown pitches up from the ground plane.
+					if (organBefore != OrganTypes.Petiole && agent.Parent >= 0
+						&& ctx.Formation.GetIsRizome(agent.Parent))
+					{
+						agent.SetOrientation(ctx.Formation.GetDirection(agent.Parent));
+						agent.baseOrientation = agent.Orientation;
+						agent.restOrientation = agent.Orientation;
+						agent.targetOrientation = agent.Orientation;
+					}
+					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			case GraphNodeKind.CreateLeaves:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
@@ -416,10 +430,15 @@ public static class GraphTickInterpreter
 					var lateral = node.Inputs.ContainsKey("lateralAngle") && node.Inputs["lateralAngle"].Count > 0
 						? FirstFloat(node.Inputs, "lateralAngle", outs)
 						: agent.LateralAngle + plant.Parameters.LateralRoll;
-					var meristemId = node.Inputs.ContainsKey("meristemId")
-						? (int)FirstFloat(node.Inputs, "meristemId", outs)
-						: ctx.AgentId;
-					AboveGroundAgent.GraphCreateLeaves(ref agent, plant, ctx.BehaviorConfiguration, lateral, meristemId);
+					var meristemId = ctx.AgentId;
+					if (node.Inputs.TryGetValue("meristemId", out var merIn) && merIn.Count > 0)
+					{
+						var (pi, ps) = merIn[0];
+						if (outs.TryGetValue((pi, ps), out var merWire))
+							meristemId = (int)merWire.AsFloat();
+					}
+					if (meristemId >= 0)
+						AboveGroundAgent.GraphCreateLeaves(ref agent, plant, ctx.BehaviorConfiguration, lateral, meristemId);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else
@@ -509,7 +528,16 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.ApplyCrownPitch:
 				if (FirstBool(node.Inputs, "trigger", outs))
 				{
-					agent.GraphApplyCrownPitch(FirstFloat(node.Inputs, "crownPitch", outs));
+					if (ctx.HasFormation)
+					{
+						// Legacy draws unused initialYaw immediately before applying crown pitch.
+						_ = ctx.Formation!.Plant.RNG.NextFloat(-MathF.PI, MathF.PI);
+					}
+					// Legacy uses SpeciesSettings.crownPitch, not the graph config row alone.
+					var pitch = ctx.HasFormation
+						? ctx.Formation!.Plant.Parameters.crownPitch
+						: FirstFloat(node.Inputs, "crownPitch", outs);
+					agent.GraphApplyCrownPitch(pitch);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else
@@ -878,6 +906,14 @@ public static class GraphTickInterpreter
 			case DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar: value = species.LateralPitchVar; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch: value = species.LeafPitch; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold: value = species.PetioleCoverThreshold; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength: value = species.RizomeLength; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius: value = species.RizomeRadius; return true;
+			case BerganiaTickGraphBuilder.ConfigIds.CrownPitch: value = species.crownPitch; return true;
+			case BerganiaTickGraphBuilder.ConfigIds.PNewCrown: value = species.pNewCrown; return true;
+			case BerganiaTickGraphBuilder.ConfigIds.GrowthFactor: value = species.growthFactor; return true;
+			case BerganiaTickGraphBuilder.ConfigIds.MaxRadius: value = species.MaxRadius; return true;
+			case BerganiaTickGraphBuilder.ConfigIds.PExpandRizome: value = species.pExpandRizome; return true;
+			case BerganiaTickGraphBuilder.ConfigIds.RizomeMaxDepth: value = species.RizomeMaxDepth; return true;
 			default: return false;
 		}
 	}

@@ -272,6 +272,9 @@ public class BehaviorGraphCompilerTests
 		Assert.True(rngIdx >= 0 && becomeIdx >= 0);
 		Assert.True(rngIdx < becomeIdx, $"rng@{rngIdx} must precede become@{becomeIdx}");
 
+		var pitchIdx = Array.FindIndex(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ApplyCrownPitch);
+		Assert.True(pitchIdx >= 0 && pitchIdx < becomeIdx, $"crown pitch@{pitchIdx} must precede become@{becomeIdx}");
+
 		var and4Idx = -1;
 		for (var i = 0; i < compiled.NodesInOrder.Length; i++)
 		{

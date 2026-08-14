@@ -1,3 +1,4 @@
+using System.Numerics;
 using Agro.BehaviorGraph;
 using Agro.Testing;
 using Xunit;
@@ -74,6 +75,26 @@ public class BerganiaSpeciesParityTests
 			Assert.Equal(0, legacyBuds);
 			Assert.Equal(0, nodeBuds);
 			Assert.Equal(legacy.Plants[0].AboveGround.Length, node.Plants[0].AboveGround.Length);
+
+			static Vector3 Axis(QuaternionSnapshot q) =>
+				Vector3.Transform(Vector3.UnitX, new Quaternion(q.X, q.Y, q.Z, q.W));
+
+			var legacyShoots = legacy.Plants[0].AboveGround
+				.Where(a => !a.IsRizome && (a.Organ == "Meristem" || a.Organ == "Stem"))
+				.Select(a => Axis(a.Orientation).Y)
+				.ToList();
+			var nodeShoots = node.Plants[0].AboveGround
+				.Where(a => !a.IsRizome && (a.Organ == "Meristem" || a.Organ == "Stem"))
+				.Select(a => Axis(a.Orientation).Y)
+				.ToList();
+			Assert.NotEmpty(legacyShoots);
+			Assert.Equal(legacyShoots.Count, nodeShoots.Count);
+			for (var i = 0; i < legacyShoots.Count; i++)
+			{
+				Assert.True(legacyShoots[i] > 0.5f, $"legacy shoot[{i}] should be pitched up, Y={legacyShoots[i]}");
+				Assert.True(nodeShoots[i] > 0.5f, $"node shoot[{i}] should be pitched up, Y={nodeShoots[i]}");
+				Assert.Equal(legacyShoots[i], nodeShoots[i], 3);
+			}
 		}
 		finally
 		{

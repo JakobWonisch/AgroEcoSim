@@ -629,44 +629,41 @@ public static class BerganiaTickGraphBuilder
 		b.Connect(tryFalse, "bool", setTryFalse, "value");
 		b.Connect(failGate, "out", setTryFalse, "trigger");
 
-		var become = b.Add("become", "Become Meristem", 2320, 140);
-		b.Connect(and4, "out", become, "trigger");
-
-		var initRadius = b.AddNum("init-radius", AboveGroundAgent.InitialRadius, 2320, 280);
-		var setRadius = b.Add("set-radius", "Set Radius", 2560, 140);
-		b.Connect(become, "seq", setRadius, "trigger");
-		b.Connect(initRadius, "num", setRadius, "value");
-
-		// Capacity must be computed after radius change — Agent State capacity socket is stale.
-		var setEnergy = b.Add("set-energy", "Set Energy To Capacity", 2800, 140);
-		b.Connect(setRadius, "seq", setEnergy, "trigger");
-
-		var nodeDist = b.AddConfig("node-dist", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance, false, 2800, 260);
-		var nodeDistVar = b.AddConfig("node-dist-var", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar, false, 2800, 300);
-		var rngVar = b.Add("rng-var", "Random Float Var Input", 3040, 300);
-		b.Connect(nodeDistVar, "num", rngVar, "variance");
-		var lengthVar = b.Add("length-var", "Add", 3280, 260);
-		b.Connect(nodeDist, "num", lengthVar, "a");
-		b.Connect(rngVar, "out", lengthVar, "b");
-		var setLenVar = b.Add("set-len-var", "Set Length Var", 3040, 140);
-		b.Connect(setEnergy, "seq", setLenVar, "trigger");
-		b.Connect(lengthVar, "out", setLenVar, "value");
-
-		var domOne = b.AddNum("dom-one", 1f, 3280, 140);
-		var setDom = b.Add("set-dom", "Set Dominance", 3520, 140);
-		b.Connect(setLenVar, "seq", setDom, "trigger");
-		b.Connect(domOne, "num", setDom, "value");
-
-		var crownPitch = b.AddConfig("crown-pitch", ConfigIds.CrownPitch, false, 3520, 200);
-		var applyPitch = b.Add("apply-pitch", "Apply Crown Pitch", 3760, 140);
-		b.Connect(setDom, "seq", applyPitch, "trigger");
+		// Legacy order: unused yaw draw, crown pitch, become meristem, dominance, radius, lengthVar, energy, leaves.
+		var crownPitch = b.AddConfig("crown-pitch", ConfigIds.CrownPitch, false, 2320, 200);
+		var applyPitch = b.Add("apply-pitch", "Apply Crown Pitch", 2560, 140);
+		b.Connect(and4, "out", applyPitch, "trigger");
 		b.Connect(crownPitch, "num", applyPitch, "crownPitch");
 
-		b.Add("yaw-gap", "Number Input", 3760, 220,
-			GraphNodePayload.FromComment("GAP: initialYaw RNG is computed but unused in legacy Bergania spring crown."));
+		var become = b.Add("become", "Become Meristem", 2800, 140);
+		b.Connect(applyPitch, "seq", become, "trigger");
+
+		var domOne = b.AddNum("dom-one", 1f, 2800, 200);
+		var setDom = b.Add("set-dom", "Set Dominance", 3040, 140);
+		b.Connect(become, "seq", setDom, "trigger");
+		b.Connect(domOne, "num", setDom, "value");
+
+		var initRadius = b.AddNum("init-radius", AboveGroundAgent.InitialRadius, 3040, 200);
+		var setRadius = b.Add("set-radius", "Set Radius", 3280, 140);
+		b.Connect(setDom, "seq", setRadius, "trigger");
+		b.Connect(initRadius, "num", setRadius, "value");
+
+		var nodeDist = b.AddConfig("node-dist", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance, false, 3280, 260);
+		var nodeDistVar = b.AddConfig("node-dist-var", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar, false, 3280, 300);
+		var rngVar = b.Add("rng-var", "Random Float Var Input", 3520, 300);
+		b.Connect(nodeDistVar, "num", rngVar, "variance");
+		var lengthVar = b.Add("length-var", "Add", 3760, 260);
+		b.Connect(nodeDist, "num", lengthVar, "a");
+		b.Connect(rngVar, "out", lengthVar, "b");
+		var setLenVar = b.Add("set-len-var", "Set Length Var", 3520, 140);
+		b.Connect(setRadius, "seq", setLenVar, "trigger");
+		b.Connect(lengthVar, "out", setLenVar, "value");
+
+		var setEnergy = b.Add("set-energy", "Set Energy To Capacity", 3760, 140);
+		b.Connect(setLenVar, "seq", setEnergy, "trigger");
 
 		var leaves = b.Add("leaves", "Create Leaves", 4000, 140);
-		b.Connect(applyPitch, "seq", leaves, "trigger");
+		b.Connect(setEnergy, "seq", leaves, "trigger");
 
 		return b.FinishWithActive(andRiz, "out").Build();
 	}

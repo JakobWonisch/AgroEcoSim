@@ -63,8 +63,7 @@ public static class SpawnEffects
 		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep);
 		var orientation = AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
 			ref parent, plant, parent.Orientation, config));
-		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
-		var lateralPitch = parent.LateralAngle + lateralRoll;
+		var lateralPitch = parent.LateralAngle + plant.Parameters.LateralRoll;
 
 		var childIndex = formation.Birth(new(plant, parentAgentId, OrganTypes.FlowerMeristem, orientation,
 			energyFraction * parent.Energy, initialResources: prevResources, initialProduction: prevProduction)
@@ -137,8 +136,8 @@ public static class SpawnEffects
 		float rootYawOffset)
 	{
 		var plant = formation.Plant;
-		var rizomeLength = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength, DefaultSpeciesGraphBuilder.DefaultTickConstants.RizomeLength);
-		var rizomeRadius = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius, DefaultSpeciesGraphBuilder.DefaultTickConstants.RizomeRadius);
+		var rizomeLength = plant.Parameters.RizomeLength;
+		var rizomeRadius = plant.Parameters.RizomeRadius;
 
 		Quaternion rizomOrientation;
 		if (parentAgentId > 0)
@@ -176,8 +175,7 @@ public static class SpawnEffects
 		}
 
 		var rizomeIndex = formation.Birth(rizome);
-		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
-		var lateralPitch = parent.LateralAngle + lateralRoll;
+		var lateralPitch = parent.LateralAngle + plant.Parameters.LateralRoll;
 		var bud = new AboveGroundAgent(plant, rizomeIndex, OrganTypes.Bud, rizomOrientation, 0,
 			initialResources: 1f, initialProduction: 1f)
 		{
