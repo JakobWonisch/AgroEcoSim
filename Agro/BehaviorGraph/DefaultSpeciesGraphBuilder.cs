@@ -1124,7 +1124,10 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(starved, "out").Build();
 	}
 
-	/// <summary>TickDefault line 730 â€” unconditional auxins update.</summary>
+	/// <summary>
+	/// TickDefault / Bergania.Tick auxins assignment. Legacy skips this when energy &lt;= 0
+	/// (the depletion branch returns before the assignment).
+	/// </summary>
 	public static global::ExportedGraph BuildAuxinsUpdateSubgraph()
 	{
 		var b = SubgraphBuilder.Create("aux");
@@ -1133,6 +1136,13 @@ public static class DefaultSpeciesGraphBuilder
 		var auxinsProd = b.AddConfig("auxins", ConfigIds.AuxinsProduction, false, 280, 0,
 			"Auxins production for meristem/stem agents");
 		var c0 = b.AddNum("c0", 0f, 280, 40);
+
+		var energyGt0 = b.Add("energy-gt0", "Greater Than", 280, 80);
+		b.Connect(state, "energy", energyGt0, "a");
+		b.Connect(c0, "num", energyGt0, "b");
+		var active = b.Add("alive-or-riz", "Or", 520, 80);
+		b.Connect(energyGt0, "out", active, "a");
+		b.Connect(state, "isRizome", active, "b");
 
 		var meristemOrWas = b.Add("mer-or-was", "Or", 520, 20);
 		b.Connect(organ, "meristem", meristemOrWas, "a");
@@ -1146,6 +1156,6 @@ public static class DefaultSpeciesGraphBuilder
 		var setAuxins = b.Add("set-auxins", "Set Auxins", 1000, 40);
 		b.Connect(auxinsVal, "out", setAuxins, "value");
 
-		return b.GateAlwaysTrue().Build();
+		return b.FinishWithActive(active, "out").Build();
 	}
 }

@@ -31,11 +31,11 @@ partial class PlantFormation2
 {
 	/// <summary>
 	/// Kill the seed without germinating, add a minimal underground root for resource census,
-	/// then install the subject above-ground agent (with an optional stem scaffold parent when
-	/// the organ type reads parent state during tick).
+	/// then install a rhizome stem at index 0 and the subject organ as its child at index 1.
+	/// The rhizome parent keeps Bergania ticks from calling <c>GetIsRizome(-1)</c>.
 	/// </summary>
-	/// <returns>Index of the subject above-ground agent.</returns>
-	internal int InstallSingleOrganSceneForTesting(AboveGroundAgent subject, bool withScaffoldParent)
+	/// <returns>Index of the subject above-ground agent (always 1).</returns>
+	internal int InstallSingleOrganSceneForTesting(AboveGroundAgent subject)
 	{
 		if (SeedAlive)
 			SeedDeath();
@@ -55,31 +55,25 @@ partial class PlantFormation2
 			ugFormation.Census();
 		}
 
-		if (withScaffoldParent)
+		var scaffold = new AboveGroundAgent(
+			this,
+			parent: -1,
+			organ: OrganTypes.Stem,
+			orientation: Quaternion.Identity,
+			initialEnergy: 50f,
+			radius: 0.005f,
+			length: 0.05f,
+			initialResources: 1f,
+			initialProduction: 1f)
 		{
-			var scaffold = new AboveGroundAgent(
-				this,
-				parent: -1,
-				organ: OrganTypes.Stem,
-				orientation: Quaternion.Identity,
-				initialEnergy: 50f,
-				radius: 0.005f,
-				length: 0.05f,
-				initialResources: 1f,
-				initialProduction: 1f)
-			{
-				Water_g = 10f,
-				DominanceLevel = 0,
-				Auxins = 0f,
-			};
-			AG.ReplaceAgentsForTesting(scaffold, subject);
-		}
-		else
-		{
-			AG.ReplaceAgentsForTesting(subject);
-		}
+			Water_g = 10f,
+			DominanceLevel = 0,
+			Auxins = 0f,
+			isRizome = true,
+		};
+		AG.ReplaceAgentsForTesting(scaffold, subject);
 
 		AG.FirstDay();
-		return withScaffoldParent ? 1 : 0;
+		return 1;
 	}
 }

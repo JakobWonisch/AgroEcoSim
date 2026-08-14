@@ -176,7 +176,7 @@ public static class BerganiaTickGraphBuilder
 			("Growth stem", BuildBerganiaGrowthStemSubgraph()),
 			("Wood lignify", BuildWoodLignifyNoOpSubgraph()),
 			("Meristem chain", BuildBerganiaMeristemChainSubgraph(opt)),
-			("Petiole cover bud", DefaultSpeciesGraphBuilder.BuildPetioleCoverBudSubgraph()),
+			("Petiole cover bud", BuildPetioleCoverBudNoOpSubgraph()),
 			("Petiole unproductive death", DefaultSpeciesGraphBuilder.BuildPetioleUnproductiveDeathSubgraph()),
 			("Energy depletion", BuildBerganiaEnergyDepletionSubgraph()),
 			("Rhizome expansion", BuildRhizomeExpansionSubgraph()),
@@ -373,6 +373,20 @@ public static class BerganiaTickGraphBuilder
 		var never = b.AddBool("never", false, 0, 0);
 		b.Add("wood-gap", "Number Input", 240, 0,
 			GraphNodePayload.FromComment("Bergania.Tick: stem wood-factor update is commented out in legacy."));
+		return b.FinishWithActive(never, "bool").Build();
+	}
+
+	/// <summary>
+	/// Bergania.Tick nests petiole-cover MakeBud inside <c>Organ == Stem || Meristem</c>,
+	/// so it never runs for a petiole. TickDefault keeps that check in the sibling else.
+	/// </summary>
+	static global::ExportedGraph BuildPetioleCoverBudNoOpSubgraph()
+	{
+		var b = SubgraphBuilder.Create("pcb-noop");
+		var never = b.AddBool("never", false, 0, 0);
+		b.Add("cover-gap", "Number Input", 240, 0,
+			GraphNodePayload.FromComment(
+				"Bergania.Tick: petiole cover MakeBud is nested under stem/meristem and is unreachable for petioles."));
 		return b.FinishWithActive(never, "bool").Build();
 	}
 

@@ -111,11 +111,10 @@ public static class SimulationHarness
 			if (formation is not PlantFormation2 plant)
 				return;
 
-			var needsParent = NeedsScaffoldParent(agentTypeOptions.Organ);
 			var (length, radius) = DefaultDimensions(agentTypeOptions);
 			var agent = new AboveGroundAgent(
 				plant,
-				parent: needsParent ? 0 : -1,
+				parent: 0,
 				organ: agentTypeOptions.Organ,
 				orientation: Quaternion.Identity,
 				initialEnergy: agentTypeOptions.InitialEnergy,
@@ -128,7 +127,7 @@ public static class SimulationHarness
 				DominanceLevel = 1,
 			};
 
-			plant.InstallSingleOrganSceneForTesting(agent, needsParent);
+			plant.InstallSingleOrganSceneForTesting(agent);
 		});
 
 		// Enable mocks after scene install so UG root Birth is not suppressed.
@@ -138,11 +137,8 @@ public static class SimulationHarness
 		WriteTrace(world, prepared, mode, outputPath);
 	}
 
-	static bool NeedsScaffoldParent(OrganTypes organ) => organ switch
-	{
-		OrganTypes.Stem or OrganTypes.Meristem or OrganTypes.RizomeMeristem => false,
-		_ => true,
-	};
+	/// <summary>Subject organ is always index 1 (child of the rhizome scaffold at 0).</summary>
+	public const int SingleAgentSubjectIndex = 1;
 
 	static (float Length, float Radius) DefaultDimensions(AgentTypeParityOptions options)
 	{
@@ -205,7 +201,7 @@ public static class SimulationHarness
 			RecordSingleAgentTrace(settings, BehaviorRunMode.Node, nodePath, agentTypeOptions);
 
 			compareOptions ??= TraceCompareOptions.StructuralParity
-				.WithFocusAboveGroundIndices(NeedsScaffoldParent(agentTypeOptions.Organ) ? 1 : 0);
+				.WithFocusAboveGroundIndices(SingleAgentSubjectIndex);
 
 			return TraceComparer.CompareFiles(legacyPath, nodePath, compareOptions);
 		}

@@ -1,18 +1,21 @@
-using Agro.BehaviorGraph;
 using Agro.Testing;
 using Xunit;
 
 namespace Agro.Tests;
 
 /// <summary>
-/// Per-organ growth parity: one agent per plant, spawn/death mocked, legacy tick vs behavior graphs.
+/// Per-organ growth parity for every predefined species: one subject agent per plant,
+/// spawn/death mocked, legacy tick vs behavior graphs.
 /// </summary>
 public class AgentTypeParityTests
 {
-	static SimulationRequest BuildDefaultRequest(int totalHours = ParityTestLimits.MaxHours, float? plantRngFixedUnit = null)
+	static readonly string[] SpeciesNames =
+		[.. PredefinedSpeciesCatalog.All.Select(s => s.Name)];
+
+	static SimulationRequest BuildRequest(string speciesName, int totalHours = ParityTestLimits.MaxHours, float? plantRngFixedUnit = null)
 	{
-		var defaultEntry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Default");
-		var graphs = defaultEntry.Graphs.Select(g => new SpeciesGraphUploadEntry
+		var entry = PredefinedSpeciesCatalog.All.First(s => s.Name == speciesName);
+		var graphs = entry.Graphs.Select(g => new SpeciesGraphUploadEntry
 		{
 			Id = g.Id,
 			Name = g.Name,
@@ -27,40 +30,56 @@ public class AgentTypeParityTests
 			PlantRngFixedUnit = plantRngFixedUnit,
 			Plants = [new PlantRequest
 			{
-				SpeciesName = "Default",
+				SpeciesName = speciesName,
 				Position = new Utils.Json.Vector3XYZ { X = 0.5f, Y = 0f, Z = 0.5f },
 			}],
 			SpeciesGraphs = new Dictionary<string, List<SpeciesGraphUploadEntry>>
 			{
-				["Default"] = graphs,
+				[speciesName] = graphs,
 			},
-			SpeciesConfiguration = new Dictionary<string, List<BehaviorConfigUploadEntry>>
-			{
-				["Default"] = [.. DefaultSpeciesGraphBuilder.BuildDefaultConfiguration()],
-			},
+			SpeciesConfiguration = entry.Configuration is { Count: > 0 } config
+				? new Dictionary<string, List<BehaviorConfigUploadEntry>> { [speciesName] = config }
+				: null,
 		};
 	}
 
-	public static IEnumerable<object[]> VegetativeOrgansAndFixedUnits()
+	public static IEnumerable<object[]> SpeciesOrgansAndFixedUnits()
 	{
-		foreach (var organ in AgentTypeGraphCatalog.DefaultFocusOrgans)
+		foreach (var species in SpeciesNames)
 		{
-			yield return [organ, 0f];
-			yield return [organ, 1f];
+			foreach (var organ in AgentTypeGraphCatalog.DefaultFocusOrgans)
+			{
+				yield return [species, organ, 0f];
+				yield return [species, organ, 1f];
+			}
 		}
 	}
 
-	static int SubjectIndex(OrganTypes organ) => organ switch
+	public static IEnumerable<object[]> SpeciesAndOrgans()
 	{
-		OrganTypes.Stem or OrganTypes.Meristem or OrganTypes.RizomeMeristem => 0,
-		_ => 1,
-	};
+		foreach (var species in SpeciesNames)
+		{
+			foreach (var organ in AgentTypeGraphCatalog.DefaultFocusOrgans)
+				yield return [species, organ];
+		}
+	}
+
+	public static IEnumerable<object[]> SpeciesAndDiagnosticOrgans()
+	{
+		foreach (var species in SpeciesNames)
+		{
+			yield return [species, OrganTypes.Leaf];
+			yield return [species, OrganTypes.Meristem];
+		}
+	}
+
+	static int SubjectIndex(OrganTypes organ) => SimulationHarness.SingleAgentSubjectIndex;
 
 	[Theory]
-	[MemberData(nameof(VegetativeOrgansAndFixedUnits))]
-	public void SingleAgent_StaysAlone_AndMatchesStructurally(OrganTypes organ, float fixedUnit)
+	[MemberData(nameof(SpeciesOrgansAndFixedUnits))]
+	public void SingleAgent_StaysAlone_AndMatchesStructurally(string speciesName, OrganTypes organ, float fixedUnit)
 	{
-		var request = BuildDefaultRequest(plantRngFixedUnit: fixedUnit);
+		var request = BuildRequest(speciesName, plantRngFixedUnit: fixedUnit);
 		var options = new AgentTypeParityOptions
 		{
 			Organ = organ,
@@ -71,8 +90,9 @@ public class AgentTypeParityTests
 		var subjectIndex = SubjectIndex(organ);
 		var compareOptions = TraceCompareOptions.StructuralParity.WithFocusAboveGroundIndices(subjectIndex);
 
-		var legacyPath = Path.Combine(Path.GetTempPath(), $"agro-single-legacy-{organ}-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
-		var nodePath = Path.Combine(Path.GetTempPath(), $"agro-single-node-{organ}-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
+		var slug = SpeciesSlug(speciesName);
+		var legacyPath = Path.Combine(Path.GetTempPath(), $"agro-single-legacy-{slug}-{organ}-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
+		var nodePath = Path.Combine(Path.GetTempPath(), $"agro-single-node-{slug}-{organ}-u{fixedUnit}-{Guid.NewGuid():N}.jsonl");
 		try
 		{
 			SimulationHarness.RecordSingleAgentTrace(request, BehaviorRunMode.Legacy, legacyPath, options);
@@ -82,7 +102,7 @@ public class AgentTypeParityTests
 			{
 				Assert.Single(step.Plants);
 				Assert.False(step.Plants[0].SeedAlive);
-				Assert.InRange(step.Plants[0].AboveGround.Length, 1, 2);
+				Assert.Equal(2, step.Plants[0].AboveGround.Length);
 				Assert.True(step.Plants[0].AboveGround.Length > subjectIndex);
 			}
 
@@ -90,16 +110,15 @@ public class AgentTypeParityTests
 			{
 				Assert.Single(step.Plants);
 				Assert.False(step.Plants[0].SeedAlive);
-				Assert.InRange(step.Plants[0].AboveGround.Length, 1, 2);
+				Assert.Equal(2, step.Plants[0].AboveGround.Length);
 				Assert.True(step.Plants[0].AboveGround.Length > subjectIndex);
 			}
 
 			var mismatch = TraceComparer.CompareFiles(legacyPath, nodePath, compareOptions);
-
 			if (mismatch is not null)
 			{
 				Assert.Fail(
-					$"Single-agent {organ} u={fixedUnit} mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected} actual {mismatch.Actual}");
+					$"{speciesName} single-agent {organ} u={fixedUnit} mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected} actual {mismatch.Actual}");
 			}
 		}
 		finally
@@ -110,20 +129,15 @@ public class AgentTypeParityTests
 	}
 
 	[Theory]
-	[InlineData(OrganTypes.Leaf)]
-	[InlineData(OrganTypes.Stem)]
-	[InlineData(OrganTypes.Meristem)]
-	[InlineData(OrganTypes.Petiole)]
-	[InlineData(OrganTypes.Bud)]
-	public void SingleAgent_OrganSpecificGraphs_Smoke(OrganTypes organ)
+	[MemberData(nameof(SpeciesAndOrgans))]
+	public void SingleAgent_OrganSpecificGraphs_Smoke(string speciesName, OrganTypes organ)
 	{
-		var request = BuildDefaultRequest(totalHours: 4, plantRngFixedUnit: 1f);
+		var request = BuildRequest(speciesName, totalHours: 4, plantRngFixedUnit: 1f);
 		var options = new AgentTypeParityOptions
 		{
 			Organ = organ,
 			MaxHours = 4,
 			PlantRngFixedUnit = 1f,
-			// Keep all graphs — filtering drops shared/transform paths and is not a fair legacy compare.
 		};
 
 		var mismatch = SimulationHarness.CompareSingleAgentParity(
@@ -134,7 +148,7 @@ public class AgentTypeParityTests
 		if (mismatch is not null)
 		{
 			Assert.Fail(
-				$"Organ-graph smoke {organ} mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected}, actual {mismatch.Actual}");
+				$"{speciesName} organ-graph smoke {organ} mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected}, actual {mismatch.Actual}");
 		}
 	}
 
@@ -144,20 +158,22 @@ public class AgentTypeParityTests
 		return Path.Combine(repoRoot, "ignore", "parity-traces", "agent-type");
 	}
 
+	static string SpeciesSlug(string speciesName) =>
+		speciesName.Replace(' ', '-').Replace('×', 'x');
+
 	/// <summary>
-	/// Diagnostic: keeps traces under ignore/parity-traces/agent-type/ for one organ.
+	/// Diagnostic: keeps traces under ignore/parity-traces/agent-type/ for leaf and meristem of each species.
 	/// </summary>
 	[Theory]
-	[InlineData(OrganTypes.Leaf)]
-	[InlineData(OrganTypes.Meristem)]
-	public void SingleAgent_FullParity_Diagnostic(OrganTypes organ)
+	[MemberData(nameof(SpeciesAndDiagnosticOrgans))]
+	public void SingleAgent_FullParity_Diagnostic(string speciesName, OrganTypes organ)
 	{
 		const int maxHours = ParityTestLimits.MaxHours;
-		var dir = ParityTraceDir();
+		var dir = Path.Combine(ParityTraceDir(), SpeciesSlug(speciesName));
 		Directory.CreateDirectory(dir);
 		var legacyPath = Path.Combine(dir, $"legacy-{organ}.jsonl");
 		var nodePath = Path.Combine(dir, $"node-{organ}.jsonl");
-		var request = BuildDefaultRequest(totalHours: maxHours);
+		var request = BuildRequest(speciesName, totalHours: maxHours);
 		var options = new AgentTypeParityOptions
 		{
 			Organ = organ,
@@ -180,6 +196,7 @@ public class AgentTypeParityTests
 
 		var lines = new List<string>
 		{
+			$"Species:      {speciesName}",
 			$"Legacy trace: {legacyPath}",
 			$"Node trace:   {nodePath}",
 			$"First {mismatches.Count} mismatch(es) for {organ}:",
