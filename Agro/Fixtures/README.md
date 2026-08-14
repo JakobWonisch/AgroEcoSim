@@ -11,7 +11,7 @@ Capture a `SimulationRequest` JSON from the UI to replay the same scene and seed
 
 Use explicit `Plants[].P` positions so plant placement does not depend on extra RNG during `Initialize`.
 
-## CLI usage
+## CLI usage (full plant)
 
 From the repository root (or this worktree):
 
@@ -33,6 +33,21 @@ dotnet run --project Agro -- \
 Legacy runs strip `SpeciesGraphs` and use the `Behavior` enum from `Species[]`. Node runs compile `SpeciesGraphs` and ignore the legacy tick switch.
 
 Optional flags: `--tolerance 1e-5`, `--ignore-rng` (skip per-plant RNG state in the diff).
+
+## Single-organ growth parity (xUnit)
+
+Granular checks via `SimulationHarness.RecordSingleAgentTrace` / `CompareSingleAgentParity`
+(`Agro.Tests/AgentTypeParityTests.cs`):
+
+1. Skip germination (`SeedDeath`).
+2. Install one underground root + the subject above-ground organ (plus a stem scaffold parent when the organ reads parent auxins).
+3. Set `ParitySuppressSpawn` / `ParitySuppressDeath` so `Birth`/`Death` are no-ops — population cannot grow.
+4. Same world seed, fixed plant position, optional `PlantRngFixedUnit`.
+5. Compare legacy vs node traces for that organ’s geometry/state.
+
+```bash
+dotnet test Agro.Tests/Agro.Tests.csproj --filter "AgentTypeParity"
+```
 
 ## Git worktree
 
