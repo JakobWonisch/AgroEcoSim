@@ -4,8 +4,9 @@ using Xunit;
 namespace Agro.Tests;
 
 /// <summary>
-/// Per-organ growth parity for every predefined species: one subject agent per plant,
-/// spawn/death mocked, legacy tick vs behavior graphs.
+/// Per-organ growth parity for every predefined species: one subject above-ground agent
+/// per plant (including flower organs), spawn/death mocked, legacy tick vs behavior graphs.
+/// Underground agents are not under test.
 /// </summary>
 public class AgentTypeParityTests
 {
@@ -47,7 +48,7 @@ public class AgentTypeParityTests
 	{
 		foreach (var species in SpeciesNames)
 		{
-			foreach (var organ in AgentTypeGraphCatalog.DefaultFocusOrgans)
+			foreach (var organ in AgentTypeGraphCatalog.AllAboveGroundFocusOrgans)
 			{
 				yield return [species, organ, 0f];
 				yield return [species, organ, 1f];
@@ -59,7 +60,7 @@ public class AgentTypeParityTests
 	{
 		foreach (var species in SpeciesNames)
 		{
-			foreach (var organ in AgentTypeGraphCatalog.DefaultFocusOrgans)
+			foreach (var organ in AgentTypeGraphCatalog.AllAboveGroundFocusOrgans)
 				yield return [species, organ];
 		}
 	}

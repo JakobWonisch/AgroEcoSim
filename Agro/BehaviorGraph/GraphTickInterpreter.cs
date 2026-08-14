@@ -641,6 +641,9 @@ public static class GraphTickInterpreter
 		outs[(g, "flowerBud")] = WireValue.OfBool(o == OrganTypes.FlowerBud);
 		outs[(g, "flowerPadel")] = WireValue.OfBool(o == OrganTypes.FlowerPadel);
 		outs[(g, "flowerPetiol")] = WireValue.OfBool(o == OrganTypes.FlowerPetiol);
+		outs[(g, "flowerBaseBud")] = WireValue.OfBool(o == OrganTypes.FlowerBaseBud);
+		outs[(g, "fruit")] = WireValue.OfBool(o == OrganTypes.Fruit);
+		outs[(g, "rizomeMeristem")] = WireValue.OfBool(o == OrganTypes.RizomeMeristem);
 	}
 
 	static void WritePhaseInput(TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)

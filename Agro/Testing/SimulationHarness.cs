@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Agro.BehaviorGraph;
+using Agro.Plant.Flower;
 
 namespace Agro.Testing;
 
@@ -125,6 +126,7 @@ public static class SimulationHarness
 			{
 				Water_g = agentTypeOptions.InitialWater_g,
 				DominanceLevel = 1,
+				FlowerAgent = FlowerStateFor(agentTypeOptions.Organ),
 			};
 
 			plant.InstallSingleOrganSceneForTesting(agent);
@@ -154,10 +156,28 @@ public static class SimulationHarness
 			OrganTypes.Stem => (0.02f, 0.0025f),
 			OrganTypes.Meristem => (0.01f, 0.0025f),
 			OrganTypes.Bud => (0.005f, 0.0025f),
+			OrganTypes.FlowerStem => (0.02f, 0.0002f),
+			OrganTypes.FlowerMeristem => (0.005f, 0.0002f),
+			OrganTypes.FlowerBaseBud => (0.005f, 0.0002f),
+			OrganTypes.FlowerBud => (0.0007f, 0.00035f),
+			OrganTypes.FlowerPadel => (0.005f, 0.0025f),
+			OrganTypes.FlowerPetiol => (0.025f, 0.00025f),
+			OrganTypes.Fruit => (0.01f, 0.0025f),
+			OrganTypes.RizomeMeristem => (0.01f, 0.0025f),
 			_ => (0.01f, 0.0025f),
 		};
 		return (options.InitialLength ?? defaultLen, options.InitialRadius ?? defaultRad);
 	}
+
+	/// <summary>
+	/// Flower meristem / base-bud start as a flower-base (debth 0), matching commitToFlower.
+	/// Length stays below FlowerSettings.stemLengthVar so FlowerHelper.chaning does not fire.
+	/// </summary>
+	static Flower FlowerStateFor(OrganTypes organ) => organ switch
+	{
+		OrganTypes.FlowerMeristem or OrganTypes.FlowerBaseBud => new Flower { flowerBase = true, debth = 0 },
+		_ => new Flower(),
+	};
 
 	static void WriteTrace(AgroWorld world, SimulationRequest prepared, BehaviorRunMode mode, string outputPath)
 	{

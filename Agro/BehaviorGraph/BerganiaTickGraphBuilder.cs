@@ -405,9 +405,16 @@ public static class BerganiaTickGraphBuilder
 		var notRizome = b.Add("not-riz", "Not", 520, 40);
 		b.Connect(state, "isRizome", notRizome, "a");
 
-		var active = b.Add("active", "And", 760, 0);
-		b.Connect(starved, "out", active, "a");
-		b.Connect(notRizome, "out", active, "b");
+		var isFlower = WireIsBerganiaFlowerOrgan(b, organ);
+		var notFlower = b.Add("not-flower", "Not", 760, -40);
+		b.Connect(isFlower, "out", notFlower, "a");
+
+		var starvedNotRiz = b.Add("starved-not-riz", "And", 760, 0);
+		b.Connect(starved, "out", starvedNotRiz, "a");
+		b.Connect(notRizome, "out", starvedNotRiz, "b");
+		var active = b.Add("active", "And", 1000, 0);
+		b.Connect(starvedNotRiz, "out", active, "a");
+		b.Connect(notFlower, "out", active, "b");
 
 		var makeBudPetiole = b.Add("make-bud-pet", "Make Bud", 1000, 160);
 		var andPetiole = b.Add("and-pet", "And", 760, 160);
@@ -472,6 +479,24 @@ public static class BerganiaTickGraphBuilder
 			GraphNodePayload.FromComment("GAP: parent orientation on MakeBud not implemented in graph mode."));
 
 		return b.FinishWithActive(active, "out").Build();
+	}
+
+	/// <summary>
+	/// Bergania.Tick flower-organ list: FlowerHelper then return, so depletion/auxins do not run.
+	/// FlowerBud / FlowerBaseBud are not in that list.
+	/// </summary>
+	static string WireIsBerganiaFlowerOrgan(SubgraphBuilder b, string organ)
+	{
+		var or1 = b.Add("fl-or1", "Or", 280, -80);
+		b.Connect(organ, "flowerMeristem", or1, "a");
+		b.Connect(organ, "flowerStem", or1, "b");
+		var or2 = b.Add("fl-or2", "Or", 520, -80);
+		b.Connect(or1, "out", or2, "a");
+		b.Connect(organ, "flowerPadel", or2, "b");
+		var or3 = b.Add("fl-or3", "Or", 760, -80);
+		b.Connect(or2, "out", or3, "a");
+		b.Connect(organ, "flowerPetiol", or3, "b");
+		return or3;
 	}
 
 	static global::ExportedGraph BuildLifeSupportSubgraph(bool skipRhizome)

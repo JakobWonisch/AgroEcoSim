@@ -1,9 +1,9 @@
 namespace Agro.Testing;
 
 /// <summary>
-/// Maps above-ground organ types to Default-species behavior graph names that primarily
-/// gate on that organ. Shared graphs (life support, energy, auxins, wood) are included
-/// for every vegetative organ so a filtered single-agent node run still covers maintenance.
+/// Maps above-ground organ types to behavior-graph names that primarily gate on that organ.
+/// Shared maintenance graphs are included so a filtered single-agent node run still covers
+/// life support. Underground / seed organs are not in this catalog.
 /// </summary>
 public static class AgentTypeGraphCatalog
 {
@@ -13,6 +13,14 @@ public static class AgentTypeGraphCatalog
 		"Energy depletion",
 		"Auxins update",
 		"Wood lignify",
+	];
+
+	static readonly string[] SharedFlower =
+	[
+		.. SharedVegetative,
+		"Flower meristem growth",
+		"Flower stem growth",
+		"Flower reset death",
 	];
 
 	static readonly IReadOnlyDictionary<OrganTypes, string[]> DefaultByOrgan =
@@ -52,24 +60,30 @@ public static class AgentTypeGraphCatalog
 			],
 			[OrganTypes.FlowerStem] =
 			[
-				.. SharedVegetative,
+				.. SharedFlower,
 			],
 			[OrganTypes.FlowerMeristem] =
 			[
-				.. SharedVegetative,
+				.. SharedFlower,
 			],
 			[OrganTypes.FlowerBud] =
 			[
-				.. SharedVegetative,
+				.. SharedFlower,
 			],
 			[OrganTypes.FlowerPadel] =
 			[
-				.. SharedVegetative,
+				.. SharedFlower,
 			],
 			[OrganTypes.FlowerPetiol] =
 			[
-				.. SharedVegetative,
+				.. SharedFlower,
 			],
+			[OrganTypes.FlowerBaseBud] =
+			[
+				.. SharedFlower,
+			],
+			[OrganTypes.Fruit] = [.. SharedVegetative],
+			[OrganTypes.RizomeMeristem] = [.. SharedVegetative],
 		};
 
 	/// <summary>Primary vegetative organ types useful for Default-species agent-type parity.</summary>
@@ -80,6 +94,32 @@ public static class AgentTypeGraphCatalog
 		OrganTypes.Stem,
 		OrganTypes.Meristem,
 		OrganTypes.Bud,
+	];
+
+	/// <summary>Flower / inflorescence organs handled by FlowerHelper in Bergania ticks.</summary>
+	public static OrganTypes[] FlowerFocusOrgans { get; } =
+	[
+		OrganTypes.FlowerStem,
+		OrganTypes.FlowerMeristem,
+		OrganTypes.FlowerBud,
+		OrganTypes.FlowerPadel,
+		OrganTypes.FlowerPetiol,
+		OrganTypes.FlowerBaseBud,
+	];
+
+	/// <summary>Remaining above-ground organs (not roots/seed). Isolated tests skip underground agents.</summary>
+	public static OrganTypes[] OtherAboveGroundFocusOrgans { get; } =
+	[
+		OrganTypes.Fruit,
+		OrganTypes.RizomeMeristem,
+	];
+
+	/// <summary>Every above-ground organ type the isolated harness can install.</summary>
+	public static OrganTypes[] AllAboveGroundFocusOrgans { get; } =
+	[
+		.. DefaultFocusOrgans,
+		.. FlowerFocusOrgans,
+		.. OtherAboveGroundFocusOrgans,
 	];
 
 	public static IReadOnlyList<string> GraphsFor(OrganTypes organ)
