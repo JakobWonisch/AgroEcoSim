@@ -7,6 +7,180 @@ namespace Agro.Tests;
 public class SpeciesMorphologyTests
 {
 	[Fact]
+	public void UiSpeciesPayload_DoesNotWipeBergeniaRhizomeAndChaining()
+	{
+		var ui = new SpeciesSettings
+		{
+			Name = "Bergenia Cordifolia",
+			Height = 12f,
+			LateralsPerNode = 2,
+			LeafLength = 0.24f,
+		};
+		var resolved = SpeciesMorphology.Resolve("Bergenia Cordifolia", new SimulationRequest { Species = [ui] });
+		Assert.Equal(0.04f, resolved.RizomeLength);
+		Assert.Equal(0.0005f, resolved.pExpandRizome);
+		Assert.Equal(0.4f, resolved.crownPitch);
+		Assert.Equal(0.015f, resolved.pChaningSeaonns[0]);
+		Assert.Equal(0.24f, resolved.LeafLength);
+		Assert.Equal(12f, resolved.Height);
+	}
+
+	[Fact]
+	public void UiSerializeJson_DoesNotWipeGeraniumRhizome()
+	{
+		const string json = """
+			{
+			  "Name": "Geranium Macrorrhizum",
+			  "Height": 12,
+			  "LateralsPerNode": 2,
+			  "LeafLength": 0.06,
+			  "LeafRadius": 0.03,
+			  "PetioleLength": 0.15
+			}
+			""";
+		var ui = System.Text.Json.JsonSerializer.Deserialize(json, AgroJsonSerializerContext.Default.SpeciesSettings)
+			?? throw new InvalidOperationException("deserialize failed");
+		Assert.Equal(0.005f, ui.pExpandRizome);
+		Assert.Equal(0.01f, ui.RizomeLength);
+
+		var resolved = SpeciesMorphology.Resolve("Geranium Macrorrhizum", new SimulationRequest { Species = [ui] });
+		Assert.Equal(0.0012f, resolved.pExpandRizome);
+		Assert.Equal(0.045f, resolved.RizomeLength);
+		Assert.Equal(0.38f, resolved.crownPitch);
+		Assert.Equal(0.06f, resolved.LeafLength);
+	}
+
+	[Fact]
+	public void SpeciesConfiguration_DoesNotChangeLegacyInitMorphology()
+	{
+		var ui = new SpeciesSettings
+		{
+			Name = "Bergenia Cordifolia",
+			Height = 12f,
+			LeafLength = 0.24f,
+		};
+
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
+		config = config
+			.Where(e => e.Id != BerganiaTickGraphBuilder.ConfigIds.PExpandRizome)
+			.Append(new BehaviorConfigUploadEntry
+			{
+				Id = BerganiaTickGraphBuilder.ConfigIds.PExpandRizome,
+				Key = "P expand rhizome",
+				Label = "P expand rhizome",
+				Type = "number",
+				Value = BehaviorGraphJson.Number(0.99f),
+			})
+			.ToList();
+
+		var profile = PlantSpeciesProfile.Resolve("Bergenia Cordifolia", new SimulationRequest
+		{
+			Species = [ui],
+			SpeciesConfiguration = new Dictionary<string, List<BehaviorConfigUploadEntry>>
+			{
+				["Bergenia Cordifolia"] = config,
+			},
+		});
+
+		Assert.Equal(0.0005f, profile.Morphology.pExpandRizome);
+		Assert.Equal(0.04f, profile.Morphology.RizomeLength);
+		Assert.Equal(0.4f, profile.Morphology.crownPitch);
+		Assert.Equal(0.015f, profile.Morphology.pChaningSeaonns[0]);
+		Assert.Equal(0.99f, profile.BehaviorConfiguration[BerganiaTickGraphBuilder.ConfigIds.PExpandRizome].NumberValue);
+	}
+
+	[Fact]
+	public void UiSerializeJson_ConfigBackedFields_DoNotOverrideLegacyInit()
+	{
+		const string json = """
+			{
+			  "Name": "Bergenia Cordifolia",
+			  "Height": 0.04,
+			  "LeafLength": 0.24,
+			  "pExpandRizome": 0.99,
+			  "RizomeLength": 0.5,
+			  "crownPitch": 0.1,
+			  "pChaningSeaonns": [0.0015, 0.0005, 0.001, 0]
+			}
+			""";
+		var ui = System.Text.Json.JsonSerializer.Deserialize(json, AgroJsonSerializerContext.Default.SpeciesSettings)
+			?? throw new InvalidOperationException("deserialize failed");
+		var resolved = SpeciesMorphology.Resolve("Bergenia Cordifolia", new SimulationRequest { Species = [ui] });
+		Assert.Equal(0.0005f, resolved.pExpandRizome);
+		Assert.Equal(0.04f, resolved.RizomeLength);
+		Assert.Equal(0.4f, resolved.crownPitch);
+		Assert.Equal(0.015f, resolved.pChaningSeaonns[0]);
+	}
+
+	[Fact]
+	public void Bergenia_UiSpeciesPayload_NodeMatchesCatalogStructureAt200Hours()
+	{
+		const int totalHours = 200;
+		var entry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Bergenia Cordifolia");
+		var graphs = entry.Graphs.Select(g => new SpeciesGraphUploadEntry
+		{
+			Id = g.Id,
+			Name = g.Name,
+			Graph = g.Graph,
+		}).ToList();
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
+
+		SimulationRequest Request(SpeciesSettings[]? species) => new()
+		{
+			Seed = 42,
+			TotalHours = totalHours,
+			HoursPerTick = 1,
+			Plants = [new PlantRequest { SpeciesName = "Bergenia Cordifolia" }],
+			Species = species,
+			SpeciesGraphs = new Dictionary<string, List<SpeciesGraphUploadEntry>>
+			{
+				["Bergenia Cordifolia"] = graphs,
+			},
+			SpeciesConfiguration = new Dictionary<string, List<BehaviorConfigUploadEntry>>
+			{
+				["Bergenia Cordifolia"] = config,
+			},
+		};
+
+		// Frontend serialize() after loadPredefined sends HUD morphology, but omits
+		// rhizome / seasonal chaining. Those must stay on the Init() template.
+		var ui = new SpeciesSettings
+		{
+			Name = "Bergenia Cordifolia",
+			Height = 0.04f,
+			NodeDistance = 0f,
+			NodeDistanceVar = 0f,
+			LateralsPerNode = 2,
+			LeafLength = 0.24f,
+			LeafRadius = 0.09f,
+			LeafGrowthTime = 24 * 7 * 12,
+			PetioleLength = 0.005f,
+			PetioleRadius = 0.004f,
+		};
+		Assert.Equal(0.005f, ui.pExpandRizome);
+		Assert.Equal(0.0015f, ui.pChaningSeaonns[0]);
+
+		var catalogPath = Path.Combine(Path.GetTempPath(), $"berg-cat-{Guid.NewGuid():N}.jsonl");
+		var uiPath = Path.Combine(Path.GetTempPath(), $"berg-ui-{Guid.NewGuid():N}.jsonl");
+		try
+		{
+			SimulationHarness.RecordTrace(Request(null), BehaviorRunMode.Node, catalogPath, maxHours: totalHours);
+			SimulationHarness.RecordTrace(Request([ui]), BehaviorRunMode.Node, uiPath, maxHours: totalHours);
+			var catalog = SimulationHarness.ReadSteps(catalogPath).Last().Plants[0].AboveGround;
+			var fromUi = SimulationHarness.ReadSteps(uiPath).Last().Plants[0].AboveGround;
+			Assert.Equal(catalog.Count(a => a.IsRizome), fromUi.Count(a => a.IsRizome));
+			Assert.Equal(catalog.Count(a => a.Organ == "Leaf"), fromUi.Count(a => a.Organ == "Leaf"));
+		}
+		finally
+		{
+			if (File.Exists(catalogPath)) File.Delete(catalogPath);
+			if (File.Exists(uiPath)) File.Delete(uiPath);
+		}
+	}
+
+	[Fact]
 	public void FreshPredefinedClone_MatchesSharedTemplateAfterInit()
 	{
 		var shared = SpeciesSettings.Predefined.First(s => s.Name == "Persea americana");

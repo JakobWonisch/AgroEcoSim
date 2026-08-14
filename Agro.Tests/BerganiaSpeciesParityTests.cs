@@ -304,7 +304,7 @@ public class BerganiaSpeciesParityTests
 	}
 
 	[Fact]
-	public void BergeniaCordifolia_Node_At200Hours_WithoutSpeciesConfiguration_StaysAtInitialLeaves()
+	public void BergeniaCordifolia_Node_At200Hours_WithoutSpeciesConfiguration_ChainsFromMorphology()
 	{
 		const int totalHours = 200;
 		var baseRequest = BuildBerganiaNodeRequest("Bergenia Cordifolia", totalHours: totalHours, hoursPerTick: 1);
@@ -322,7 +322,8 @@ public class BerganiaSpeciesParityTests
 			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
 			var step = SimulationHarness.ReadSteps(nodePath).Last();
 			var leafCount = step.Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
-			Assert.Equal(2, leafCount);
+			Assert.True(leafCount > 2,
+				$"Meristem chaining should use species pChaningSeaonns when graph config is omitted; got {leafCount} leaves.");
 		}
 		finally
 		{

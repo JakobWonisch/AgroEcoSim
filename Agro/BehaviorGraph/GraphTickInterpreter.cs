@@ -140,7 +140,7 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.ConfigurationArrayInput:
 			{
 				var index = FirstFloat(node.Inputs, "index", outs);
-				var value = BehaviorGraphConfig.ArrayElement(ctx.BehaviorConfiguration, node.ConfigId ?? "", index);
+				var value = ResolveConfigArrayElement(node.ConfigId, index, ctx);
 				outs[(g, "out")] = WireValue.OfFloat(value);
 				break;
 			}
@@ -687,14 +687,11 @@ public static class GraphTickInterpreter
 		}
 
 		var plant = ctx.Formation!.Plant;
+		var species = plant.Parameters;
 		var ageHours = ctx.Timestep * plant.World.HoursPerTick;
 		var ageTemp = ageHours % (365f * 24f);
-		var floweringStart = BehaviorGraphConfig.Number(
-			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.FloweringStartAgeHours,
-			DefaultSpeciesGraphBuilder.DefaultTickConstants.FloweringStartAgeHours);
-		var floweringEnd = BehaviorGraphConfig.Number(
-			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.FloweringEndAgeHours,
-			DefaultSpeciesGraphBuilder.DefaultTickConstants.FloweringEndAgeHours);
+		var floweringStart = species.FloweringStartAgeHours;
+		var floweringEnd = species.FloweringEndAgeHours;
 
 		SeasonalPhase phase;
 		if (ageTemp < floweringStart)
@@ -879,9 +876,51 @@ public static class GraphTickInterpreter
 
 	static float ResolveConfigNumber(string? configId, TickEvalContext ctx)
 	{
+		// Graphs read the configuration panel (built to match Init). Legacy ticks
+		// keep Plant.Parameters from the predefined template and never see this.
+		if (BehaviorGraphConfig.TryNumber(ctx.BehaviorConfiguration, configId ?? "", out var fromConfig))
+			return fromConfig;
 		if (ctx.HasFormation && TryMorphologyNumber(ctx.Formation!.Plant.Parameters, configId, out var morph))
 			return morph;
-		return BehaviorGraphConfig.Number(ctx.BehaviorConfiguration, configId ?? "");
+		return 0f;
+	}
+
+	static float ResolveConfigArrayElement(string? configId, float index, TickEvalContext ctx)
+	{
+		// DominanceFactors on the wire is often the uninitialized stub [0.7]; legacy uses the Init table.
+		if (configId == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors
+			&& ctx.HasFormation
+			&& TryMorphologyArray(ctx.Formation!.Plant.Parameters, configId, index, out var dominance))
+			return dominance;
+
+		if (BehaviorGraphConfig.TryArrayElement(ctx.BehaviorConfiguration, configId ?? "", index, out var fromConfig))
+			return fromConfig;
+		if (ctx.HasFormation && TryMorphologyArray(ctx.Formation!.Plant.Parameters, configId, index, out var morph))
+			return morph;
+		return 0f;
+	}
+
+	static bool TryMorphologyArray(SpeciesSettings species, string? configId, float index, out float value)
+	{
+		value = 0f;
+		if (string.IsNullOrEmpty(configId))
+			return false;
+		float[]? arr = configId switch
+		{
+			BerganiaTickGraphBuilder.ConfigIds.PChaining => species.pChaningSeaonns,
+			BerganiaTickGraphBuilder.ConfigIds.PFlowering => species.pFloweringSeaonns,
+			DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors => species.DominanceFactors,
+			_ => null,
+		};
+		if (arr is not { Length: > 0 })
+			return false;
+		var i = (int)MathF.Floor(index);
+		if (i < 0)
+			i = 0;
+		if (i >= arr.Length)
+			i = arr.Length - 1;
+		value = arr[i];
+		return true;
 	}
 
 	static bool TryMorphologyNumber(SpeciesSettings species, string? configId, out float value)

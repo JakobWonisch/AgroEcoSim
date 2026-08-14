@@ -70,32 +70,47 @@ export function toWireEntries(entries: BehaviorConfigEntry[]): BehaviorConfigWir
     });
 }
 
+function pick(obj: Record<string, unknown>, ...keys: string[]): unknown {
+    for (const key of keys) {
+        if (obj[key] !== undefined)
+            return obj[key];
+    }
+    return undefined;
+}
+
 export function fromWireEntries(wire: BehaviorConfigWireEntry[] | undefined): BehaviorConfigEntry[] {
     if (!Array.isArray(wire)) return [];
     return wire
-        .filter(e => e && typeof e.Id === 'string')
+        .map(e => e as unknown as Record<string, unknown>)
+        .filter(e => e && typeof pick(e, 'Id', 'id') === 'string')
         .map(e => {
-            const label = typeof e.Label === 'string' && e.Label.trim()
-                ? e.Label.trim()
-                : (typeof e.Key === 'string' ? e.Key.trim() : 'config');
-            const usage = typeof e.Usage === 'string' && e.Usage.trim() ? e.Usage.trim() : undefined;
+            const id = String(pick(e, 'Id', 'id'));
+            const rawLabel = pick(e, 'Label', 'label');
+            const rawKey = pick(e, 'Key', 'key');
+            const label = typeof rawLabel === 'string' && rawLabel.trim()
+                ? rawLabel.trim()
+                : (typeof rawKey === 'string' ? rawKey.trim() : 'config');
+            const rawUsage = pick(e, 'Usage', 'usage');
+            const usage = typeof rawUsage === 'string' && rawUsage.trim() ? rawUsage.trim() : undefined;
+            const rawType = pick(e, 'Type', 'type');
             const type: BehaviorConfigType =
-                e.Type === 'boolean' ? 'boolean'
-                    : e.Type === 'number[]' ? 'number[]'
+                rawType === 'boolean' ? 'boolean'
+                    : rawType === 'number[]' ? 'number[]'
                         : 'number';
+            const rawValue = pick(e, 'Value', 'value');
             let value: number | boolean | number[];
             if (type === 'boolean') {
-                value = Boolean(e.Value);
+                value = Boolean(rawValue);
             } else if (type === 'number[]') {
-                value = Array.isArray(e.Value)
-                    ? e.Value.map(v => Number(v) || 0)
+                value = Array.isArray(rawValue)
+                    ? rawValue.map(v => Number(v) || 0)
                     : [];
             } else {
-                value = Number(e.Value) || 0;
+                value = Number(rawValue) || 0;
             }
             return {
-                id: e.Id,
-                key: typeof e.Key === 'string' && e.Key.trim() ? e.Key.trim() : label,
+                id,
+                key: typeof rawKey === 'string' && rawKey.trim() ? rawKey.trim() : label,
                 label,
                 usage,
                 type,
