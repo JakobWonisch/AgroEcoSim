@@ -17,7 +17,7 @@ The C# `Tick*` paths (`TickDefault`, Bergania/Geranium ticks), `SeedAgent`, and 
 
 - Emulate legacy in **behavior graphs** and graph-side config resolution
 - Keep `SpeciesMorphology.Resolve` (no-graphs / legacy) on the **old** replace-or-predefined path
-- Use overlay morphology only for **node-graph** resolution (`ResolveForNodeGraphs` / `PlantSpeciesProfile`)
+- Build node-graph morphology from `behaviorConfiguration` via `SpeciesSettingsFromConfiguration` in `PlantSpeciesProfile`
 - If legacy and graphs disagree, change the **graph** (or tests), not Tick*
 
 ## Exceptions

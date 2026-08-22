@@ -542,7 +542,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 							LengthVar = species.NodeDistance + plant.RNG.NextFloatVar(species.NodeDistanceVar);
 
 							if (species.LateralsPerNode > 0)
-								CreateLeaves(this, plant, LateralAngle + species.LateralRoll, agentID);
+								CreateLeaves(this, plant, LateralAngle + species.LateralRoll, agentID, MorphologyParams.LeafLayout(species));
 						}
 					}
 				}
@@ -664,8 +664,8 @@ public partial struct AboveGroundAgent : IPlantAgent
 								Water_g *= 0.8f;
 								if (species.LateralsPerNode > 0)
 								{
-									CreateLeaves(this, plant, lateralPitch, meristem1);
-									CreateLeaves(this, plant, lateralPitch, meristem2);
+									CreateLeaves(this, plant, lateralPitch, meristem1, MorphologyParams.LeafLayout(species));
+									CreateLeaves(this, plant, lateralPitch, meristem2, MorphologyParams.LeafLayout(species));
 								}
 							}
 						}
@@ -677,7 +677,7 @@ public partial struct AboveGroundAgent : IPlantAgent
 							Water_g *= 0.9f;
 
 							if (species.LateralsPerNode > 0)
-								CreateLeaves(this, plant, lateralPitch, meristem);
+								CreateLeaves(this, plant, lateralPitch, meristem, MorphologyParams.LeafLayout(species));
 						}
 					}
 				}
@@ -748,46 +748,44 @@ public partial struct AboveGroundAgent : IPlantAgent
 		ParentRadiusAtBirth = formation.GetBaseRadius(Parent);
 		Length = 2.8f * Radius;
 	}
-	[M(AI)] internal static void CreateFirstLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem) => CreateLeavesBase(parent, plant, lateralAngle, meristem, 1f, 1f);
-	[M(AI)] internal readonly void CreateLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem) => CreateLeavesBase(parent, plant, lateralAngle, meristem, PreviousDayEnvResourcesInvariant, PreviousDayProductionInvariant);
-	static void CreateLeavesBase(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, float initialResources, float initialProduction)
+	[M(AI)] internal static void CreateFirstLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, LeafLayoutParams layout) => CreateLeavesBase(parent, plant, lateralAngle, meristem, layout, 1f, 1f);
+	[M(AI)] internal readonly void CreateLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, LeafLayoutParams layout) => CreateLeavesBase(parent, plant, lateralAngle, meristem, layout, PreviousDayEnvResourcesInvariant, PreviousDayProductionInvariant);
+	static void CreateLeavesBase(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, LeafLayoutParams layout, float initialResources, float initialProduction)
 	{
-		var species = plant.Parameters;
-		var angleStep = 2f * MathF.PI / species.LateralsPerNode;
-		for (int l = 0; l < species.LateralsPerNode; ++l)
+		var angleStep = 2f * MathF.PI / layout.LateralsPerNode;
+		for (int l = 0; l < layout.LateralsPerNode; ++l)
 		{
-			var roll = plant.RNG.NextFloatVar(species.LateralRollVar);
-			var pitch = plant.RNG.NextFloatVar(species.LateralPitchVar);
-			var orientation = parent.Orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitX, l * angleStep + lateralAngle) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -plant.Parameters.LateralPitch);
+			var roll = plant.RNG.NextFloatVar(layout.LateralRollVar);
+			var pitch = plant.RNG.NextFloatVar(layout.LateralPitchVar);
+			var orientation = parent.Orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitX, l * angleStep + lateralAngle) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -layout.LateralPitch);
 			orientation = TurnUpwards(orientation) * Quaternion.CreateFromAxisAngle(Vector3.UnitX, roll) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, pitch);
 			var petioleIdx = plant.AG.Birth(new(plant, meristem, OrganTypes.Petiole, orientation, parent.Energy * 0.1f, initialResources: initialResources, initialProduction: initialProduction) { DominanceLevel = parent.DominanceLevel, ParentRadiusAtBirth = parent.Radius }); //leaf stem
 			parent.Energy *= 0.9f;
 
-			var leafPitchVar = plant.RNG.NextFloatVar(species.LateralPitchVar);
-			orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, leafPitchVar - species.LeafPitch);
+			var leafPitchVar = plant.RNG.NextFloatVar(layout.LateralPitchVar);
+			orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, leafPitchVar - layout.LeafPitch);
 
 			plant.AG.Birth(new(plant, petioleIdx, OrganTypes.Leaf, orientation, parent.Energy * 0.1f, initialResources: initialResources, initialProduction: initialProduction) { DominanceLevel = parent.DominanceLevel, ParentRadiusAtBirth = float.MaxValue }); //leaf
 			parent.Energy *= 0.9f;
 
 		}
 	}
-	[M(AI)] internal static void CreateFirstFlowerBaseLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem) => CreateFlowerBaseLeavesBase(parent, plant, lateralAngle, meristem, 1f, 1f);
-	[M(AI)] internal readonly void CreateFlowerBaseLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem) => CreateFlowerBaseLeavesBase(parent, plant, lateralAngle, meristem, PreviousDayEnvResourcesInvariant, PreviousDayProductionInvariant);
-	static void CreateFlowerBaseLeavesBase(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, float initialResources, float initialProduction)
+	[M(AI)] internal static void CreateFirstFlowerBaseLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, LeafLayoutParams layout) => CreateFlowerBaseLeavesBase(parent, plant, lateralAngle, meristem, layout, 1f, 1f);
+	[M(AI)] internal readonly void CreateFlowerBaseLeaves(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, LeafLayoutParams layout) => CreateFlowerBaseLeavesBase(parent, plant, lateralAngle, meristem, layout, PreviousDayEnvResourcesInvariant, PreviousDayProductionInvariant);
+	static void CreateFlowerBaseLeavesBase(AboveGroundAgent parent, PlantFormation2 plant, float lateralAngle, int meristem, LeafLayoutParams layout, float initialResources, float initialProduction)
 	{
-		var species = plant.Parameters;
-		var angleStep = 2f * MathF.PI / species.LateralsPerNode;
-		for (int l = 0; l < species.LateralsPerNode; ++l)
+		var angleStep = 2f * MathF.PI / layout.LateralsPerNode;
+		for (int l = 0; l < layout.LateralsPerNode; ++l)
 		{
-			var roll = plant.RNG.NextFloatVar(species.LateralRollVar);
-			var pitch = plant.RNG.NextFloatVar(species.LateralPitchVar);
-			var orientation = parent.Orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitX, l * angleStep + lateralAngle) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -plant.Parameters.LateralPitch);
+			var roll = plant.RNG.NextFloatVar(layout.LateralRollVar);
+			var pitch = plant.RNG.NextFloatVar(layout.LateralPitchVar);
+			var orientation = parent.Orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitX, l * angleStep + lateralAngle) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, -layout.LateralPitch);
 			orientation = TurnUpwards(orientation) * Quaternion.CreateFromAxisAngle(Vector3.UnitX, roll) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, pitch);
 			var petioleIdx = plant.AG.Birth(new(plant, meristem, OrganTypes.Petiole, orientation, parent.Energy * 0.1f, initialResources: initialResources, initialProduction: initialProduction) { DominanceLevel = parent.DominanceLevel, ParentRadiusAtBirth = parent.Radius, FlowerAgent = new Flower() { flowerBase = true } }); //leaf stem
 			parent.Energy *= 0.9f;
 
-			var leafPitchVar = plant.RNG.NextFloatVar(species.LateralPitchVar);
-			orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, leafPitchVar - species.LeafPitch);
+			var leafPitchVar = plant.RNG.NextFloatVar(layout.LateralPitchVar);
+			orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitZ, leafPitchVar - layout.LeafPitch);
 
 			plant.AG.Birth(new(plant, petioleIdx, OrganTypes.Leaf, orientation, parent.Energy * 0.1f, initialResources: initialResources, initialProduction: initialProduction) { DominanceLevel = parent.DominanceLevel, ParentRadiusAtBirth = float.MaxValue, FlowerAgent = new Flower() { flowerBase = true }, LengthVar = 0.001f, RadiusVar = 0.0005f }); //leaf
 			parent.Energy *= 0.9f;
@@ -829,10 +827,10 @@ public partial struct AboveGroundAgent : IPlantAgent
 		return orientation;
 	}
 
-	public readonly Quaternion RandomOrientation(PlantFormation2 plant, SpeciesSettings species, Quaternion orientation)
+	public readonly Quaternion RandomOrientation(PlantFormation2 plant, TwigOrientationParams twig, Quaternion orientation)
 	{
-		var range = 0.2f * MathF.PI * (species.TwigsBendingLevel * DominanceLevel - species.TwigsBendingApical);
-		var factor = species.TwigsBending * range;
+		var range = 0.2f * MathF.PI * (twig.TwigsBendingLevel * DominanceLevel - twig.TwigsBendingApical);
+		var factor = twig.TwigsBending * range;
 		var a = plant.RNG.NextFloatVar(factor);
 		orientation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, a);
 		var y = Vector3.Transform(Vector3.UnitX, orientation).Y;
@@ -840,10 +838,13 @@ public partial struct AboveGroundAgent : IPlantAgent
 		if (y < 0)
 			orientation = Quaternion.Slerp(orientation, PlantFormation2.AdjustUpBase(orientation, up: true), plant.RNG.NextPositiveFloat(-y));
 		else //if (species.ShootsGravitaxis > 0)
-			orientation = Quaternion.Slerp(orientation, PlantFormation2.AdjustUpBase(orientation, up: true), plant.RNG.NextPositiveFloat(species.ShootsGravitaxis));
+			orientation = Quaternion.Slerp(orientation, PlantFormation2.AdjustUpBase(orientation, up: true), plant.RNG.NextPositiveFloat(twig.ShootsGravitaxis));
 
 		return orientation;
 	}
+
+	public readonly Quaternion RandomOrientation(PlantFormation2 plant, SpeciesSettings species, Quaternion orientation)
+		=> RandomOrientation(plant, MorphologyParams.Twig(species), orientation);
 
 	public bool CompleteDay(uint timestep, byte ticksPerDay)
 	{

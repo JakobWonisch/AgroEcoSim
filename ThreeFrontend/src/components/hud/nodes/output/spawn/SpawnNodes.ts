@@ -61,6 +61,8 @@ export class SpawnRhizomeNode extends SpawnTriggerNode {
         super("Spawn Rhizome");
         this.addInput("yawOffset", new ClassicPreset.Input(numSocket, "yawOffset"));
         this.addInput("rootYawOffset", new ClassicPreset.Input(numSocket, "rootYawOffset"));
+        this.addInput("rizomeLength", new ClassicPreset.Input(numSocket, "rizome length"));
+        this.addInput("rizomeRadius", new ClassicPreset.Input(numSocket, "rizome radius"));
         this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }

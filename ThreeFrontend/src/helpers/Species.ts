@@ -7,150 +7,6 @@ import { fromWireEntries, toWireEntries } from "../components/hud/nodes/behavior
 const DegToRad = Math.PI / 180.0;
 const RadToDeg = 180.0 / Math.PI;
 
-/** Morphology-only predefined literals not represented in behavior configuration. */
-const PREDEFINED_MORPHOLOGY_SUPPLEMENTS: Record<string, Partial<{
-    height: number;
-    leafGrowthTime: number;
-    lateralsPerNode: number;
-    leafLengthVar: number;
-    petioleLengthVar: number;
-    leafRadiusVar: number;
-    petioleRadiusVar: number;
-    leafGrowthTimeVar: number;
-}>> = {
-    "Persea americana": { height: 12, leafGrowthTime: 720, lateralsPerNode: 4 },
-    "Geranium Macrorrhizum": { height: 0.3, leafGrowthTime: 24 * 7, leafLengthVar: 0.01, petioleLengthVar: 0.05 },
-    "Geranium × Cantabrigiense": {
-        height: 0.25,
-        leafGrowthTime: 24 * 7,
-        leafLengthVar: 0.01,
-        petioleLengthVar: 0.03,
-        leafRadiusVar: 0.005,
-        petioleRadiusVar: 0.0004,
-        leafGrowthTimeVar: 24 * 2,
-    },
-    "Bergenia Cordifolia": { height: 0.04, leafGrowthTime: 24 * 7 * 12 },
-};
-
-/** Config ids from DefaultSpeciesGraphBuilder / BerganiaTickGraphBuilder. */
-const ConfigIds = {
-    leafLength: "default-config-leaf-length",
-    leafRadius: "default-config-leaf-radius",
-    petioleLength: "default-config-petiole-length",
-    petioleRadius: "default-config-petiole-radius",
-    nodeDistance: "default-config-node-distance",
-    nodeDistanceVar: "default-config-node-distance-var",
-    monopodialFactor: "default-config-monopodial-factor",
-    dominanceFactor: "default-config-dominance-factor",
-    auxinsProduction: "default-config-auxins-production",
-    lateralsPerNode: "default-config-laterals-per-node",
-    lateralRoll: "default-config-lateral-roll",
-    lateralRollVar: "default-config-lateral-roll-var",
-    lateralPitch: "default-config-lateral-pitch",
-    lateralPitchVar: "default-config-lateral-pitch-var",
-    leafPitch: "default-config-leaf-pitch",
-    twigsBending: "default-config-twig-bending",
-    twigsBendingLevel: "default-config-twig-bending-level",
-    twigsBendingApical: "default-config-twig-bending-apical",
-    shootsGravitaxis: "default-config-shoots-gravitaxis",
-    woodGrowthTime: "default-config-wood-growth-time",
-    woodGrowthTimeVar: "default-config-wood-growth-time-var",
-    rizomeLength: "default-config-rizome-length",
-    rizomeRadius: "default-config-rizome-radius",
-    petioleAgeBudMinHours: "default-config-petiole-age-bud-min-hours",
-    floweringStartAgeHours: "default-config-flowering-start-age-hours",
-    floweringEndAgeHours: "default-config-flowering-end-age-hours",
-    growthFactor: "default-config-growth-factor",
-    maxRadius: "default-config-max-radius",
-    pNewCrown: "default-config-p-new-crown",
-    pExpandRizome: "default-config-p-expand-rizome",
-    rizomeMaxDepth: "default-config-rizome-max-depth",
-    crownPitch: "default-config-crown-pitch",
-    pChaining: "default-config-p-chaining",
-    pFlowering: "default-config-p-flowering",
-} as const;
-
-function configNumber(entries: BehaviorConfigEntry[], id: string): number | undefined {
-    const entry = entries.find(e => e.id === id);
-    return entry?.type === "number" && typeof entry.value === "number" ? entry.value : undefined;
-}
-
-function configArray(entries: BehaviorConfigEntry[], id: string): number[] | undefined {
-    const entry = entries.find(e => e.id === id);
-    return entry?.type === "number[]" && Array.isArray(entry.value)
-        ? entry.value.map(v => Number(v) || 0)
-        : undefined;
-}
-
-/** SpeciesSettings fields that only exist on the configuration panel (no HUD sliders). */
-function configBackedSpeciesSettings(entries: BehaviorConfigEntry[]): Record<string, number | number[]> {
-    const n = (id: string) => configNumber(entries, id);
-    const a = (id: string) => configArray(entries, id);
-    const out: Record<string, number | number[]> = {};
-    const setNum = (key: string, id: string) => {
-        const v = n(id);
-        if (v !== undefined) out[key] = v;
-    };
-    const setArr = (key: string, id: string) => {
-        const v = a(id);
-        if (v !== undefined && v.length > 0) out[key] = v;
-    };
-    setNum("RizomeLength", ConfigIds.rizomeLength);
-    setNum("RizomeRadius", ConfigIds.rizomeRadius);
-    setNum("FloweringStartAgeHours", ConfigIds.floweringStartAgeHours);
-    setNum("FloweringEndAgeHours", ConfigIds.floweringEndAgeHours);
-    setNum("growthFactor", ConfigIds.growthFactor);
-    setNum("MaxRadius", ConfigIds.maxRadius);
-    setNum("pNewCrown", ConfigIds.pNewCrown);
-    setNum("pExpandRizome", ConfigIds.pExpandRizome);
-    setNum("RizomeMaxDepth", ConfigIds.rizomeMaxDepth);
-    setNum("crownPitch", ConfigIds.crownPitch);
-    setArr("pChaningSeaonns", ConfigIds.pChaining);
-    setArr("pFloweringSeaonns", ConfigIds.pFlowering);
-    // Bergania reuses petiole-age-bud-min-hours as MaxLeaveAge.
-    if (n(ConfigIds.pExpandRizome) !== undefined)
-        setNum("MaxLeaveAge", ConfigIds.petioleAgeBudMinHours);
-    return out;
-}
-
-function applyBehaviorConfigurationToMorphology(species: Species, entries: BehaviorConfigEntry[]) {
-    const n = (id: string) => configNumber(entries, id);
-    const radToDeg = (v: number) => v * RadToDeg;
-
-    if (n(ConfigIds.leafLength) !== undefined) species.leafLength.value = n(ConfigIds.leafLength)!;
-    if (n(ConfigIds.leafRadius) !== undefined) species.leafRadius.value = n(ConfigIds.leafRadius)!;
-    if (n(ConfigIds.petioleLength) !== undefined) species.petioleLength.value = n(ConfigIds.petioleLength)!;
-    if (n(ConfigIds.petioleRadius) !== undefined) species.petioleRadius.value = n(ConfigIds.petioleRadius)!;
-    if (n(ConfigIds.nodeDistance) !== undefined) species.nodeDistance.value = n(ConfigIds.nodeDistance)!;
-    if (n(ConfigIds.nodeDistanceVar) !== undefined) species.nodeDistanceVar.value = n(ConfigIds.nodeDistanceVar)!;
-    if (n(ConfigIds.monopodialFactor) !== undefined) species.monopodialFactor.value = n(ConfigIds.monopodialFactor)!;
-    if (n(ConfigIds.dominanceFactor) !== undefined) species.dominanceFactor.value = n(ConfigIds.dominanceFactor)!;
-    if (n(ConfigIds.auxinsProduction) !== undefined) species.auxinsProduction.value = n(ConfigIds.auxinsProduction)!;
-    if (n(ConfigIds.lateralsPerNode) !== undefined) species.lateralsPerNode.value = n(ConfigIds.lateralsPerNode)!;
-    if (n(ConfigIds.lateralPitch) !== undefined) species.lateralPitchDeg.value = radToDeg(n(ConfigIds.lateralPitch)!);
-    if (n(ConfigIds.lateralPitchVar) !== undefined) species.lateralPitchDegVar.value = radToDeg(n(ConfigIds.lateralPitchVar)!);
-    if (n(ConfigIds.lateralRoll) !== undefined) species.lateralRollDeg.value = radToDeg(n(ConfigIds.lateralRoll)!);
-    if (n(ConfigIds.lateralRollVar) !== undefined) species.lateralRollDegVar.value = radToDeg(n(ConfigIds.lateralRollVar)!);
-    if (n(ConfigIds.leafPitch) !== undefined) species.leafPitchDeg.value = radToDeg(n(ConfigIds.leafPitch)!);
-    if (n(ConfigIds.twigsBending) !== undefined) species.twigsBending.value = n(ConfigIds.twigsBending)!;
-    if (n(ConfigIds.twigsBendingLevel) !== undefined) species.bendingByLevel.value = n(ConfigIds.twigsBendingLevel)!;
-    if (n(ConfigIds.twigsBendingApical) !== undefined) species.twigsBendingApical.value = n(ConfigIds.twigsBendingApical)!;
-    // ShootsGravitaxis in graph config is the post-Init effective value (0.08); morphology Init applies ×0.4 again.
-    if (n(ConfigIds.shootsGravitaxis) !== undefined) species.shootsGravitaxis.value = n(ConfigIds.shootsGravitaxis)!;
-    if (n(ConfigIds.woodGrowthTime) !== undefined) species.woodGrowthTime.value = n(ConfigIds.woodGrowthTime)!;
-    if (n(ConfigIds.woodGrowthTimeVar) !== undefined) species.woodGrowthTimeVar.value = n(ConfigIds.woodGrowthTimeVar)!;
-
-    const supplement = PREDEFINED_MORPHOLOGY_SUPPLEMENTS[species.name.peek()];
-    if (supplement?.height !== undefined) species.height.value = supplement.height;
-    if (supplement?.leafGrowthTime !== undefined) species.leafGrowthTime.value = supplement.leafGrowthTime;
-    if (supplement?.lateralsPerNode !== undefined) species.lateralsPerNode.value = supplement.lateralsPerNode;
-    if (supplement?.leafLengthVar !== undefined) species.leafLengthVar.value = supplement.leafLengthVar;
-    if (supplement?.petioleLengthVar !== undefined) species.petioleLengthVar.value = supplement.petioleLengthVar;
-    if (supplement?.leafRadiusVar !== undefined) species.leafRadiusVar.value = supplement.leafRadiusVar;
-    if (supplement?.petioleRadiusVar !== undefined) species.petioleRadiusVar.value = supplement.petioleRadiusVar;
-    if (supplement?.leafGrowthTimeVar !== undefined) species.leafGrowthTimeVar.value = supplement.leafGrowthTimeVar;
-}
-
 export class Species {
     name = signal("Planta Fortuita " + Date.now());
     aka = signal("");
@@ -276,7 +132,6 @@ export class Species {
         else
             this.behaviorGraphs.value = [createDefaultNamedGraph("Main")];
         this.behaviorConfiguration.value = fromWireEntries(entry.configuration);
-        applyBehaviorConfigurationToMorphology(this, this.behaviorConfiguration.peek());
         return this;
     }
 
@@ -335,6 +190,16 @@ export class Species {
     }
 
     public serialize() {
+        const hasBehaviorGraphs = this.behaviorGraphs.peek().some(g => (g.graph?.nodes?.length ?? 0) > 0);
+        if (hasBehaviorGraphs) {
+            return {
+                Name: this.name.peek(),
+                Aka: this.aka.peek(),
+                Behavior: this.behaviorIndex.peek(),
+                IncludeInRndGen: this.includeInRndGen.peek(),
+            };
+        }
+
         return {
             Name: this.name.peek(),
             Aka: this.aka.peek(),
@@ -383,8 +248,6 @@ export class Species {
             RootsGravitaxis: this.rootsGravitaxis.peek(),
 
             IncludeInRndGen: this.includeInRndGen.peek(),
-
-            ...configBackedSpeciesSettings(this.behaviorConfiguration.peek()),
         };
     }
 }

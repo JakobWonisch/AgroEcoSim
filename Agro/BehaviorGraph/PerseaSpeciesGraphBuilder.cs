@@ -29,11 +29,13 @@ public static class PerseaSpeciesGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius, PerseaTickConstants.LeafRadius);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength, PerseaTickConstants.PetioleLength);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius, PerseaTickConstants.PetioleRadius);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.Height, PerseaTickConstants.Height);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafGrowthTime, PerseaTickConstants.LeafGrowthTimeHours);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, PerseaTickConstants.LateralsPerNode);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold,
 			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(
 				DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch,
 				PerseaTickConstants.PetioleLength));
-		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, PerseaTickConstants.LateralsPerNode);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime, PerseaTickConstants.WoodGrowthTime);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar, PerseaTickConstants.WoodGrowthTimeVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, PerseaTickConstants.LateralPitch);

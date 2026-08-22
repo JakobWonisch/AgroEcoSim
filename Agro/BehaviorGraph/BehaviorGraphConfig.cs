@@ -47,4 +47,16 @@ static class BehaviorGraphConfig
 		float index,
 		float fallback = 0f)
 		=> TryArrayElement(config, configId, index, out var value) ? value : fallback;
+
+	public static bool TryArray(
+		IReadOnlyDictionary<string, BehaviorConfigEntry>? config,
+		string configId,
+		out float[] values)
+	{
+		values = [];
+		if (config is null || !config.TryGetValue(configId, out var entry) || !entry.IsNumberArray)
+			return false;
+		values = entry.FloatArrayValue;
+		return values.Length > 0;
+	}
 }

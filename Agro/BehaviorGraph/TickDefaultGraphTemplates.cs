@@ -585,7 +585,7 @@
 
 			var becomeTrig = Add("become-trig", "Or", 1960, 400);
 			Connect(organId, "bud", becomeTrig, "a");
-			Connect(death, "seq", becomeTrig, "b");
+			Connect(petiolePath, "out", becomeTrig, "b");
 
 			var become = Add("become-mer", "Become Meristem", 2200, 400);
 			Connect(becomeTrig, "out", become, "trigger");
@@ -618,5 +618,47 @@
 
 			var createLeaves = Add("create-leaves", "Create Leaves", 3400, 400);
 			Connect(setLen, "seq", createLeaves, "trigger");
+			WireLeafLayoutConfig(createLeaves, 3400, 480, "auxin");
+		}
+
+		public void WireLeafLayoutConfig(string targetId, float x, float y, string suffix = "")
+		{
+			var s = string.IsNullOrEmpty(suffix) ? "" : $"-{suffix}";
+			var laterals = AddConfig($"cfg-laterals{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, false, x, y);
+			Connect(laterals, "num", targetId, "lateralsPerNode");
+			var rollVar = AddConfig($"cfg-roll-var{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar, false, x, y + 40);
+			Connect(rollVar, "num", targetId, "lateralRollVar");
+			var pitchVar = AddConfig($"cfg-pitch-var{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, false, x, y + 80);
+			Connect(pitchVar, "num", targetId, "lateralPitchVar");
+			var pitch = AddConfig($"cfg-pitch{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, false, x, y + 120);
+			Connect(pitch, "num", targetId, "lateralPitch");
+			var leafPitch = AddConfig($"cfg-leaf-pitch{s}", DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch, false, x, y + 160);
+			Connect(leafPitch, "num", targetId, "leafPitch");
+		}
+
+		public void WireTwigOrientationConfig(string targetId, float x, float y, string suffix = "")
+		{
+			var s = string.IsNullOrEmpty(suffix) ? "" : $"-{suffix}";
+			var lateralRoll = AddConfig($"cfg-lateral-roll{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, false, x, y);
+			Connect(lateralRoll, "num", targetId, "lateralRoll");
+			var bending = AddConfig($"cfg-twig-bend{s}", DefaultSpeciesGraphBuilder.ConfigIds.TwigsBending, false, x, y + 40);
+			Connect(bending, "num", targetId, "twigsBending");
+			var bendingLevel = AddConfig($"cfg-twig-level{s}", DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingLevel, false, x, y + 80);
+			Connect(bendingLevel, "num", targetId, "twigsBendingLevel");
+			var bendingApical = AddConfig($"cfg-twig-apical{s}", DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical, false, x, y + 120);
+			Connect(bendingApical, "num", targetId, "twigsBendingApical");
+			var gravitaxis = AddConfig($"cfg-shoot-grav{s}", DefaultSpeciesGraphBuilder.ConfigIds.ShootsGravitaxis, false, x, y + 160);
+			Connect(gravitaxis, "num", targetId, "shootsGravitaxis");
+		}
+
+		public void WireRhizomeSpawnConfig(string targetId, float x, float y, string suffix = "")
+		{
+			var s = string.IsNullOrEmpty(suffix) ? "" : $"-{suffix}";
+			var length = AddConfig($"cfg-riz-len{s}", DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength, false, x, y);
+			Connect(length, "num", targetId, "rizomeLength");
+			var radius = AddConfig($"cfg-riz-rad{s}", DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius, false, x, y + 40);
+			Connect(radius, "num", targetId, "rizomeRadius");
+			var lateralRoll = AddConfig($"cfg-riz-roll{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, false, x, y + 80);
+			Connect(lateralRoll, "num", targetId, "lateralRoll");
 		}
 	}

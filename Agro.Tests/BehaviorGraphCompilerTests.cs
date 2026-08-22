@@ -413,7 +413,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(46, entries.Count);
+		Assert.Equal(54, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);

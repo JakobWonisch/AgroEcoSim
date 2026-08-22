@@ -355,11 +355,11 @@ public class BerganiaSpeciesParityTests
 	}
 
 	[Fact]
-	public void BergeniaCordifolia_Node_At200Hours_WithoutSpeciesConfiguration_ChainsFromMorphology()
+	public void BergeniaCordifolia_Node_At200Hours_RequiresSpeciesConfigurationForChaining()
 	{
 		const int totalHours = 200;
 		var baseRequest = BuildBerganiaNodeRequest("Bergenia Cordifolia", totalHours: totalHours, hoursPerTick: 1);
-		var request = new SimulationRequest
+		var withoutConfig = new SimulationRequest
 		{
 			Seed = baseRequest.Seed,
 			TotalHours = baseRequest.TotalHours,
@@ -367,18 +367,23 @@ public class BerganiaSpeciesParityTests
 			Plants = baseRequest.Plants,
 			SpeciesGraphs = baseRequest.SpeciesGraphs,
 		};
-		var nodePath = Path.Combine(Path.GetTempPath(), $"berg-node-nocfg-{Guid.NewGuid():N}.jsonl");
+		var withConfig = baseRequest;
+		var noCfgPath = Path.Combine(Path.GetTempPath(), $"berg-node-nocfg-{Guid.NewGuid():N}.jsonl");
+		var cfgPath = Path.Combine(Path.GetTempPath(), $"berg-node-cfg-{Guid.NewGuid():N}.jsonl");
 		try
 		{
-			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
-			var step = SimulationHarness.ReadSteps(nodePath).Last();
-			var leafCount = step.Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
-			Assert.True(leafCount > 2,
-				$"Meristem chaining should use species pChaningSeaonns when graph config is omitted; got {leafCount} leaves.");
+			SimulationHarness.RecordTrace(withoutConfig, BehaviorRunMode.Node, noCfgPath, maxHours: totalHours);
+			SimulationHarness.RecordTrace(withConfig, BehaviorRunMode.Node, cfgPath, maxHours: totalHours);
+			var noCfgLeaves = SimulationHarness.ReadSteps(noCfgPath).Last().Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
+			var cfgLeaves = SimulationHarness.ReadSteps(cfgPath).Last().Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
+			Assert.Equal(2, noCfgLeaves);
+			Assert.True(cfgLeaves > 2,
+				$"Meristem chaining requires behaviorConfiguration pChaining; got {cfgLeaves} leaves with catalog config.");
 		}
 		finally
 		{
-			if (File.Exists(nodePath)) File.Delete(nodePath);
+			if (File.Exists(noCfgPath)) File.Delete(noCfgPath);
+			if (File.Exists(cfgPath)) File.Delete(cfgPath);
 		}
 	}
 

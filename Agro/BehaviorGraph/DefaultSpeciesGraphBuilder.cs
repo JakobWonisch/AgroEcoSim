@@ -24,10 +24,17 @@ public static class DefaultSpeciesGraphBuilder
 		public const string StemDeathHeightCoeff = "default-config-stem-death-height-coeff";
 		public const string StemDeathEfficiencyCoeff = "default-config-stem-death-efficiency-coeff";
 		public const string StemDeathRadiusCoeff = "default-config-stem-death-radius-coeff";
+		public const string Height = "default-config-height";
 		public const string LeafLength = "default-config-leaf-length";
+		public const string LeafLengthVar = "default-config-leaf-length-var";
 		public const string LeafRadius = "default-config-leaf-radius";
+		public const string LeafRadiusVar = "default-config-leaf-radius-var";
+		public const string LeafGrowthTime = "default-config-leaf-growth-time";
+		public const string LeafGrowthTimeVar = "default-config-leaf-growth-time-var";
 		public const string PetioleLength = "default-config-petiole-length";
+		public const string PetioleLengthVar = "default-config-petiole-length-var";
 		public const string PetioleRadius = "default-config-petiole-radius";
+		public const string PetioleRadiusVar = "default-config-petiole-radius-var";
 		public const string MeristemGrowthLength = "default-config-meristem-growth-length";
 		public const string MeristemGrowthRadius = "default-config-meristem-growth-radius";
 		public const string StemGrowthRadius = "default-config-stem-growth-radius";
@@ -43,6 +50,7 @@ public static class DefaultSpeciesGraphBuilder
 		public const string LateralPitch = "default-config-lateral-pitch";
 		public const string LateralPitchVar = "default-config-lateral-pitch-var";
 		public const string LeafPitch = "default-config-leaf-pitch";
+		public const string LeafPitchVar = "default-config-leaf-pitch-var";
 		public const string AuxinsThreshold = "default-config-auxins-threshold";
 		public const string WoodGrowthTime = "default-config-wood-growth-time";
 		public const string WoodGrowthTimeVar = "default-config-wood-growth-time-var";
@@ -63,10 +71,17 @@ public static class DefaultSpeciesGraphBuilder
 	/// <summary>TickDefault reference literals for bootstrap configuration (not <see cref="SpeciesSettings"/>).</summary>
 	public static class DefaultTickConstants
 	{
+		public const float Height = 10f;
 		public const float LeafLength = 0.12f;
+		public const float LeafLengthVar = 0.02f;
 		public const float LeafRadius = 0.04f;
+		public const float LeafRadiusVar = 0.01f;
+		public const float LeafGrowthTime = 480f;
+		public const float LeafGrowthTimeVar = 120f;
 		public const float PetioleLength = 0.04f;
+		public const float PetioleLengthVar = 0.01f;
 		public const float PetioleRadius = 0.0025f;
+		public const float PetioleRadiusVar = 0.0005f;
 		public const float DominanceFactor = 0.7f;
 		public const float AuxinsProduction = 40f;
 		public const float NodeDistance = 0.04f;
@@ -77,6 +92,7 @@ public static class DefaultSpeciesGraphBuilder
 		public const float LateralPitch = 45f * MathF.PI / 180f;
 		public const float LateralPitchVar = 5f * MathF.PI / 180f;
 		public const float LeafPitch = 20f * MathF.PI / 180f;
+		public const float LeafPitchVar = 5f * MathF.PI / 180f;
 		public const float AuxinsThreshold = 1f;
 		public const float WoodGrowthTime = 100f;
 		public const float WoodGrowthTimeVar = 10f;
@@ -242,11 +258,27 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.Height,
+			Key = "Height",
+			Label = "Height",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.Height),
+		},
+		new()
+		{
 			Id = ConfigIds.LeafLength,
 			Key = "Leaf length",
 			Label = "Leaf length",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafLength),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafLengthVar,
+			Key = "Leaf length var",
+			Label = "Leaf length var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafLengthVar),
 		},
 		new()
 		{
@@ -258,6 +290,30 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.LeafRadiusVar,
+			Key = "Leaf radius var",
+			Label = "Leaf radius var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafRadiusVar),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafGrowthTime,
+			Key = "Leaf growth time",
+			Label = "Leaf growth time",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafGrowthTime),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafGrowthTimeVar,
+			Key = "Leaf growth time var",
+			Label = "Leaf growth time var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafGrowthTimeVar),
+		},
+		new()
+		{
 			Id = ConfigIds.PetioleLength,
 			Key = "Petiole length",
 			Label = "Petiole length",
@@ -266,11 +322,27 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.PetioleLengthVar,
+			Key = "Petiole length var",
+			Label = "Petiole length var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleLengthVar),
+		},
+		new()
+		{
 			Id = ConfigIds.PetioleRadius,
 			Key = "Petiole radius",
 			Label = "Petiole radius",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleRadius),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleRadiusVar,
+			Key = "Petiole radius var",
+			Label = "Petiole radius var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleRadiusVar),
 		},
 		new()
 		{
@@ -394,6 +466,14 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Leaf pitch",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafPitch),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafPitchVar,
+			Key = "Leaf pitch var",
+			Label = "Leaf pitch var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafPitchVar),
 		},
 		new()
 		{
@@ -976,23 +1056,28 @@ public static class DefaultSpeciesGraphBuilder
 
 		var spawnMono = b.Add("spawn-mono", "Spawn Meristem", 2440, 200);
 		b.Connect(monoTrig, "out", spawnMono, "trigger");
+		b.WireTwigOrientationConfig(spawnMono, 2440, 320, "mono");
 
 		var leavesMono = b.Add("leaves-mono", "Create Leaves", 2680, 200);
 		b.Connect(spawnMono, "seq", leavesMono, "trigger");
 		b.Connect(spawnMono, "childId", leavesMono, "meristemId");
+		b.WireLeafLayoutConfig(leavesMono, 2680, 320, "mono");
 
 		var spawnDicho = b.Add("spawn-dicho", "Spawn Dichotomous Meristems", 2680, 280);
 		b.Connect(dichoTrig, "out", spawnDicho, "trigger");
+		b.WireTwigOrientationConfig(spawnDicho, 2680, 400, "dicho");
 
 		var leavesDicho1 = b.Add("leaves-d1", "Create Leaves", 2920, 280);
 		b.Connect(spawnDicho, "seq", leavesDicho1, "trigger");
 		b.Connect(spawnDicho, "childId1", leavesDicho1, "meristemId");
 		b.Connect(spawnDicho, "lateralPitch", leavesDicho1, "lateralAngle");
+		b.WireLeafLayoutConfig(leavesDicho1, 2920, 400, "d1");
 
 		var leavesDicho2 = b.Add("leaves-d2", "Create Leaves", 3160, 280);
 		b.Connect(leavesDicho1, "seq", leavesDicho2, "trigger");
 		b.Connect(spawnDicho, "childId2", leavesDicho2, "meristemId");
 		b.Connect(spawnDicho, "lateralPitch", leavesDicho2, "lateralAngle");
+		b.WireLeafLayoutConfig(leavesDicho2, 3160, 400, "d2");
 
 		return b.FinishWithActive(and3, "out").Build();
 	}

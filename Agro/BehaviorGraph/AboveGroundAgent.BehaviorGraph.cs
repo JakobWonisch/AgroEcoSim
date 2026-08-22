@@ -1,22 +1,16 @@
-using System.Numerics;
-
 namespace Agro;
 
 public partial struct AboveGroundAgent
 {
-	/// <summary>
-	/// Delegates to legacy <see cref="CreateLeaves"/> so node mode uses morphology
-	/// (<see cref="PlantFormation2.Parameters"/>) like Tick, not graph config alone.
-	/// </summary>
 	internal static void GraphCreateLeaves(
 		ref AboveGroundAgent parent,
 		PlantFormation2 plant,
-		IReadOnlyDictionary<string, BehaviorConfigEntry>? _,
 		float lateralAngle,
-		int meristem)
+		int meristem,
+		LeafLayoutParams layout)
 	{
 		var parentCopy = parent;
-		parentCopy.CreateLeaves(parentCopy, plant, lateralAngle, meristem);
+		parentCopy.CreateLeaves(parentCopy, plant, lateralAngle, meristem, layout);
 		parent = parentCopy;
 	}
 }

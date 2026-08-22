@@ -6,17 +6,20 @@ namespace Agro.Tests;
 
 public class SpeciesMorphologyTests
 {
+	static Dictionary<string, BehaviorConfigEntry> ParseConfig(string speciesName, List<BehaviorConfigUploadEntry> entries) =>
+		BehaviorConfigurationCatalog.ParseSpeciesConfiguration(
+			new Dictionary<string, List<BehaviorConfigUploadEntry>> { [speciesName] = entries },
+			speciesName);
+
+	static SpeciesSettings BuildFromConfig(string speciesName, List<BehaviorConfigUploadEntry> entries) =>
+		SpeciesSettingsFromConfiguration.Build(speciesName, ParseConfig(speciesName, entries));
+
 	[Fact]
-	public void UiSpeciesPayload_DoesNotWipeBergeniaRhizomeAndChaining()
+	public void ConfigBuild_PreservesBergeniaRhizomeAndChaining()
 	{
-		var ui = new SpeciesSettings
-		{
-			Name = "Bergenia Cordifolia",
-			Height = 12f,
-			LateralsPerNode = 2,
-			LeafLength = 0.24f,
-		};
-		var resolved = SpeciesMorphology.ResolveForNodeGraphs("Bergenia Cordifolia", new SimulationRequest { Species = [ui] });
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
+		var resolved = BuildFromConfig("Bergenia Cordifolia", config);
 		Assert.Equal(0.04f, resolved.RizomeLength);
 		Assert.Equal(0.0005f, resolved.pExpandRizome);
 		Assert.Equal(0.4f, resolved.crownPitch);
@@ -26,24 +29,12 @@ public class SpeciesMorphologyTests
 	}
 
 	[Fact]
-	public void UiSerializeJson_DoesNotWipeGeraniumRhizome()
+	public void Geranium_ConfigBuild_MatchesCatalogInit()
 	{
-		const string json = """
-			{
-			  "Name": "Geranium Macrorrhizum",
-			  "Height": 12,
-			  "LateralsPerNode": 2,
-			  "LeafLength": 0.06,
-			  "LeafRadius": 0.03,
-			  "PetioleLength": 0.15
-			}
-			""";
-		var ui = System.Text.Json.JsonSerializer.Deserialize(json, AgroJsonSerializerContext.Default.SpeciesSettings)
-			?? throw new InvalidOperationException("deserialize failed");
-		Assert.Equal(0.005f, ui.pExpandRizome);
-		Assert.Equal(0.01f, ui.RizomeLength);
-
-		var resolved = SpeciesMorphology.ResolveForNodeGraphs("Geranium Macrorrhizum", new SimulationRequest { Species = [ui] });
+		const float DegToRad = MathF.PI / 180f;
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.GeraniumMacrorrhizum);
+		var resolved = BuildFromConfig("Geranium Macrorrhizum", config);
 		Assert.Equal(0.0012f, resolved.pExpandRizome);
 		Assert.Equal(0.045f, resolved.RizomeLength);
 		Assert.Equal(0.38f, resolved.crownPitch);
@@ -51,75 +42,42 @@ public class SpeciesMorphologyTests
 		Assert.Equal(0.3f, resolved.Height);
 		Assert.Equal(0f, resolved.NodeDistance);
 		Assert.Equal(0.15f, resolved.PetioleLength);
-		Assert.Equal(85f * (MathF.PI / 180f), resolved.LeafPitch, 4);
-		Assert.Equal(15f * (MathF.PI / 180f), resolved.LateralPitch, 4);
-		Assert.Equal(Behavior.Geranium_Macrorrhizum, resolved.Behavior);
-	}
-
-	[Fact]
-	public void Geranium_TreeDefaultHud_KeepsInitShootMorphology()
-	{
-		const float DegToRad = MathF.PI / 180f;
-		var ui = new SpeciesSettings
-		{
-			Name = "Geranium Macrorrhizum",
-			Height = 12f,
-			NodeDistance = 0.04f,
-			NodeDistanceVar = 0.01f,
-			LateralsPerNode = 2,
-			LateralPitch = 45f * DegToRad,
-			LateralRoll = 0f,
-			LeafLength = 0.12f,
-			LeafLengthVar = 0.02f,
-			LeafRadius = 0.04f,
-			LeafGrowthTime = 480f,
-			LeafPitch = 20f * DegToRad,
-			PetioleLength = 0.05f,
-			PetioleLengthVar = 0.01f,
-			PetioleRadius = 0.0015f,
-		};
-
-		var resolved = SpeciesMorphology.ResolveForNodeGraphs("Geranium Macrorrhizum", new SimulationRequest { Species = [ui] });
-		Assert.Equal(0.3f, resolved.Height);
-		Assert.Equal(0f, resolved.NodeDistance);
-		Assert.Equal(0f, resolved.NodeDistanceVar);
-		Assert.Equal(0.06f, resolved.LeafLength);
-		Assert.Equal(0.01f, resolved.LeafLengthVar);
-		Assert.Equal(0.03f, resolved.LeafRadius);
-		Assert.Equal(24 * 7, resolved.LeafGrowthTime);
 		Assert.Equal(85f * DegToRad, resolved.LeafPitch, 4);
 		Assert.Equal(15f * DegToRad, resolved.LateralPitch, 4);
 		Assert.Equal(40f * DegToRad, resolved.LateralRoll, 4);
-		Assert.Equal(0.15f, resolved.PetioleLength);
-		Assert.Equal(0.05f, resolved.PetioleLengthVar);
-		Assert.Equal(0.0018f, resolved.PetioleRadius);
 		Assert.Equal(Behavior.Geranium_Macrorrhizum, resolved.Behavior);
 	}
 
 	[Fact]
-	public void Bergenia_CustomHudHeight_OverlaysInit()
+	public void UiSpeciesPayload_IgnoredForNodeGraphMorphology()
 	{
 		var ui = new SpeciesSettings
 		{
 			Name = "Bergenia Cordifolia",
 			Height = 0.08f,
-			LeafLength = 0.24f,
+			LeafLength = 0.99f,
+			pExpandRizome = 0.99f,
+			RizomeLength = 0.5f,
 		};
-		var resolved = SpeciesMorphology.ResolveForNodeGraphs("Bergenia Cordifolia", new SimulationRequest { Species = [ui] });
-		Assert.Equal(0.08f, resolved.Height);
-		Assert.Equal(0.24f, resolved.LeafLength);
+		var config = BerganiaTickGraphBuilder.BuildConfiguration(
+			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
+		var profile = PlantSpeciesProfile.Resolve("Bergenia Cordifolia", new SimulationRequest
+		{
+			Species = [ui],
+			SpeciesConfiguration = new Dictionary<string, List<BehaviorConfigUploadEntry>>
+			{
+				["Bergenia Cordifolia"] = config,
+			},
+		});
+		Assert.Equal(0.04f, profile.Morphology.Height);
+		Assert.Equal(0.24f, profile.Morphology.LeafLength);
+		Assert.Equal(0.0005f, profile.Morphology.pExpandRizome);
+		Assert.Equal(0.04f, profile.Morphology.RizomeLength);
 	}
 
 	[Fact]
-	public void SpeciesConfiguration_DoesNotChangeLegacyInitMorphology()
+	public void PlantSpeciesProfile_ConfigDrivesMorphology()
 	{
-		var ui = new SpeciesSettings
-		{
-			Name = "Bergenia Cordifolia",
-			Height = 12f,
-			LeafLength = 0.24f,
-		};
-
 		var config = BerganiaTickGraphBuilder.BuildConfiguration(
 			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
 		config = config
@@ -136,14 +94,13 @@ public class SpeciesMorphologyTests
 
 		var profile = PlantSpeciesProfile.Resolve("Bergenia Cordifolia", new SimulationRequest
 		{
-			Species = [ui],
 			SpeciesConfiguration = new Dictionary<string, List<BehaviorConfigUploadEntry>>
 			{
 				["Bergenia Cordifolia"] = config,
 			},
 		});
 
-		Assert.Equal(0.0005f, profile.Morphology.pExpandRizome);
+		Assert.Equal(0.99f, profile.Morphology.pExpandRizome);
 		Assert.Equal(0.04f, profile.Morphology.RizomeLength);
 		Assert.Equal(0.4f, profile.Morphology.crownPitch);
 		Assert.Equal(0.015f, profile.Morphology.pChaningSeaonns[0]);
@@ -151,30 +108,7 @@ public class SpeciesMorphologyTests
 	}
 
 	[Fact]
-	public void UiSerializeJson_ConfigBackedFields_DoNotOverrideLegacyInit()
-	{
-		const string json = """
-			{
-			  "Name": "Bergenia Cordifolia",
-			  "Height": 0.04,
-			  "LeafLength": 0.24,
-			  "pExpandRizome": 0.99,
-			  "RizomeLength": 0.5,
-			  "crownPitch": 0.1,
-			  "pChaningSeaonns": [0.0015, 0.0005, 0.001, 0]
-			}
-			""";
-		var ui = System.Text.Json.JsonSerializer.Deserialize(json, AgroJsonSerializerContext.Default.SpeciesSettings)
-			?? throw new InvalidOperationException("deserialize failed");
-		var resolved = SpeciesMorphology.ResolveForNodeGraphs("Bergenia Cordifolia", new SimulationRequest { Species = [ui] });
-		Assert.Equal(0.0005f, resolved.pExpandRizome);
-		Assert.Equal(0.04f, resolved.RizomeLength);
-		Assert.Equal(0.4f, resolved.crownPitch);
-		Assert.Equal(0.015f, resolved.pChaningSeaonns[0]);
-	}
-
-	[Fact]
-	public void Bergenia_UiSpeciesPayload_NodeMatchesCatalogStructureAt200Hours()
+	public void Bergenia_ConfigOnly_NodeMatchesWithOrWithoutUiSpeciesPayload()
 	{
 		const int totalHours = 200;
 		var entry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Bergenia Cordifolia");
@@ -204,23 +138,13 @@ public class SpeciesMorphologyTests
 			},
 		};
 
-		// Frontend serialize() after loadPredefined sends HUD morphology, but omits
-		// rhizome / seasonal chaining. Those must stay on the Init() template.
 		var ui = new SpeciesSettings
 		{
 			Name = "Bergenia Cordifolia",
-			Height = 0.04f,
-			NodeDistance = 0f,
-			NodeDistanceVar = 0f,
-			LateralsPerNode = 2,
-			LeafLength = 0.24f,
-			LeafRadius = 0.09f,
-			LeafGrowthTime = 24 * 7 * 12,
-			PetioleLength = 0.005f,
-			PetioleRadius = 0.004f,
+			Height = 12f,
+			LeafLength = 0.99f,
+			pExpandRizome = 0.99f,
 		};
-		Assert.Equal(0.005f, ui.pExpandRizome);
-		Assert.Equal(0.0015f, ui.pChaningSeaonns[0]);
 
 		var catalogPath = Path.Combine(Path.GetTempPath(), $"berg-cat-{Guid.NewGuid():N}.jsonl");
 		var uiPath = Path.Combine(Path.GetTempPath(), $"berg-ui-{Guid.NewGuid():N}.jsonl");
@@ -257,10 +181,11 @@ public class SpeciesMorphologyTests
 	}
 
 	[Fact]
-	public void FreshPredefinedClone_MatchesSharedTemplateAfterInit()
+	public void ConfigBuild_FreshClone_MatchesSharedTemplateAfterInit()
 	{
 		var shared = SpeciesSettings.Predefined.First(s => s.Name == "Persea americana");
-		var resolved = SpeciesMorphology.ResolveForNodeGraphs("Persea americana", new SimulationRequest());
+		var config = PerseaSpeciesGraphBuilder.BuildConfiguration();
+		var resolved = BuildFromConfig("Persea americana", config);
 		Assert.NotSame(shared, resolved);
 		resolved.Init(4);
 		shared.Init(4);
@@ -278,13 +203,13 @@ public class SpeciesMorphologyTests
 	}
 
 	[Fact]
-	public void NodeMorphology_Gravitaxis_NotDoubleInitedAfterLegacySharedInit()
+	public void ConfigBuild_ShootsGravitaxis_PreInitBeforePlantInit()
 	{
 		var shared = SpeciesSettings.Predefined.First(s => s.Name == "Persea americana");
 		shared.Init(4);
 		Assert.Equal(0.08f, shared.ShootsGravitaxis, 3);
 
-		var fresh = SpeciesMorphology.ResolveForNodeGraphs("Persea americana", new SimulationRequest());
+		var fresh = BuildFromConfig("Persea americana", PerseaSpeciesGraphBuilder.BuildConfiguration());
 		Assert.Equal(0.2f, fresh.ShootsGravitaxis, 3);
 		fresh.Init(4);
 		Assert.Equal(0.08f, fresh.ShootsGravitaxis, 3);
@@ -362,7 +287,7 @@ public class SpeciesMorphologyTests
 	}
 
 	[Fact]
-	public void Persea_WithUiSpeciesPayload_NodeMatchesCatalogAt1440Hours()
+	public void Persea_ConfigOnly_NodeMatchesWithOrWithoutUiSpeciesPayload()
 	{
 		const int totalHours = 1440;
 		const int hoursPerTick = 4;
@@ -375,28 +300,12 @@ public class SpeciesMorphologyTests
 		}).ToList();
 		var config = PerseaSpeciesGraphBuilder.BuildConfiguration().ToList();
 
-		// Wire shape the UI sends after loadPredefined (post-fix serialize).
 		var uiSpecies = new SpeciesSettings
 		{
 			Name = "Persea americana",
-			Aka = "Avocado",
-			DominanceFactor = 0.7f,
-			Height = 12f,
-			LeafLength = 0.2f,
-			LeafRadius = 0.04f,
-			PetioleLength = 0.05f,
-			PetioleRadius = 0.007f,
-			LeafGrowthTime = 720f,
-			LeafGrowthTimeVar = 120f,
-			LeafLengthVar = 0.02f,
-			LeafRadiusVar = 0.01f,
-			PetioleLengthVar = 0.01f,
-			PetioleRadiusVar = 0.0005f,
-			LateralsPerNode = 4,
-			ShootsGravitaxis = 0.2f,
-			TwigsBendingApical = 0.02f,
-			WoodGrowthTime = 2400f,
-			WoodGrowthTimeVar = 240f,
+			Height = 99f,
+			LeafLength = 0.99f,
+			LateralsPerNode = 1,
 		};
 
 		SimulationRequest Request(SpeciesSettings[]? species) => new()
@@ -423,11 +332,7 @@ public class SpeciesMorphologyTests
 			SimulationHarness.RecordTrace(Request(null), BehaviorRunMode.Node, catalogPath, maxHours: totalHours);
 			SimulationHarness.RecordTrace(Request([uiSpecies]), BehaviorRunMode.Node, uiPath, maxHours: totalHours);
 			var mismatch = TraceComparer.CompareFiles(catalogPath, uiPath, TraceCompareOptions.StructuralParity);
-			if (mismatch is not null)
-			{
-				Assert.Fail(
-					$"UI-wire Persea node mismatch vs catalog at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected}, actual {mismatch.Actual}");
-			}
+			Assert.Null(mismatch);
 		}
 		finally
 		{

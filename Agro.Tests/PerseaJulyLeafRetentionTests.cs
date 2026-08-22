@@ -124,7 +124,15 @@ public class PerseaJulyLeafRetentionTests
 	[Fact]
 	public void JulyRecording_UsesGraphs_NotPureLegacy()
 	{
-		var json = File.ReadAllText("/home/jakob/Uni/PRPlants/ignore/legacy-persea-AgroEco-2026-07-11_18-56-24.json");
+		var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+		var path = Path.Combine(repoRoot, "ignore", "legacy-persea-AgroEco-2026-07-11_18-56-24.json");
+		if (!File.Exists(path))
+		{
+			_out.WriteLine($"Optional July recording not found at {path}; skipping.");
+			return;
+		}
+
+		var json = File.ReadAllText(path);
 		Assert.Contains("\"name\":\"Petiole age bud\"", json);
 		Assert.Contains("Persea americana", json);
 		Assert.Contains("\"woodGrowthTime\":100", json);

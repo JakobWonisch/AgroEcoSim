@@ -300,9 +300,6 @@ public class SpeciesSettings
         // Heuchera;
         // Fragaria;
         // Carex;
-
-        // Freeze pre-Init morphology for node-graph clones (Init scales gravitaxis/apical in place).
-        SpeciesMorphology.CapturePredefinedSnapshots(Predefined);
     }
 
     private bool Initialized = false;

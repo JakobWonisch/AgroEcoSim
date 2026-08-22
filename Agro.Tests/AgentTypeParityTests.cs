@@ -184,13 +184,9 @@ public class AgentTypeParityTests
 		SimulationHarness.RecordSingleAgentTrace(request, BehaviorRunMode.Legacy, legacyPath, options);
 		SimulationHarness.RecordSingleAgentTrace(request, BehaviorRunMode.Node, nodePath, options);
 
-		var compareOptions = new TraceCompareOptions
-		{
-			Tolerance = 1e-4f,
-			IgnoreRng = false,
-			IgnorePlantBalances = true,
-			FocusAboveGroundIndices = new HashSet<int> { SubjectIndex(organ) },
-		};
+		// Structural focus on subject agent; skip RNG/energy/water (graph order + census noise).
+		var compareOptions = TraceCompareOptions.StructuralParity
+			.WithFocusAboveGroundIndices(SubjectIndex(organ));
 		var mismatches = TraceComparer.CollectMismatches(legacyPath, nodePath, compareOptions, maxCount: 25);
 		if (mismatches.Count == 0)
 			return;
