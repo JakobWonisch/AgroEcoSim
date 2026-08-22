@@ -947,6 +947,9 @@ public static class GraphTickInterpreter
 	{
 		if (BehaviorGraphConfig.TryNumber(ctx.BehaviorConfiguration, configId ?? "", out var fromConfig))
 			return fromConfig;
+		if (ctx.HasFormation
+			&& BehaviorConfigParameterFallback.TryNumber(ctx.Formation!.Plant.Parameters, configId, out var fromSpecies))
+			return fromSpecies;
 		return 0f;
 	}
 
@@ -962,6 +965,9 @@ public static class GraphTickInterpreter
 	{
 		if (BehaviorGraphConfig.TryArrayElement(ctx.BehaviorConfiguration, configId ?? "", index, out var fromConfig))
 			return fromConfig;
+		if (ctx.HasFormation
+			&& BehaviorConfigParameterFallback.TryArrayElement(ctx.Formation!.Plant.Parameters, configId, index, out var fromSpecies))
+			return fromSpecies;
 		return 0f;
 	}
 

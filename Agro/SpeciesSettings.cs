@@ -289,6 +289,8 @@ public class SpeciesSettings
             LateralsPerNode = 4,
             WoodGrowthTime = 2400f,
             WoodGrowthTimeVar = 240f,
+            // Matches historical UI serialize (1 − apexBendingRate) / ML-Import224.json.
+            TwigsBendingApical = 0.98f,
             //FirstFruitHour = 113952,
         });
 

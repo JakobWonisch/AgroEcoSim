@@ -14,7 +14,8 @@ import { VisualMappingOptions } from "./helpers/Plant";
 import { Species } from "./helpers/Species";
 import type { ExportedGraph } from "./components/hud/nodes/Conversion";
 import type { BehaviorConfigWireEntry } from "./components/hud/nodes/behaviorConfiguration";
-import { toWireEntries } from "./components/hud/nodes/behaviorConfiguration";
+import { fromWireEntries, mergeConfigurationWithCatalog, toWireEntries } from "./components/hud/nodes/behaviorConfiguration";
+import { syncSpeciesSignalsFromConfiguration } from "./components/hud/nodes/syncConfigurationSignals";
 
 /** One species graph entry in POST body (matches backend SpeciesGraphUploadEntry). */
 export interface SpeciesGraphWireEntry {
@@ -200,6 +201,11 @@ class State {
     //SPECIES
     species = signal<Species[]>([Species.Default()]);
     behaviors = signal<string[]>([]);
+    speciesCatalogLoaded = signal(false);
+    /** Catalog configuration keyed by species name — used when local behaviorConfiguration is empty. */
+    private catalogConfigurationByName = new Map<string, BehaviorConfigWireEntry[]>();
+    /** Catalog fetch promise — run() awaits this before starting simulation. */
+    private speciesCatalogReady: Promise<void> = Promise.resolve();
     /** When a behavior editor is mounted, snapshots use live Rete state (per graph id). */
     private behaviorGraphGetters = new Map<string, Map<string, () => ExportedGraph>>();
 
@@ -235,12 +241,61 @@ class State {
         return out;
     };
 
+    rehydrateSpeciesFromCatalog = (species: Species) => {
+        const name = species.name.peek();
+        const catalog = this.catalogConfigurationByName.get(name);
+        if (!catalog?.length) return;
+        // Saved scenes may carry stale morphology; catalog is source of truth for predefined species.
+        species.behaviorConfiguration.value = fromWireEntries(catalog);
+        syncSpeciesSignalsFromConfiguration(species, species.behaviorConfiguration.peek());
+    };
+
+    loadSpeciesCatalog = () => {
+        this.speciesCatalogReady = fetch(`${location.protocol}//${BackendURI}/Simulation/species`, {
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        })
+            .then(response => response.json())
+            .then((list: {
+                name: string;
+                aka?: string;
+                graphs: { id: string; name: string; graph: ExportedGraph }[];
+                configuration?: SpeciesConfigurationWireEntry[];
+            }[]) => {
+                this.catalogConfigurationByName.clear();
+                for (const e of list) {
+                    if (Array.isArray(e.configuration) && e.configuration.length > 0)
+                        this.catalogConfigurationByName.set(e.name, e.configuration);
+                }
+                this.species.value = list.map(e => new Species().loadPredefined({
+                    name: e.name,
+                    aka: e.aka,
+                    graphs: (e.graphs ?? []).map(g => ({ id: g.id, name: g.name, graph: g.graph })),
+                    configuration: e.configuration,
+                }));
+                this.speciesCatalogLoaded.value = true;
+            })
+            .catch(err => {
+                console.error('Failed to load species catalog', err);
+            });
+    };
+
     collectSpeciesConfiguration = (): Record<string, SpeciesConfigurationWireEntry[]> => {
         const out: Record<string, SpeciesConfigurationWireEntry[]> = {};
         for (const s of this.species.peek()) {
-            const entries = toWireEntries(s.behaviorConfiguration.peek());
-            if (entries.length > 0)
-                out[s.name.peek()] = entries;
+            const name = s.name.peek();
+            const hasGraphs = s.behaviorGraphs.peek().some(g => (g.graph?.nodes?.length ?? 0) > 0);
+            if (!hasGraphs) continue;
+            const catalog = this.catalogConfigurationByName.get(name);
+            const local = s.behaviorConfiguration.peek();
+            const catalogEntries = fromWireEntries(catalog);
+            // Partial/stale saves may carry truncated or zeroed config — prefer full catalog.
+            const useCatalogOnly = catalogEntries.length > 0
+                && (local.length === 0 || local.length < catalogEntries.length * 0.75);
+            const merged = useCatalogOnly
+                ? catalogEntries
+                : mergeConfigurationWithCatalog(catalog, local);
+            if (merged.length > 0)
+                out[name] = toWireEntries(merged);
         }
         return out;
     };
@@ -340,6 +395,7 @@ class State {
             hubConnection.invoke("abort");
         else
         {
+            await this.speciesCatalogReady;
             this.simHoursPerTick = this.hoursPerTick.peek();
             //console.log(this.scene);
             batch(() => {
@@ -701,7 +757,11 @@ class State {
                     self.downloadRoots.value = data.downloadRoots;
                     self.exactPreview.value = data.exactPreview;
 
-                    self.species.value = data.species.map(s => new Species().load(s));
+                    self.species.value = data.species.map(s => {
+                        const species = new Species().load(s);
+                        self.rehydrateSpeciesFromCatalog(species);
+                        return species;
+                    });
                     self.behaviors.value = data.behaviors;
 
                     self.seedsPerField.value = data.seedsPerField;
@@ -830,14 +890,7 @@ const DEFAULT_SCENE_SPECIES = [
 st.seeds.value = DEFAULT_SCENE_SPECIES.map((name, i) =>
     new Seed(name, 5 + i * 0.5, 0, 5, 0, false));
 
-fetch(`${location.protocol}//${BackendURI}/Simulation/species`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: { name: string; aka?: string; graphs: { id: string; name: string; graph: ExportedGraph }[]; configuration?: SpeciesConfigurationWireEntry[] }[]) => {
-    st.species.value = list.map(e => new Species().loadPredefined({
-        name: e.name,
-        aka: e.aka,
-        graphs: (e.graphs ?? []).map(g => ({ id: g.id, name: g.name, graph: g.graph })),
-        configuration: e.configuration,
-    }));
-});
+st.loadSpeciesCatalog();
 
 fetch(`${location.protocol}//${BackendURI}/Simulation/behaviors`, { headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }}).then(response => response.json()).then((list: string[]) => st.behaviors.value = list);
 

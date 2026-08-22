@@ -15,7 +15,7 @@ public sealed class PlantSpeciesProfile
 
 	public static PlantSpeciesProfile Resolve(string? speciesName, SimulationRequest? settings)
 	{
-		var behaviorConfiguration = BehaviorConfigurationCatalog.ParseSpeciesConfiguration(settings?.SpeciesConfiguration, speciesName);
+		var behaviorConfiguration = BehaviorConfigurationCatalog.ResolveForSpecies(settings?.SpeciesConfiguration, speciesName);
 		var morph = SpeciesSettingsFromConfiguration.Build(speciesName, behaviorConfiguration);
 		var graphs = new List<CompiledBehaviorGraph>();
 		if (!string.IsNullOrEmpty(speciesName) && settings?.SpeciesGraphs != null)

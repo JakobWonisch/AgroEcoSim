@@ -99,7 +99,12 @@ public static class DefaultSpeciesGraphBuilder
 		public const int LateralsPerNode = 2;
 		public const float TwigsBending = 0.5f;
 		public const float TwigsBendingLevel = 1f;
-		public const float TwigsBendingApical = 0.02f;
+		/// <summary>
+		/// Post-<see cref="SpeciesSettings.Init"/> value used by RandomOrientation.
+		/// Matches historical frontend serialize <c>1 - apexBendingRate</c> (UI 0.02 → 0.98)
+		/// and Agro/ML-Import224.json; keeps dominance-1 leaders nearly straight.
+		/// </summary>
+		public const float TwigsBendingApical = 0.98f;
 		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 Ã— 0.4).</summary>
 		public const float ShootsGravitaxis = 0.08f;
 		public const float RizomeLength = 0.01f;
@@ -528,6 +533,7 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.TwigsBendingApical,
 			Key = "Twig bending apical",
 			Label = "Twig bending apical",
+			Usage = "Post-Init apical bend subtractor in RandomOrientation (level×dominance − apical). Historical UI sent 1−apexRate (default 0.98).",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.TwigsBendingApical),
 		},

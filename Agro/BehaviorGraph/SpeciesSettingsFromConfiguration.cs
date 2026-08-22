@@ -66,7 +66,7 @@ public static class SpeciesSettingsFromConfiguration
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.LeafPitchVar, "LeafPitchVar");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBending, "TwigsBending");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingLevel, "TwigsBendingLevel");
-		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical, "TwigsBendingApical");
+		SetTwigsBendingApical(json, config);
 		SetShootsGravitaxis(json, config);
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime, "WoodGrowthTime");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar, "WoodGrowthTimeVar");
@@ -86,6 +86,24 @@ public static class SpeciesSettingsFromConfiguration
 
 		SetArray(json, config, BerganiaTickGraphBuilder.ConfigIds.PChaining, "pChaningSeaonns");
 		SetArray(json, config, BerganiaTickGraphBuilder.ConfigIds.PFlowering, "pFloweringSeaonns");
+	}
+
+	static void SetTwigsBendingApical(System.Text.Json.Nodes.JsonObject json, IReadOnlyDictionary<string, BehaviorConfigEntry> config)
+	{
+		if (!BehaviorGraphConfig.TryNumber(config, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical, out var postInit))
+			return;
+		// Configuration stores post-Init effective apical (RandomOrientation subtractor).
+		// Init does: TwigsBendingApical *= TwigsBendingLevel.
+		var level = 1f;
+		if (BehaviorGraphConfig.TryNumber(config, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingLevel, out var cfgLevel)
+			&& MathF.Abs(cfgLevel) > 1e-8f)
+			level = cfgLevel;
+		else if (json.TryGetPropertyValue("TwigsBendingLevel", out var node)
+			&& node is System.Text.Json.Nodes.JsonValue jv
+			&& jv.TryGetValue<float>(out var jsonLevel)
+			&& MathF.Abs(jsonLevel) > 1e-8f)
+			level = jsonLevel;
+		json["TwigsBendingApical"] = postInit / level;
 	}
 
 	static void SetShootsGravitaxis(System.Text.Json.Nodes.JsonObject json, IReadOnlyDictionary<string, BehaviorConfigEntry> config)

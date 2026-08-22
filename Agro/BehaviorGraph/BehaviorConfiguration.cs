@@ -41,6 +41,45 @@ public sealed class BehaviorConfigEntry
 
 public static class BehaviorConfigurationCatalog
 {
+	/// <summary>
+	/// Merges predefined catalog configuration with uploaded values (upload wins on conflict).
+	/// </summary>
+	public static Dictionary<string, BehaviorConfigEntry> ResolveForSpecies(
+		Dictionary<string, List<BehaviorConfigUploadEntry>>? speciesConfiguration,
+		string? speciesName)
+	{
+		var merged = new Dictionary<string, BehaviorConfigEntry>(StringComparer.Ordinal);
+		var catalog = PredefinedSpeciesCatalog.GetConfigurationEntries(speciesName);
+		if (catalog is not null)
+		{
+			foreach (var entry in ParseUploadEntries(catalog))
+				merged[entry.Key] = entry.Value;
+		}
+
+		foreach (var entry in ParseSpeciesConfiguration(speciesConfiguration, speciesName))
+		{
+			if (merged.TryGetValue(entry.Key, out var catalogEntry)
+				&& ShouldIgnoreUploadOverride(entry.Key, catalogEntry, entry.Value))
+				continue;
+			merged[entry.Key] = entry.Value;
+		}
+
+		return merged;
+	}
+
+	/// <summary>
+	/// Ignore stale UI uploads that zero out catalog bootstrap values (e.g. missing JSON fields → 0).
+	/// </summary>
+	static bool ShouldIgnoreUploadOverride(string configId, BehaviorConfigEntry catalogEntry, BehaviorConfigEntry uploadEntry)
+	{
+		if (uploadEntry.IsBoolean || uploadEntry.IsNumberArray)
+			return false;
+		if (!configId.StartsWith("default-config-", StringComparison.Ordinal)
+			&& !configId.StartsWith("bergania-", StringComparison.Ordinal))
+			return false;
+		return uploadEntry.NumberValue == 0f && MathF.Abs(catalogEntry.NumberValue) > 1e-8f;
+	}
+
 	public static Dictionary<string, BehaviorConfigEntry> ParseSpeciesConfiguration(
 		Dictionary<string, List<BehaviorConfigUploadEntry>>? speciesConfiguration,
 		string? speciesName)
@@ -57,13 +96,22 @@ public static class BehaviorConfigurationCatalog
 				return result;
 		}
 
+		foreach (var entry in ParseUploadEntries(entries))
+			result[entry.Key] = entry.Value;
+
+		return result;
+	}
+
+	static IEnumerable<KeyValuePair<string, BehaviorConfigEntry>> ParseUploadEntries(
+		IEnumerable<BehaviorConfigUploadEntry> entries)
+	{
 		foreach (var entry in entries)
 		{
 			if (string.IsNullOrWhiteSpace(entry.Id))
 				continue;
 			var isBool = string.Equals(entry.Type, "boolean", StringComparison.OrdinalIgnoreCase);
 			var isArray = string.Equals(entry.Type, "number[]", StringComparison.OrdinalIgnoreCase);
-			result[entry.Id] = new BehaviorConfigEntry
+			yield return KeyValuePair.Create(entry.Id, new BehaviorConfigEntry
 			{
 				Id = entry.Id,
 				Key = string.IsNullOrWhiteSpace(entry.Key) ? entry.Id : entry.Key.Trim(),
@@ -73,10 +121,8 @@ public static class BehaviorConfigurationCatalog
 				NumberValue = isBool || isArray ? 0f : ReadNumberValue(entry.Value),
 				BoolValue = isBool && ReadBoolValue(entry.Value),
 				FloatArrayValue = isArray ? ReadFloatArrayValue(entry.Value) : [],
-			};
+			});
 		}
-
-		return result;
 	}
 
 	static float ReadNumberValue(JsonElement value) =>

@@ -106,7 +106,8 @@ export function fromWireEntries(wire: BehaviorConfigWireEntry[] | undefined): Be
                     ? rawValue.map(v => Number(v) || 0)
                     : [];
             } else {
-                value = Number(rawValue) || 0;
+                const n = Number(rawValue);
+                value = Number.isFinite(n) ? n : 0;
             }
             return {
                 id,
@@ -117,4 +118,37 @@ export function fromWireEntries(wire: BehaviorConfigWireEntry[] | undefined): Be
                 value,
             };
         });
+}
+
+const BOOTSTRAP_ID_PREFIXES = ['default-config-', 'bergania-'];
+
+function isBootstrapConfigId(id: string): boolean {
+    return BOOTSTRAP_ID_PREFIXES.some(p => id.startsWith(p));
+}
+
+function shouldIgnoreLocalOverride(catalog: BehaviorConfigEntry, local: BehaviorConfigEntry): boolean {
+    if (local.type !== 'number' || catalog.type !== 'number') return false;
+    if (!isBootstrapConfigId(catalog.id)) return false;
+    if (typeof catalog.value !== 'number' || typeof local.value !== 'number') return false;
+    return local.value === 0 && catalog.value !== 0;
+}
+
+/** Catalog bootstrap values with local overrides (by stable config id). */
+export function mergeConfigurationWithCatalog(
+    catalogWire: BehaviorConfigWireEntry[] | undefined,
+    local: BehaviorConfigEntry[],
+): BehaviorConfigEntry[] {
+    const catalog = fromWireEntries(catalogWire);
+    if (catalog.length === 0) return sortConfigEntries([...local]);
+    const localById = new Map(local.map(e => [e.id, e]));
+    const merged = catalog.map(cat => {
+        const over = localById.get(cat.id);
+        if (!over || shouldIgnoreLocalOverride(cat, over)) return cat;
+        return over;
+    });
+    for (const entry of local) {
+        if (!catalog.some(c => c.id === entry.id))
+            merged.push(entry);
+    }
+    return sortConfigEntries(merged);
 }

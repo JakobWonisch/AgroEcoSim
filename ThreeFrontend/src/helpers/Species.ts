@@ -3,6 +3,7 @@ import type { ExportedGraph, NamedGraph } from "../components/hud/nodes/Conversi
 import { createDefaultNamedGraph } from "../components/hud/nodes/Conversion";
 import type { BehaviorConfigEntry } from "../components/hud/nodes/behaviorConfiguration";
 import { fromWireEntries, toWireEntries } from "../components/hud/nodes/behaviorConfiguration";
+import { syncSpeciesSignalsFromConfiguration } from "../components/hud/nodes/syncConfigurationSignals";
 
 const DegToRad = Math.PI / 180.0;
 const RadToDeg = 180.0 / Math.PI;
@@ -35,7 +36,7 @@ export class Species {
     lateralPitchDeg = signal(45);
     lateralPitchDegVar = signal(5);
     twigsBending = signal(0.5);
-    twigsBendingApical = signal(0.02);
+    twigsBendingApical = signal(0.98); // post-Init RandomOrientation subtractor; historical UI was 1−0.02
     bendingByLevel = signal(1);
     shootsGravitaxis = signal(0.2);
 
@@ -132,6 +133,7 @@ export class Species {
         else
             this.behaviorGraphs.value = [createDefaultNamedGraph("Main")];
         this.behaviorConfiguration.value = fromWireEntries(entry.configuration);
+        syncSpeciesSignalsFromConfiguration(this, this.behaviorConfiguration.peek());
         return this;
     }
 
@@ -143,6 +145,7 @@ export class Species {
             this.behaviorGraphs.value = structuredClone(s.graphs);
         if (Array.isArray(s.configuration))
             this.behaviorConfiguration.value = fromWireEntries(s.configuration);
+        syncSpeciesSignalsFromConfiguration(this, this.behaviorConfiguration.peek());
         this.height.value = s.height;
         this.nodeDistance.value = s.nodeDistance;
         this.nodeDistanceVar.value = s.nodeDistanceVar;

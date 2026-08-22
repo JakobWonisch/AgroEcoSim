@@ -20,6 +20,8 @@ public static class PerseaSpeciesGraphBuilder
 		public const float LateralRoll = 0f;
 		/// <summary>Post-<see cref="SpeciesSettings.Init"/> gravitaxis (0.2×0.4); keeps apical meristems upright.</summary>
 		public const float ShootsGravitaxis = DefaultSpeciesGraphBuilder.DefaultTickConstants.ShootsGravitaxis;
+		/// <summary>Post-Init apical bend subtractor; same as default / historical <c>1 − 0.02</c> UI serialize.</summary>
+		public const float TwigsBendingApical = DefaultSpeciesGraphBuilder.DefaultTickConstants.TwigsBendingApical;
 	}
 
 	public static List<BehaviorConfigUploadEntry> BuildConfiguration()
@@ -42,6 +44,7 @@ public static class PerseaSpeciesGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, PerseaTickConstants.LateralPitchVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, PerseaTickConstants.LateralRoll);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.ShootsGravitaxis, PerseaTickConstants.ShootsGravitaxis);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical, PerseaTickConstants.TwigsBendingApical);
 		return entries;
 	}
 

@@ -216,6 +216,17 @@ public class SpeciesMorphologyTests
 	}
 
 	[Fact]
+	public void ConfigBuild_TwigsBendingApical_PreInitBeforePlantInit()
+	{
+		var fresh = BuildFromConfig("Persea americana", PerseaSpeciesGraphBuilder.BuildConfiguration());
+		Assert.Equal(0.98f, fresh.TwigsBendingApical, 3);
+		fresh.Init(4);
+		Assert.Equal(0.98f, fresh.TwigsBendingApical, 3);
+	}
+
+
+
+	[Fact]
 	public void Persea_EarlyStructure_HasFourLeavesPerNode()
 	{
 		const int hoursPerTick = 4;
@@ -284,6 +295,70 @@ public class SpeciesMorphologyTests
 		var resolved = SpeciesMorphology.Resolve("Default", new SimulationRequest());
 		Assert.Equal(1f, resolved.DominanceFactors[1]);
 		Assert.Equal(0.7f, resolved.DominanceFactors[2]);
+	}
+
+	[Fact]
+	public void Persea_GraphWithoutUploadedConfig_MatchesCatalogAt1440h()
+	{
+		var perseaEntry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Persea americana");
+		var graphs = perseaEntry.Graphs.Select(g => new SpeciesGraphUploadEntry
+		{
+			Id = g.Id,
+			Name = g.Name,
+			Graph = g.Graph,
+		}).ToList();
+
+		var requestWithConfig = new SimulationRequest
+		{
+			Seed = 42,
+			TotalHours = 1440,
+			HoursPerTick = 4,
+			Plants = [new PlantRequest { SpeciesName = "Persea americana" }],
+			SpeciesGraphs = new Dictionary<string, List<SpeciesGraphUploadEntry>>
+			{
+				["Persea americana"] = graphs,
+			},
+			SpeciesConfiguration = new Dictionary<string, List<BehaviorConfigUploadEntry>>
+			{
+				["Persea americana"] = [.. PerseaSpeciesGraphBuilder.BuildConfiguration()],
+			},
+		};
+
+		var requestNoUpload = new SimulationRequest
+		{
+			Seed = 42,
+			TotalHours = 1440,
+			HoursPerTick = 4,
+			Plants = [new PlantRequest { SpeciesName = "Persea americana" }],
+			SpeciesGraphs = new Dictionary<string, List<SpeciesGraphUploadEntry>>
+			{
+				["Persea americana"] = graphs,
+			},
+		};
+
+		var catalogPath = Path.Combine(Path.GetTempPath(), $"persea-cat-{Guid.NewGuid():N}.jsonl");
+		var fallbackPath = Path.Combine(Path.GetTempPath(), $"persea-fallback-{Guid.NewGuid():N}.jsonl");
+		try
+		{
+			SimulationHarness.RecordTrace(requestWithConfig, BehaviorRunMode.Node, catalogPath, maxHours: 1440);
+			SimulationHarness.RecordTrace(requestNoUpload, BehaviorRunMode.Node, fallbackPath, maxHours: 1440);
+			var mismatch = TraceComparer.CompareFiles(catalogPath, fallbackPath, TraceCompareOptions.StructuralParity);
+			Assert.Null(mismatch);
+		}
+		finally
+		{
+			if (File.Exists(catalogPath)) File.Delete(catalogPath);
+			if (File.Exists(fallbackPath)) File.Delete(fallbackPath);
+		}
+	}
+
+	[Fact]
+	public void ResolveForSpecies_MergesCatalogWithUpload()
+	{
+		var resolved = BehaviorConfigurationCatalog.ResolveForSpecies(null, "Persea americana");
+		Assert.True(resolved.ContainsKey(DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime));
+		Assert.Equal(2400f, resolved[DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime].NumberValue);
+		Assert.Equal(4f, resolved[DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode].NumberValue);
 	}
 
 	[Fact]
