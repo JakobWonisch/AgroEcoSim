@@ -22,7 +22,8 @@ public static class SpawnEffects
 		int parentAgentId,
 		uint timestep,
 		OrganTypes organ,
-		IReadOnlyDictionary<string, BehaviorConfigEntry>? config,
+		TwigOrientationParams twig,
+		float lateralRoll,
 		float energyFraction = 0.1f,
 		float waterFraction = 0.1f,
 		Quaternion? orientationOverride = null)
@@ -33,8 +34,7 @@ public static class SpawnEffects
 
 		var orientation = orientationOverride
 			?? AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
-				ref parent, plant, parent.Orientation, config));
-		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
+				ref parent, plant, parent.Orientation, twig));
 		var lateralPitch = parent.LateralAngle + lateralRoll;
 
 		var childIndex = formation.Birth(new(plant, parentAgentId, organ, orientation, energyFraction * parent.Energy,
@@ -56,15 +56,15 @@ public static class SpawnEffects
 		PlantSubFormation<AboveGroundAgent> formation,
 		int parentAgentId,
 		uint timestep,
-		IReadOnlyDictionary<string, BehaviorConfigEntry>? config,
+		TwigOrientationParams twig,
+		float lateralRoll,
 		float energyFraction = 0.1f,
 		float waterFraction = 0.1f)
 	{
 		var plant = formation.Plant;
 		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep);
 		var orientation = AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
-			ref parent, plant, parent.Orientation, config));
-		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
+			ref parent, plant, parent.Orientation, twig));
 		var lateralPitch = parent.LateralAngle + lateralRoll;
 
 		var childIndex = formation.Birth(new(plant, parentAgentId, OrganTypes.FlowerMeristem, orientation,
@@ -87,7 +87,9 @@ public static class SpawnEffects
 		PlantSubFormation<AboveGroundAgent> formation,
 		int parentAgentId,
 		uint timestep,
-		IReadOnlyDictionary<string, BehaviorConfigEntry>? config)
+		IReadOnlyDictionary<string, BehaviorConfigEntry>? config,
+		TwigOrientationParams twig,
+		float lateralRoll)
 	{
 		var plant = formation.Plant;
 		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep);
@@ -104,7 +106,7 @@ public static class SpawnEffects
 		var water = parent.Water_g;
 
 		var meristem1 = formation.Birth(new(plant, parentAgentId, OrganTypes.Meristem,
-			OrientationEffects.RandomOrientation(ref parent, plant, orientation1, config), 0.1f * energy,
+			OrientationEffects.RandomOrientation(ref parent, plant, orientation1, twig), 0.1f * energy,
 			initialResources: prevResources, initialProduction: prevProduction)
 		{
 			Water_g = 0.1f * water,
@@ -112,7 +114,7 @@ public static class SpawnEffects
 			DominanceLevel = parent.DominanceLevel,
 		});
 		var meristem2 = formation.Birth(new(plant, parentAgentId, OrganTypes.Meristem,
-			OrientationEffects.RandomOrientation(ref parent, plant, orientation2, config), 0.1f * energy,
+			OrientationEffects.RandomOrientation(ref parent, plant, orientation2, twig), 0.1f * energy,
 			initialResources: prevResources, initialProduction: prevProduction)
 		{
 			Water_g = 0.1f * water,
@@ -125,24 +127,58 @@ public static class SpawnEffects
 		return (meristem1, meristem2, lateralPitch);
 	}
 
-	public static void SpawnRhizome(
+	/// <summary>
+	/// Legacy <c>Bergania.CreateRizome</c>: branch orientation, BVH rhizome-overlap abort, soil abort, then rhizome+bud birth.
+	/// </summary>
+	/// <returns>True when a rhizome was birthed.</returns>
+	public static bool TrySpawnRhizome(
 		ref AboveGroundAgent parent,
 		PlantSubFormation<AboveGroundAgent> formation,
 		int parentAgentId,
-		Quaternion orientation,
-		IReadOnlyDictionary<string, BehaviorConfigEntry>? config)
+		RhizomeSpawnParams rhizome,
+		float childYawOffset,
+		float rootYawOffset)
 	{
 		var plant = formation.Plant;
-		var rizomeLength = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength, DefaultSpeciesGraphBuilder.DefaultTickConstants.RizomeLength);
-		var rizomeRadius = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius, DefaultSpeciesGraphBuilder.DefaultTickConstants.RizomeRadius);
-		var rizome = new AboveGroundAgent(plant, parentAgentId, OrganTypes.Stem, orientation, 0,
-			length: rizomeLength, radius: rizomeRadius);
+
+		Quaternion rizomOrientation;
+		if (parentAgentId > 0)
+			rizomOrientation = parent.Orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, childYawOffset);
+		else
+			rizomOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0f * MathF.PI)
+				* Quaternion.CreateFromAxisAngle(Vector3.UnitY, rootYawOffset);
+
+		var rizome = new AboveGroundAgent(plant, parentAgentId, OrganTypes.Stem, rizomOrientation, 0,
+			length: rhizome.RizomeLength, radius: rhizome.RizomeRadius);
 		rizome.isRizome = true;
 		rizome.rizomeInfo.rizomeDepth = parent.rizomeInfo.rizomeDepth + 1;
+
+		var tip = formation.GetTipPosition(parentAgentId);
+		var overlaps = formation.CollisionBvh.QueryOverlaps(
+			formation.ComputeBoundsFromParameters(tip, rizomOrientation, rizome.Length, rizome.Radius));
+		if (overlaps is not null)
+		{
+			var children = formation.GetChildren(parentAgentId);
+			foreach (var collision in overlaps)
+			{
+				if (parentAgentId != collision
+					&& (children is null || !children.Contains(collision))
+					&& formation.GetIsRizome(collision))
+				{
+					return false;
+				}
+
+				var tipWorld = formation.GetBaseCenterWorld(parentAgentId)
+					+ Vector3.Transform(Vector3.UnitX, formation.GetDirection(parentAgentId)) * parent.Length
+					+ Vector3.Transform(Vector3.UnitX, rizome.Orientation) * rizome.Length;
+				if (plant.Soil.IntersectPoint(tipWorld, plant.SoilIndex) < 0)
+					return false;
+			}
+		}
+
 		var rizomeIndex = formation.Birth(rizome);
-		var lateralRoll = BehaviorGraphConfig.Number(config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
-		var lateralPitch = parent.LateralAngle + lateralRoll;
-		var bud = new AboveGroundAgent(plant, rizomeIndex, OrganTypes.Bud, orientation, 0,
+		var lateralPitch = parent.LateralAngle + rhizome.LateralRoll;
+		var bud = new AboveGroundAgent(plant, rizomeIndex, OrganTypes.Bud, rizomOrientation, 0,
 			initialResources: 1f, initialProduction: 1f)
 		{
 			LateralAngle = lateralPitch,
@@ -150,5 +186,18 @@ public static class SpawnEffects
 			trySpawn = true,
 		};
 		formation.Birth(bud);
+		return true;
+	}
+
+	/// <summary>Backward-compatible wrapper used by older call sites; ignores collision result.</summary>
+	public static void SpawnRhizome(
+		ref AboveGroundAgent parent,
+		PlantSubFormation<AboveGroundAgent> formation,
+		int parentAgentId,
+		Quaternion orientation,
+		RhizomeSpawnParams rhizome)
+	{
+		_ = orientation;
+		TrySpawnRhizome(ref parent, formation, parentAgentId, rhizome, childYawOffset: 0f, rootYawOffset: 0f);
 	}
 }

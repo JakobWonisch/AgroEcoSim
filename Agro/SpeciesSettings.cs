@@ -270,13 +270,14 @@ public class SpeciesSettings
 
     static SpeciesSettings()
     {
-        Predefined.Add(new());
+        Predefined.Add(new() { DominanceFactor = 0.7f });
 
-        //Just gueesing
+        // Wood schedule from Agro/ML-Import224.json; laterals 4 for Persea whorl.
         Predefined.Add(new()
         {
             Name = "Persea americana",
             Aka = "Avocado",
+            DominanceFactor = 0.7f,
             LeafLength = 0.2f,
             LeafRadius = 0.04f,
             PetioleLength = 0.05f,
@@ -285,6 +286,11 @@ public class SpeciesSettings
             // RootRadiusGrowthPerH = 0.00297619f,
             LeafGrowthTime = 720,
             Height = 12f,
+            LateralsPerNode = 4,
+            WoodGrowthTime = 2400f,
+            WoodGrowthTimeVar = 240f,
+            // Matches historical UI serialize (1 − apexBendingRate) / ML-Import224.json.
+            TwigsBendingApical = 0.98f,
             //FirstFruitHour = 113952,
         });
 
@@ -296,7 +302,6 @@ public class SpeciesSettings
         // Heuchera;
         // Fragaria;
         // Carex;
-
     }
 
     private bool Initialized = false;

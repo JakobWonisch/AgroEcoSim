@@ -6,6 +6,10 @@ namespace Agro;
 /// </summary>
 public static class SpeciesMorphology
 {
+	/// <summary>
+	/// Legacy morphology resolve: request species object wins as-is, else shared predefined, else Default.
+	/// Do not change this path — it is part of the legacy simulation contract.
+	/// </summary>
 	public static SpeciesSettings Resolve(string? speciesName, SimulationRequest? settings)
 	{
 		if (!string.IsNullOrEmpty(speciesName))

@@ -232,8 +232,11 @@ public class BehaviorGraphCompilerTests
 	[InlineData("Random Float Var Input")]
 	[InlineData("Set Lateral Angle")]
 	[InlineData("Delta Dominance")]
+	[InlineData("Set Dominance")]
 	[InlineData("Set Length Var")]
 	[InlineData("Turn Upwards")]
+	[InlineData("Apply Crown Pitch")]
+	[InlineData("Set Energy To Capacity")]
 	[InlineData("Set Was Meristem")]
 	[InlineData("Delta Energy")]
 	[InlineData("Set trySpawn")]
@@ -268,6 +271,9 @@ public class BehaviorGraphCompilerTests
 		var becomeIdx = Array.FindIndex(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.BecomeMeristem);
 		Assert.True(rngIdx >= 0 && becomeIdx >= 0);
 		Assert.True(rngIdx < becomeIdx, $"rng@{rngIdx} must precede become@{becomeIdx}");
+
+		var pitchIdx = Array.FindIndex(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ApplyCrownPitch);
+		Assert.True(pitchIdx >= 0 && pitchIdx < becomeIdx, $"crown pitch@{pitchIdx} must precede become@{becomeIdx}");
 
 		var and4Idx = -1;
 		for (var i = 0; i < compiled.NodesInOrder.Length; i++)
@@ -407,7 +413,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(46, entries.Count);
+		Assert.Equal(54, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -461,7 +467,8 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(2f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode).Value.GetSingle());
 		var dominance = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors);
 		Assert.Equal("number[]", dominance.Type);
-		Assert.Equal(0.7f, dominance.Value.EnumerateArray().Single().GetSingle());
+		var table = dominance.Value.EnumerateArray().Select(e => e.GetSingle()).ToArray();
+		Assert.Equal(DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(0.7f), table);
 	}
 
 	[Fact]

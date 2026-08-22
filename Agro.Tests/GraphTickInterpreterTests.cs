@@ -345,7 +345,28 @@ public class GraphTickInterpreterTests
 	}
 
 	[Fact]
-	public void BuildUninitializedDominanceFactors_MatchesLegacyLookup()
+	public void DefaultConfiguration_DominanceFactors_MatchesLegacyTable()
+	{
+		var parsed = BehaviorConfigurationCatalog.ParseSpeciesConfiguration(
+			new Dictionary<string, List<BehaviorConfigUploadEntry>>
+			{
+				["Default"] = [.. DefaultSpeciesGraphBuilder.BuildDefaultConfiguration()],
+			},
+			"Default");
+		var table = parsed[DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors].FloatArrayValue;
+		var species = new SpeciesSettings { DominanceFactor = 0.7f };
+		for (var level = 0; level < 5; ++level)
+		{
+			var legacy = level < species.DominanceFactors.Length
+				? species.DominanceFactors[level]
+				: species.DominanceFactors[^1];
+			var graph = level < table.Length ? table[level] : table[^1];
+			Assert.Equal(legacy, graph);
+		}
+	}
+
+	[Fact]
+	public void BuildUninitializedDominanceFactors_MatchesLegacyFieldDefault()
 	{
 		var table = DefaultSpeciesGraphBuilder.BuildUninitializedDominanceFactors(0.7f);
 		Assert.Single(table);

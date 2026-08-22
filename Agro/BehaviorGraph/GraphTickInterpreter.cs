@@ -40,37 +40,46 @@ public static class GraphTickInterpreter
 			EvaluateNode(node, ref agent, ctx, outs);
 		}
 
-		if (NeedsOrderedMeristemSpawns(graph))
+		RunInactiveSubtreePasses(ref agent, ctx, outs, graph, orderedMeristemSpawns: NeedsOrderedMeristemSpawns(graph));
+	}
+
+	static void RunInactiveSubtreePasses(
+		ref AboveGroundAgent agent,
+		TickEvalContext ctx,
+		Dictionary<(int NodeIndex, string Socket), WireValue> outs,
+		CompiledBehaviorGraph graph,
+		bool orderedMeristemSpawns)
+	{
+		// Config/inputs first, then effect-side deferred RNG, then refresh pure nodes that consume RNG.
+		RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.PureCompute);
+		RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.DeferredRandom);
+		RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.PureComputeRefresh);
+
+		if (orderedMeristemSpawns)
 		{
-			for (var t = 0; t < graph.NodesInOrder.Length; t++)
-			{
-				if (graph.ActiveSubtreeMask[t])
-					continue;
-				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.Other);
-			}
-
-			for (var t = 0; t < graph.NodesInOrder.Length; t++)
-			{
-				if (graph.ActiveSubtreeMask[t])
-					continue;
-				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.FlowerMeristemSpawns);
-			}
-
-			for (var t = 0; t < graph.NodesInOrder.Length; t++)
-			{
-				if (graph.ActiveSubtreeMask[t])
-					continue;
-				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.MeristemSpawns);
-			}
+			RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.Effects);
+			RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.FlowerMeristemSpawns);
+			RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.MeristemSpawns);
 		}
 		else
 		{
-			for (var t = 0; t < graph.NodesInOrder.Length; t++)
-			{
-				if (graph.ActiveSubtreeMask[t])
-					continue;
-				EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
-			}
+			RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.Effects);
+			RunInactivePass(ref agent, ctx, outs, graph, InactivePassKind.MeristemSpawns);
+		}
+	}
+
+	static void RunInactivePass(
+		ref AboveGroundAgent agent,
+		TickEvalContext ctx,
+		Dictionary<(int NodeIndex, string Socket), WireValue> outs,
+		CompiledBehaviorGraph graph,
+		InactivePassKind pass)
+	{
+		for (var t = 0; t < graph.NodesInOrder.Length; t++)
+		{
+			if (graph.ActiveSubtreeMask[t])
+				continue;
+			EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, pass);
 		}
 	}
 
@@ -89,7 +98,7 @@ public static class GraphTickInterpreter
 		return hasFlowerMeristem && hasMeristem;
 	}
 
-	enum InactivePassKind { FlowerMeristemSpawns, Other, MeristemSpawns }
+	enum InactivePassKind { DeferredRandom, PureCompute, PureComputeRefresh, Effects, FlowerMeristemSpawns, MeristemSpawns }
 
 	static void EvaluateInactiveNode(
 		CompiledNode node,
@@ -100,11 +109,12 @@ public static class GraphTickInterpreter
 	{
 		var run = pass switch
 		{
+			InactivePassKind.DeferredRandom => IsDeferredRandomKind(node.Kind),
+			InactivePassKind.PureCompute => IsPureComputeKind(node.Kind),
+			InactivePassKind.PureComputeRefresh => IsPureComputeRefreshKind(node.Kind),
 			InactivePassKind.FlowerMeristemSpawns => node.Kind == GraphNodeKind.SpawnFlowerMeristem,
 			InactivePassKind.MeristemSpawns => node.Kind is GraphNodeKind.SpawnMeristem or GraphNodeKind.CreateLeaves,
-			InactivePassKind.Other => node.Kind is not GraphNodeKind.SpawnFlowerMeristem
-				and not GraphNodeKind.SpawnMeristem
-				and not GraphNodeKind.CreateLeaves,
+			InactivePassKind.Effects => IsEffectKind(node.Kind) && !IsOrderedSpawnKind(node.Kind),
 			_ => false,
 		};
 		if (run)
@@ -113,6 +123,36 @@ public static class GraphTickInterpreter
 
 	static bool IsDeferredRandomKind(GraphNodeKind kind) =>
 		kind is GraphNodeKind.RandomAccumChanceInput or GraphNodeKind.RandomFloatVarInput;
+
+	static bool IsPureComputeKind(GraphNodeKind kind) => kind switch
+	{
+		GraphNodeKind.NumberInput or GraphNodeKind.BooleanInput
+			or GraphNodeKind.ConfigurationValueInput or GraphNodeKind.ConfigurationArrayInput
+			or GraphNodeKind.AgentTypeInput or GraphNodeKind.PhaseInput or GraphNodeKind.AgentStateInput
+			or GraphNodeKind.AgentIdInput or GraphNodeKind.FormationInput or GraphNodeKind.IrradianceInput
+			or GraphNodeKind.SimulationSettingsInput or GraphNodeKind.RandomChanceInput
+			or GraphNodeKind.ParentWoodCap or GraphNodeKind.ClampMax
+			or GraphNodeKind.Add or GraphNodeKind.Subtract or GraphNodeKind.Multiply or GraphNodeKind.Divide
+			or GraphNodeKind.IntegerDivide
+			or GraphNodeKind.And or GraphNodeKind.Or or GraphNodeKind.Xor or GraphNodeKind.Not
+			or GraphNodeKind.GreaterThan or GraphNodeKind.GreaterThanOrEqual or GraphNodeKind.LessThan
+			or GraphNodeKind.LessThanOrEqual or GraphNodeKind.EqualTo or GraphNodeKind.IfElse
+			or GraphNodeKind.Active => true,
+		_ => false,
+	};
+
+	static bool IsPureComputeRefreshKind(GraphNodeKind kind) =>
+		IsPureComputeKind(kind) && kind != GraphNodeKind.RandomChanceInput;
+
+	static bool IsEffectKind(GraphNodeKind kind) =>
+		!IsPureComputeKind(kind) && !IsDeferredRandomKind(kind);
+
+	static bool IsOrderedSpawnKind(GraphNodeKind kind) => kind switch
+	{
+		GraphNodeKind.SpawnMeristem or GraphNodeKind.SpawnDichotomousMeristems or GraphNodeKind.CreateLeaves
+			or GraphNodeKind.SpawnFlowerMeristem => true,
+		_ => false,
+	};
 
 	static void EvaluateNode(CompiledNode node, ref AboveGroundAgent agent, TickEvalContext ctx, Dictionary<(int NodeIndex, string Socket), WireValue> outs)
 	{
@@ -140,7 +180,7 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.ConfigurationArrayInput:
 			{
 				var index = FirstFloat(node.Inputs, "index", outs);
-				var value = BehaviorGraphConfig.ArrayElement(ctx.BehaviorConfiguration, node.ConfigId ?? "", index);
+				var value = ResolveConfigArrayElement(node.ConfigId, index, ctx);
 				outs[(g, "out")] = WireValue.OfFloat(value);
 				break;
 			}
@@ -341,6 +381,15 @@ public static class GraphTickInterpreter
 				}
 				agent.Energy = FirstFloat(node.Inputs, "value", outs);
 				break;
+			case GraphNodeKind.SetEnergyToCapacity:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetEnergyToCapacity();
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
 			case GraphNodeKind.SetAuxins:
 				agent.Auxins = FirstFloat(node.Inputs, "value", outs);
 				break;
@@ -396,9 +445,23 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.MakeBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
+					var organBefore = agent.Organ;
 					var children = ctx.Formation!.GetChildren(ctx.AgentId);
 					agent.MakeBud(ctx.Formation, children);
+					// Bergania energy depletion: non-petiole organs on a rhizome parent
+					// re-align to the parent so the next spring crown pitches up from the ground plane.
+					if (organBefore != OrganTypes.Petiole && agent.Parent >= 0
+						&& ctx.Formation.GetIsRizome(agent.Parent))
+					{
+						agent.SetOrientation(ctx.Formation.GetDirection(agent.Parent));
+						agent.baseOrientation = agent.Orientation;
+						agent.restOrientation = agent.Orientation;
+						agent.targetOrientation = agent.Orientation;
+					}
+					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
 			case GraphNodeKind.CreateLeaves:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
@@ -406,12 +469,19 @@ public static class GraphTickInterpreter
 					var plant = ctx.Formation!.Plant;
 					var lateral = node.Inputs.ContainsKey("lateralAngle") && node.Inputs["lateralAngle"].Count > 0
 						? FirstFloat(node.Inputs, "lateralAngle", outs)
-						: agent.LateralAngle + BehaviorGraphConfig.Number(
-							ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll);
-					var meristemId = node.Inputs.ContainsKey("meristemId")
-						? (int)FirstFloat(node.Inputs, "meristemId", outs)
-						: ctx.AgentId;
-					AboveGroundAgent.GraphCreateLeaves(ref agent, plant, ctx.BehaviorConfiguration, lateral, meristemId);
+						: agent.LateralAngle + ResolveConfigNumber(DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, ctx);
+					var meristemId = ctx.AgentId;
+					if (node.Inputs.TryGetValue("meristemId", out var merIn) && merIn.Count > 0)
+					{
+						var (pi, ps) = merIn[0];
+						if (outs.TryGetValue((pi, ps), out var merWire))
+							meristemId = (int)merWire.AsFloat();
+					}
+					if (meristemId >= 0)
+					{
+						var layout = MorphologyGraphInputs.ReadLeafLayout(node, outs, ctx);
+						AboveGroundAgent.GraphCreateLeaves(ref agent, plant, lateral, meristemId, layout);
+					}
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else
@@ -462,6 +532,15 @@ public static class GraphTickInterpreter
 				else
 					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
+			case GraphNodeKind.SetDominance:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					agent.GraphSetDominance(FirstFloat(node.Inputs, "value", outs));
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
 			case GraphNodeKind.SetLengthVar:
 				if (FirstBool(node.Inputs, "trigger", outs))
 				{
@@ -489,6 +568,23 @@ public static class GraphTickInterpreter
 				else
 					outs[(g, "seq")] = WireValue.OfBool(false);
 				break;
+			case GraphNodeKind.ApplyCrownPitch:
+				if (FirstBool(node.Inputs, "trigger", outs))
+				{
+					if (ctx.HasFormation)
+					{
+						// Legacy draws unused initialYaw immediately before applying crown pitch.
+						_ = ctx.Formation!.Plant.RNG.NextFloat(-MathF.PI, MathF.PI);
+					}
+					var pitch = node.Inputs.ContainsKey("crownPitch") && node.Inputs["crownPitch"].Count > 0
+						? FirstFloat(node.Inputs, "crownPitch", outs)
+						: ResolveConfigNumber(BerganiaTickGraphBuilder.ConfigIds.CrownPitch, ctx);
+					agent.GraphApplyCrownPitch(pitch);
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
 			case GraphNodeKind.SetWasMeristem:
 				if (FirstBool(node.Inputs, "value", outs))
 					agent.GraphSetWasMeristemThisTick(true);
@@ -498,12 +594,12 @@ public static class GraphTickInterpreter
 				{
 					var plant = ctx.Formation!.Plant;
 					var world = plant.World;
-					var woodTime = BehaviorGraphConfig.Number(
-						ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime,
-						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTime);
-					var woodTimeVar = BehaviorGraphConfig.Number(
-						ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar,
-						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTimeVar);
+					var woodTime = ResolveConfigNumber(DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime, ctx);
+					if (woodTime <= 0f)
+						woodTime = DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTime;
+					var woodTimeVar = ResolveConfigNumber(DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar, ctx);
+					if (woodTimeVar <= 0f)
+						woodTimeVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTimeVar;
 					agent.Organ = OrganTypes.Stem;
 					agent.GraphSetGrowthTimeVar(world.HoursPerTick / (woodTime + plant.RNG.NextFloatVar(woodTimeVar)));
 					outs[(g, "seq")] = WireValue.OfBool(true);
@@ -522,8 +618,10 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.SpawnMeristem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
 					var childId = SpawnEffects.SpawnChild(
-						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem, ctx.BehaviorConfiguration);
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem, twig, lateralRoll);
 					outs[(g, "childId")] = WireValue.OfFloat(childId);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
@@ -536,8 +634,10 @@ public static class GraphTickInterpreter
 			case GraphNodeKind.SpawnDichotomousMeristems:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
 					var (m1, m2, pitch) = SpawnEffects.SpawnDichotomousMeristems(
-						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, ctx.BehaviorConfiguration);
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, ctx.BehaviorConfiguration, twig, lateralRoll);
 					outs[(g, "childId1")] = WireValue.OfFloat(m1);
 					outs[(g, "childId2")] = WireValue.OfFloat(m2);
 					outs[(g, "lateralPitch")] = WireValue.OfFloat(pitch);
@@ -553,21 +653,35 @@ public static class GraphTickInterpreter
 				break;
 			case GraphNodeKind.SpawnBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Bud, ctx.BehaviorConfiguration);
+				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Bud, twig, lateralRoll);
+				}
 				break;
 			case GraphNodeKind.SpawnStem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Stem, ctx.BehaviorConfiguration);
+				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Stem, twig, lateralRoll);
+				}
 				break;
 			case GraphNodeKind.SpawnFlowerStem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerStem, ctx.BehaviorConfiguration);
+				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerStem, twig, lateralRoll);
+				}
 				break;
 			case GraphNodeKind.SpawnFlowerMeristem:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
 					SpawnEffects.SpawnFlowerMeristemChild(
-						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, ctx.BehaviorConfiguration);
+						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, twig, lateralRoll);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else
@@ -575,17 +689,33 @@ public static class GraphTickInterpreter
 				break;
 			case GraphNodeKind.SpawnFlowerBud:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerBud, ctx.BehaviorConfiguration);
+				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerBud, twig, lateralRoll);
+				}
 				break;
 			case GraphNodeKind.SpawnFlowerPadel:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
-					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerPadel, ctx.BehaviorConfiguration);
+				{
+					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
+					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
+					SpawnEffects.SpawnChild(ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.FlowerPadel, twig, lateralRoll);
+				}
 				break;
 			case GraphNodeKind.SpawnRhizome:
 				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
 				{
-					SpawnEffects.SpawnRhizome(ref agent, ctx.Formation!, ctx.AgentId, agent.Orientation, ctx.BehaviorConfiguration);
-					outs[(g, "seq")] = WireValue.OfBool(true);
+					var yawOffset = node.Inputs.ContainsKey("yawOffset") && node.Inputs["yawOffset"].Count > 0
+						? FirstFloat(node.Inputs, "yawOffset", outs)
+						: 0f;
+					var rootYaw = node.Inputs.ContainsKey("rootYawOffset") && node.Inputs["rootYawOffset"].Count > 0
+						? FirstFloat(node.Inputs, "rootYawOffset", outs)
+						: yawOffset;
+					var rhizome = MorphologyGraphInputs.ReadRhizomeSpawn(node, outs, ctx);
+					var spawned = SpawnEffects.TrySpawnRhizome(
+						ref agent, ctx.Formation!, ctx.AgentId, rhizome, yawOffset, rootYaw);
+					outs[(g, "seq")] = WireValue.OfBool(spawned);
 				}
 				else
 					outs[(g, "seq")] = WireValue.OfBool(false);
@@ -608,6 +738,9 @@ public static class GraphTickInterpreter
 		outs[(g, "flowerBud")] = WireValue.OfBool(o == OrganTypes.FlowerBud);
 		outs[(g, "flowerPadel")] = WireValue.OfBool(o == OrganTypes.FlowerPadel);
 		outs[(g, "flowerPetiol")] = WireValue.OfBool(o == OrganTypes.FlowerPetiol);
+		outs[(g, "flowerBaseBud")] = WireValue.OfBool(o == OrganTypes.FlowerBaseBud);
+		outs[(g, "fruit")] = WireValue.OfBool(o == OrganTypes.Fruit);
+		outs[(g, "rizomeMeristem")] = WireValue.OfBool(o == OrganTypes.RizomeMeristem);
 	}
 
 	static void WritePhaseInput(TickEvalContext ctx, Dictionary<(int, string), WireValue> outs, int g)
@@ -623,14 +756,11 @@ public static class GraphTickInterpreter
 		}
 
 		var plant = ctx.Formation!.Plant;
+		var species = plant.Parameters;
 		var ageHours = ctx.Timestep * plant.World.HoursPerTick;
 		var ageTemp = ageHours % (365f * 24f);
-		var floweringStart = BehaviorGraphConfig.Number(
-			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.FloweringStartAgeHours,
-			DefaultSpeciesGraphBuilder.DefaultTickConstants.FloweringStartAgeHours);
-		var floweringEnd = BehaviorGraphConfig.Number(
-			ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.FloweringEndAgeHours,
-			DefaultSpeciesGraphBuilder.DefaultTickConstants.FloweringEndAgeHours);
+		var floweringStart = species.FloweringStartAgeHours;
+		var floweringEnd = species.FloweringEndAgeHours;
 
 		SeasonalPhase phase;
 		if (ageTemp < floweringStart)
@@ -727,7 +857,7 @@ public static class GraphTickInterpreter
 			outs[(g, "childrenProductionSum")] = WireValue.OfFloat(productionSum);
 			var height = formation.Height;
 			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(
-				height > 1e-6f ? 5f * formation.GetBaseCenter(ctx.AgentId).Y / height : 0f);
+				height > 1e-6f ? formation.GetBaseCenter(ctx.AgentId).Y / height : 0f);
 			outs[(g, "auxinLocalMinimum")] = WireValue.OfBool(
 				ComputeAuxinLocalMinimum(formation, ref agent, ctx));
 		}
@@ -813,8 +943,33 @@ public static class GraphTickInterpreter
 		return value <= parentWood ? value : parentWood;
 	}
 
-	static float ResolveConfigNumber(string? configId, TickEvalContext ctx) =>
-		BehaviorGraphConfig.Number(ctx.BehaviorConfiguration, configId ?? "");
+	static float ResolveConfigNumber(string? configId, TickEvalContext ctx)
+	{
+		if (BehaviorGraphConfig.TryNumber(ctx.BehaviorConfiguration, configId ?? "", out var fromConfig))
+			return fromConfig;
+		if (ctx.HasFormation
+			&& BehaviorConfigParameterFallback.TryNumber(ctx.Formation!.Plant.Parameters, configId, out var fromSpecies))
+			return fromSpecies;
+		return 0f;
+	}
+
+	internal static float ResolveConfigNumberPublic(string? configId, TickEvalContext ctx) => ResolveConfigNumber(configId, ctx);
+
+	internal static float FirstFloatPublic(
+		Dictionary<string, List<(int ProducerIndex, string ProducerSocket)>> inputs,
+		string key,
+		Dictionary<(int, string), WireValue> outs)
+		=> FirstFloat(inputs, key, outs);
+
+	static float ResolveConfigArrayElement(string? configId, float index, TickEvalContext ctx)
+	{
+		if (BehaviorGraphConfig.TryArrayElement(ctx.BehaviorConfiguration, configId ?? "", index, out var fromConfig))
+			return fromConfig;
+		if (ctx.HasFormation
+			&& BehaviorConfigParameterFallback.TryArrayElement(ctx.Formation!.Plant.Parameters, configId, index, out var fromSpecies))
+			return fromSpecies;
+		return 0f;
+	}
 
 	static bool ResolveConfigBool(string? configId, TickEvalContext ctx)
 	{

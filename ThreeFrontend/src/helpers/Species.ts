@@ -3,51 +3,10 @@ import type { ExportedGraph, NamedGraph } from "../components/hud/nodes/Conversi
 import { createDefaultNamedGraph } from "../components/hud/nodes/Conversion";
 import type { BehaviorConfigEntry } from "../components/hud/nodes/behaviorConfiguration";
 import { fromWireEntries, toWireEntries } from "../components/hud/nodes/behaviorConfiguration";
+import { syncSpeciesSignalsFromConfiguration } from "../components/hud/nodes/syncConfigurationSignals";
 
 const DegToRad = Math.PI / 180.0;
 const RadToDeg = 180.0 / Math.PI;
-
-/** Morphology-only predefined literals not represented in behavior configuration. */
-const PREDEFINED_MORPHOLOGY_SUPPLEMENTS: Record<string, Partial<{
-    height: number;
-    leafGrowthTime: number;
-}>> = {
-    "Persea americana": { height: 12, leafGrowthTime: 720 },
-};
-
-function configNumber(entries: BehaviorConfigEntry[], id: string): number | undefined {
-    const entry = entries.find(e => e.id === id);
-    return entry?.type === "number" && typeof entry.value === "number" ? entry.value : undefined;
-}
-
-function applyBehaviorConfigurationToMorphology(species: Species, entries: BehaviorConfigEntry[]) {
-    const n = (id: string) => configNumber(entries, id);
-    const radToDeg = (v: number) => v * RadToDeg;
-
-    if (n("default-config-leaf-length") !== undefined) species.leafLength.value = n("default-config-leaf-length")!;
-    if (n("default-config-leaf-radius") !== undefined) species.leafRadius.value = n("default-config-leaf-radius")!;
-    if (n("default-config-petiole-length") !== undefined) species.petioleLength.value = n("default-config-petiole-length")!;
-    if (n("default-config-petiole-radius") !== undefined) species.petioleRadius.value = n("default-config-petiole-radius")!;
-    if (n("default-config-node-distance") !== undefined) species.nodeDistance.value = n("default-config-node-distance")!;
-    if (n("default-config-node-distance-var") !== undefined) species.nodeDistanceVar.value = n("default-config-node-distance-var")!;
-    if (n("default-config-monopodial-factor") !== undefined) species.monopodialFactor.value = n("default-config-monopodial-factor")!;
-    if (n("default-config-dominance-factor") !== undefined) species.dominanceFactor.value = n("default-config-dominance-factor")!;
-    if (n("default-config-auxins-production") !== undefined) species.auxinsProduction.value = n("default-config-auxins-production")!;
-    if (n("default-config-laterals-per-node") !== undefined) species.lateralsPerNode.value = n("default-config-laterals-per-node")!;
-    if (n("default-config-lateral-roll") !== undefined) species.lateralRollDeg.value = radToDeg(n("default-config-lateral-roll")!);
-    if (n("default-config-lateral-roll-var") !== undefined) species.lateralRollDegVar.value = radToDeg(n("default-config-lateral-roll-var")!);
-    if (n("default-config-lateral-pitch") !== undefined) species.lateralPitchDeg.value = radToDeg(n("default-config-lateral-pitch")!);
-    if (n("default-config-lateral-pitch-var") !== undefined) species.lateralPitchDegVar.value = radToDeg(n("default-config-lateral-pitch-var")!);
-    if (n("default-config-leaf-pitch") !== undefined) species.leafPitchDeg.value = radToDeg(n("default-config-leaf-pitch")!);
-    if (n("default-config-twig-bending") !== undefined) species.twigsBending.value = n("default-config-twig-bending")!;
-    if (n("default-config-twig-bending-level") !== undefined) species.bendingByLevel.value = n("default-config-twig-bending-level")!;
-    if (n("default-config-twig-bending-apical") !== undefined) species.twigsBendingApical.value = n("default-config-twig-bending-apical")!;
-    if (n("default-config-shoots-gravitaxis") !== undefined) species.shootsGravitaxis.value = n("default-config-shoots-gravitaxis")!;
-
-    const supplement = PREDEFINED_MORPHOLOGY_SUPPLEMENTS[species.name.peek()];
-    if (supplement?.height !== undefined) species.height.value = supplement.height;
-    if (supplement?.leafGrowthTime !== undefined) species.leafGrowthTime.value = supplement.leafGrowthTime;
-}
 
 export class Species {
     name = signal("Planta Fortuita " + Date.now());
@@ -77,7 +36,7 @@ export class Species {
     lateralPitchDeg = signal(45);
     lateralPitchDegVar = signal(5);
     twigsBending = signal(0.5);
-    twigsBendingApical = signal(0.02);
+    twigsBendingApical = signal(0.98); // post-Init RandomOrientation subtractor; historical UI was 1−0.02
     bendingByLevel = signal(1);
     shootsGravitaxis = signal(0.2);
 
@@ -174,7 +133,7 @@ export class Species {
         else
             this.behaviorGraphs.value = [createDefaultNamedGraph("Main")];
         this.behaviorConfiguration.value = fromWireEntries(entry.configuration);
-        applyBehaviorConfigurationToMorphology(this, this.behaviorConfiguration.peek());
+        syncSpeciesSignalsFromConfiguration(this, this.behaviorConfiguration.peek());
         return this;
     }
 
@@ -186,6 +145,7 @@ export class Species {
             this.behaviorGraphs.value = structuredClone(s.graphs);
         if (Array.isArray(s.configuration))
             this.behaviorConfiguration.value = fromWireEntries(s.configuration);
+        syncSpeciesSignalsFromConfiguration(this, this.behaviorConfiguration.peek());
         this.height.value = s.height;
         this.nodeDistance.value = s.nodeDistance;
         this.nodeDistanceVar.value = s.nodeDistanceVar;
@@ -233,6 +193,16 @@ export class Species {
     }
 
     public serialize() {
+        const hasBehaviorGraphs = this.behaviorGraphs.peek().some(g => (g.graph?.nodes?.length ?? 0) > 0);
+        if (hasBehaviorGraphs) {
+            return {
+                Name: this.name.peek(),
+                Aka: this.aka.peek(),
+                Behavior: this.behaviorIndex.peek(),
+                IncludeInRndGen: this.includeInRndGen.peek(),
+            };
+        }
+
         return {
             Name: this.name.peek(),
             Aka: this.aka.peek(),
@@ -256,11 +226,11 @@ export class Species {
 
             TwigsBending: this.twigsBending.peek(),
             TwigsBendingLevel: this.bendingByLevel.peek(),
-            TwigsBendingApical: 1.0 - this.twigsBendingApical.peek(),
+            TwigsBendingApical: this.twigsBendingApical.peek(),
             ShootsGravitaxis: this.shootsGravitaxis.peek(),
 
-            WoodGrowthTime: this.woodGrowthTime.peek() * 24,
-            WoodGrowthTimeVar: this.woodGrowthTimeVar.peek() * 24,
+            WoodGrowthTime: this.woodGrowthTime.peek(),
+            WoodGrowthTimeVar: this.woodGrowthTimeVar.peek(),
 
             //LeafLevel: this.leafLevel.peek(),
             LeafLength: this.leafLength.peek(),

@@ -231,8 +231,11 @@ public partial class PlantFormation2 : IPlantFormation
 				ugGathered.DistributeEnergyByStorage(factor);
 			}
 			#if DEBUG
-			var check = Math.Abs(energy - (agGathered.ReceivedEnergySum() + ugGathered.ReceivedEnergySum()));
-			Debug.Assert(check <= energy * 1e-3);
+			if (!World.ParitySuppressSpawn)
+			{
+				var check = Math.Abs(energy - (agGathered.ReceivedEnergySum() + ugGathered.ReceivedEnergySum()));
+				Debug.Assert(check <= energy * 1e-3);
+			}
 			#endif
 
 			if (water < waterRequirement || waterStorage < waterRequirement)

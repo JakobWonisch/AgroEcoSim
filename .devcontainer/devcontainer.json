@@ -1,0 +1,52 @@
+{
+  "name": "PRPlants",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  // Cap container RAM so a runaway simulation cannot take down the host.
+  // Adjust to ~50–70% of your system RAM; equal swap prevents spillover.
+  "runArgs": [
+    "--memory=8g",
+    "--memory-swap=8g"
+  ],
+  "forwardPorts": [
+    7215,
+    8080,
+    9001
+  ],
+  "portsAttributes": {
+    "7215": {
+      "label": "AgroServer",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "ThreeFrontend",
+      "onAutoForward": "notify"
+    },
+    "9001": {
+      "label": "Render server",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "dbaeumer.vscode-eslint",
+        "mhutchie.git-graph"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "AgroGodot.sln"
+      }
+    }
+  },
+  "remoteEnv": {
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "COMPlus_EnableDiagnostics": "0"
+  }
+}

@@ -39,6 +39,14 @@ public static class PredefinedSpeciesCatalog
 
 	public static IReadOnlyList<PredefinedSpeciesEntry> All => Lazy.Value;
 
+	public static IReadOnlyList<BehaviorConfigUploadEntry>? GetConfigurationEntries(string? speciesName)
+	{
+		if (string.IsNullOrEmpty(speciesName))
+			return null;
+		var entry = All.FirstOrDefault(s => string.Equals(s.Name, speciesName, StringComparison.OrdinalIgnoreCase));
+		return entry?.Configuration;
+	}
+
 	static List<PredefinedSpeciesGraphEntry> BuildGraphEntries(
 		IReadOnlyList<(string Name, global::ExportedGraph Graph)> subgraphs)
 	{

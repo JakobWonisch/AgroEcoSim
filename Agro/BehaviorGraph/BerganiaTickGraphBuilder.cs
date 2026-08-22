@@ -13,10 +13,17 @@ public static class BerganiaTickGraphBuilder
 
 	public sealed record BerganiaGraphOptions(
 		string SpeciesLabel,
+		float Height,
 		float LeafLength,
+		float LeafLengthVar,
 		float LeafRadius,
+		float LeafRadiusVar,
+		float LeafGrowthTime,
+		float LeafGrowthTimeVar,
 		float PetioleLength,
+		float PetioleLengthVar,
 		float PetioleRadius,
+		float PetioleRadiusVar,
 		float MaxLeaveAge,
 		float GrowthFactor,
 		float MaxRadius,
@@ -30,19 +37,30 @@ public static class BerganiaTickGraphBuilder
 		float DominanceFactor = 0.7f,
 		float NodeDistance = 0f,
 		float NodeDistanceVar = 0f,
+		int LateralsPerNode = 2,
 		float LateralPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch,
 		float LateralPitchVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitchVar,
 		float LateralRoll = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralRoll,
 		float LateralRollVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralRollVar,
 		float LeafPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafPitch,
-		float CrownPitch = 0.5f)
+		float LeafPitchVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafPitchVar,
+		float CrownPitch = 0.5f,
+		/// <summary>Geranium Tick lignifies stems (uncap when parent is rhizome). Bergenia Tick has that update commented out.</summary>
+		bool StemWoodLignify = false)
 	{
 		public static BerganiaGraphOptions GeraniumMacrorrhizum => new(
 			SpeciesLabel: "Geranium Macrorrhizum",
+			Height: 0.3f,
 			LeafLength: 0.06f,
+			LeafLengthVar: 0.01f,
 			LeafRadius: 0.03f,
+			LeafRadiusVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafRadiusVar,
+			LeafGrowthTime: 24 * 7,
+			LeafGrowthTimeVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafGrowthTimeVar,
 			PetioleLength: 0.15f,
+			PetioleLengthVar: 0.05f,
 			PetioleRadius: 0.0018f,
+			PetioleRadiusVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.PetioleRadiusVar,
 			MaxLeaveAge: 160f,
 			GrowthFactor: 0.25f,
 			MaxRadius: 0.0035f,
@@ -58,14 +76,23 @@ public static class BerganiaTickGraphBuilder
 			LateralRoll: 40f * DegToRad,
 			LateralRollVar: 5f * DegToRad,
 			LeafPitch: 85f * DegToRad,
-			CrownPitch: 0.38f);
+			LeafPitchVar: 5f * DegToRad,
+			CrownPitch: 0.38f,
+			StemWoodLignify: true);
 
 		public static BerganiaGraphOptions GeraniumCantabrigiense => new(
 			SpeciesLabel: "Geranium × Cantabrigiense",
+			Height: 0.25f,
 			LeafLength: 0.04f,
+			LeafLengthVar: 0.01f,
 			LeafRadius: 0.02f,
+			LeafRadiusVar: 0.005f,
+			LeafGrowthTime: 24 * 7,
+			LeafGrowthTimeVar: 24 * 2,
 			PetioleLength: 0.09f,
+			PetioleLengthVar: 0.03f,
 			PetioleRadius: 0.0017f,
+			PetioleRadiusVar: 0.0004f,
 			MaxLeaveAge: 140f,
 			GrowthFactor: 0.20f,
 			MaxRadius: 0.0030f,
@@ -81,14 +108,23 @@ public static class BerganiaTickGraphBuilder
 			LateralRoll: 40f * DegToRad,
 			LateralRollVar: 10f * DegToRad,
 			LeafPitch: 85f * DegToRad,
-			CrownPitch: 0.36f);
+			LeafPitchVar: 5f * DegToRad,
+			CrownPitch: 0.36f,
+			StemWoodLignify: true);
 
 		public static BerganiaGraphOptions BergeniaCordifolia => new(
 			SpeciesLabel: "Bergenia Cordifolia",
+			Height: 0.04f,
 			LeafLength: 0.24f,
+			LeafLengthVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafLengthVar,
 			LeafRadius: 0.09f,
+			LeafRadiusVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafRadiusVar,
+			LeafGrowthTime: 24 * 7 * 12,
+			LeafGrowthTimeVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafGrowthTimeVar,
 			PetioleLength: 0.005f,
+			PetioleLengthVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.PetioleLengthVar,
 			PetioleRadius: 0.004f,
+			PetioleRadiusVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.PetioleRadiusVar,
 			MaxLeaveAge: 100f,
 			GrowthFactor: 0.20f,
 			MaxRadius: 0.005f,
@@ -111,15 +147,29 @@ public static class BerganiaTickGraphBuilder
 		public const string RizomeMaxDepth = "default-config-rizome-max-depth";
 		public const string PChaining = "default-config-p-chaining";
 		public const string PFlowering = "default-config-p-flowering";
+		public const string CrownPitch = "default-config-crown-pitch";
+		public const string FlowerMeristemLengthGrowth = "default-config-flower-meristem-length-growth";
+		public const string FlowerMeristemRadiusGrowth = "default-config-flower-meristem-radius-growth";
+		public const string FlowerStemRadiusGrowth = "default-config-flower-stem-radius-growth";
+		public const string FlowerStemMaxRadius = "default-config-flower-stem-max-radius";
+		public const string FlowerLengthGrowthCap = "default-config-flower-length-growth-cap";
 	}
 
 	public static List<BehaviorConfigUploadEntry> BuildConfiguration(BerganiaGraphOptions opt)
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration().ToList();
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.Height, opt.Height);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafLength, opt.LeafLength);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafLengthVar, opt.LeafLengthVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafRadius, opt.LeafRadius);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafRadiusVar, opt.LeafRadiusVar);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafGrowthTime, opt.LeafGrowthTime);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafGrowthTimeVar, opt.LeafGrowthTimeVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength, opt.PetioleLength);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleLengthVar, opt.PetioleLengthVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius, opt.PetioleRadius);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadiusVar, opt.PetioleRadiusVar);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, opt.LateralsPerNode);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance, opt.NodeDistance);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar, opt.NodeDistanceVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleAgeBudMinHours, opt.MaxLeaveAge);
@@ -132,6 +182,7 @@ public static class BerganiaTickGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, opt.LateralRoll);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar, opt.LateralRollVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch, opt.LeafPitch);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafPitchVar, opt.LeafPitchVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold,
 			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(opt.LateralPitch, opt.PetioleLength));
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength, opt.RizomeLength);
@@ -142,6 +193,12 @@ public static class BerganiaTickGraphBuilder
 		AddOrReplace(entries, ConfigIds.PNewCrown, "P new crown", opt.PNewCrown);
 		AddOrReplace(entries, ConfigIds.PExpandRizome, "P expand rhizome", opt.PExpandRizome);
 		AddOrReplace(entries, ConfigIds.RizomeMaxDepth, "Rhizome max depth", opt.RizomeMaxDepth);
+		AddOrReplace(entries, ConfigIds.CrownPitch, "Crown pitch", opt.CrownPitch);
+		AddOrReplace(entries, ConfigIds.FlowerMeristemLengthGrowth, "Flower meristem length growth", 1e-3f);
+		AddOrReplace(entries, ConfigIds.FlowerMeristemRadiusGrowth, "Flower meristem radius growth", 2e-5f);
+		AddOrReplace(entries, ConfigIds.FlowerStemRadiusGrowth, "Flower stem radius growth", 2e-5f);
+		AddOrReplace(entries, ConfigIds.FlowerStemMaxRadius, "Flower stem max radius", 0.00025f);
+		AddOrReplace(entries, ConfigIds.FlowerLengthGrowthCap, "Flower length growth cap", 0.01f);
 		AddOrReplaceArray(entries, ConfigIds.PChaining, "P chaining by phase", opt.PChaining);
 		AddOrReplaceArray(entries, ConfigIds.PFlowering, "P flowering by phase", opt.PFlowering);
 		return entries;
@@ -162,18 +219,20 @@ public static class BerganiaTickGraphBuilder
 			("Growth petiole", BuildBerganiaGrowthPetioleSubgraph()),
 			("Growth meristem", BuildBerganiaGrowthMeristemSubgraph()),
 			("Growth stem", BuildBerganiaGrowthStemSubgraph()),
-			("Wood lignify", BuildWoodLignifyNoOpSubgraph()),
+			("Wood lignify", opt.StemWoodLignify
+				? BuildWoodLignifyUncapRhizomeParentSubgraph()
+				: BuildWoodLignifyNoOpSubgraph()),
 			("Meristem chain", BuildBerganiaMeristemChainSubgraph(opt)),
-			("Petiole cover bud", DefaultSpeciesGraphBuilder.BuildPetioleCoverBudSubgraph()),
+			("Petiole cover bud", BuildPetioleCoverBudNoOpSubgraph()),
 			("Petiole unproductive death", DefaultSpeciesGraphBuilder.BuildPetioleUnproductiveDeathSubgraph()),
 			("Energy depletion", BuildBerganiaEnergyDepletionSubgraph()),
-			("Rhizome test3 arm", BuildRhizomeTest3ArmSubgraph()),
 			("Rhizome expansion", BuildRhizomeExpansionSubgraph()),
+			("Rhizome test3 arm", BuildRhizomeTest3ArmSubgraph()),
+			("Flower meristem growth", BuildFlowerMeristemGrowthSubgraph()),
+			("Flower stem growth", BuildFlowerStemGrowthSubgraph()),
+			("Flower reset death", BuildFlowerResetDeathSubgraph()),
 			("Auxins update", DefaultSpeciesGraphBuilder.BuildAuxinsUpdateSubgraph()),
 		};
-
-		if (opt.SpeciesLabel == "Bergenia Cordifolia")
-			graphs.Add(("Flower organs gap", BuildFlowerGapCommentSubgraph()));
 
 		return graphs;
 	}
@@ -341,13 +400,16 @@ public static class BerganiaTickGraphBuilder
 
 		var spawnFlower = b.Add("spawn-flower", "Spawn Flower Meristem", 2440, 200);
 		b.Connect(preFlowerTrig, "out", spawnFlower, "trigger");
+		b.WireTwigOrientationConfig(spawnFlower, 2440, 320, "flower");
 
 		var spawnMeristem = b.Add("spawn-mer", "Spawn Meristem", 2440, 120);
 		b.Connect(chainTrig, "out", spawnMeristem, "trigger");
+		b.WireTwigOrientationConfig(spawnMeristem, 2440, 240, "mer");
 
 		var createLeaves = b.Add("create-leaves", "Create Leaves", 2680, 120);
 		b.Connect(spawnMeristem, "seq", createLeaves, "trigger");
 		b.Connect(spawnMeristem, "childId", createLeaves, "meristemId");
+		b.WireLeafLayoutConfig(createLeaves, 2680, 240, "mer");
 
 		b.Add("bend-gap", "Number Input", 2680, 200,
 			GraphNodePayload.FromComment("GAP: bendPetiol multi-agent orientation mutation not implemented in graph mode."));
@@ -361,6 +423,67 @@ public static class BerganiaTickGraphBuilder
 		var never = b.AddBool("never", false, 0, 0);
 		b.Add("wood-gap", "Number Input", 240, 0,
 			GraphNodePayload.FromComment("Bergania.Tick: stem wood-factor update is commented out in legacy."));
+		return b.FinishWithActive(never, "bool").Build();
+	}
+
+	/// <summary>
+	/// Geranium Tick: min(wood, pw) + GTV with
+	/// <c>pw = parent is rhizome ? self.wood : parent.wood</c> so rhizome wood=0 does not freeze shoots.
+	/// </summary>
+	static global::ExportedGraph BuildWoodLignifyUncapRhizomeParentSubgraph()
+	{
+		var b = SubgraphBuilder.Create("wl-ger");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var c1 = b.AddNum("c1", 1f, 280, 0);
+
+		var woodLt1 = b.Add("wood-lt", "Less Than", 520, 60);
+		b.Connect(state, "wood", woodLt1, "a");
+		b.Connect(c1, "num", woodLt1, "b");
+
+		var enough = b.WireEnoughEnergy(organ, state);
+		var and1 = b.Add("and1", "And", 1000, 20);
+		b.Connect(organ, "stem", and1, "a");
+		b.Connect(woodLt1, "out", and1, "b");
+
+		var and2 = b.Add("and2", "And", 1240, 40);
+		b.Connect(and1, "out", and2, "a");
+		b.Connect(enough, "out", and2, "b");
+
+		var effectivePw = b.Add("eff-pw", "If / Else", 1480, 160);
+		b.Connect(form, "parentIsRhizome", effectivePw, "condition");
+		b.Connect(state, "wood", effectivePw, "trueValue");
+		b.Connect(form, "parentWood", effectivePw, "falseValue");
+
+		var baseWood = b.WireMinFloat(state, "wood", effectivePw, "out", "base");
+
+		var newWood = b.Add("new-wood", "Add", 1960, 200);
+		b.Connect(baseWood, "out", newWood, "a");
+		b.Connect(state, "growthTimeVar", newWood, "b");
+
+		var one = b.AddNum("one", 1f, 2200, 240);
+		var clamped = b.Add("clamped", "Clamp Max", 2440, 200);
+		b.Connect(newWood, "out", clamped, "value");
+		b.Connect(one, "num", clamped, "max");
+
+		var setWood = b.Add("set-wood", "Set Wood", 2680, 200);
+		b.Connect(clamped, "out", setWood, "value");
+
+		return b.FinishWithActive(and2, "out").Build();
+	}
+
+	/// <summary>
+	/// Bergania.Tick nests petiole-cover MakeBud inside <c>Organ == Stem || Meristem</c>,
+	/// so it never runs for a petiole. TickDefault keeps that check in the sibling else.
+	/// </summary>
+	static global::ExportedGraph BuildPetioleCoverBudNoOpSubgraph()
+	{
+		var b = SubgraphBuilder.Create("pcb-noop");
+		var never = b.AddBool("never", false, 0, 0);
+		b.Add("cover-gap", "Number Input", 240, 0,
+			GraphNodePayload.FromComment(
+				"Bergania.Tick: petiole cover MakeBud is nested under stem/meristem and is unreachable for petioles."));
 		return b.FinishWithActive(never, "bool").Build();
 	}
 
@@ -379,9 +502,16 @@ public static class BerganiaTickGraphBuilder
 		var notRizome = b.Add("not-riz", "Not", 520, 40);
 		b.Connect(state, "isRizome", notRizome, "a");
 
-		var active = b.Add("active", "And", 760, 0);
-		b.Connect(starved, "out", active, "a");
-		b.Connect(notRizome, "out", active, "b");
+		var isFlower = WireIsBerganiaFlowerOrgan(b, organ);
+		var notFlower = b.Add("not-flower", "Not", 760, -40);
+		b.Connect(isFlower, "out", notFlower, "a");
+
+		var starvedNotRiz = b.Add("starved-not-riz", "And", 760, 0);
+		b.Connect(starved, "out", starvedNotRiz, "a");
+		b.Connect(notRizome, "out", starvedNotRiz, "b");
+		var active = b.Add("active", "And", 1000, 0);
+		b.Connect(starvedNotRiz, "out", active, "a");
+		b.Connect(notFlower, "out", active, "b");
 
 		var makeBudPetiole = b.Add("make-bud-pet", "Make Bud", 1000, 160);
 		var andPetiole = b.Add("and-pet", "And", 760, 160);
@@ -446,6 +576,24 @@ public static class BerganiaTickGraphBuilder
 			GraphNodePayload.FromComment("GAP: parent orientation on MakeBud not implemented in graph mode."));
 
 		return b.FinishWithActive(active, "out").Build();
+	}
+
+	/// <summary>
+	/// Bergania.Tick flower-organ list: FlowerHelper then return, so depletion/auxins do not run.
+	/// FlowerBud / FlowerBaseBud are not in that list.
+	/// </summary>
+	static string WireIsBerganiaFlowerOrgan(SubgraphBuilder b, string organ)
+	{
+		var or1 = b.Add("fl-or1", "Or", 280, -80);
+		b.Connect(organ, "flowerMeristem", or1, "a");
+		b.Connect(organ, "flowerStem", or1, "b");
+		var or2 = b.Add("fl-or2", "Or", 520, -80);
+		b.Connect(or1, "out", or2, "a");
+		b.Connect(organ, "flowerPadel", or2, "b");
+		var or3 = b.Add("fl-or3", "Or", 760, -80);
+		b.Connect(or2, "out", or3, "a");
+		b.Connect(organ, "flowerPetiol", or3, "b");
+		return or3;
 	}
 
 	static global::ExportedGraph BuildLifeSupportSubgraph(bool skipRhizome)
@@ -567,44 +715,53 @@ public static class BerganiaTickGraphBuilder
 		b.Connect(and3, "out", and4, "a");
 		b.Connect(rng, "out", and4, "b");
 
-		var become = b.Add("become", "Become Meristem", 2320, 140);
-		b.Connect(and4, "out", become, "trigger");
+		// Failed pNewCrown roll → trySpawn=false (legacy else branch).
+		var notRng = b.Add("not-rng", "Not", 2080, 200);
+		b.Connect(rng, "out", notRng, "a");
+		var failGate = b.Add("fail-gate", "And", 2320, 200);
+		b.Connect(and3, "out", failGate, "a");
+		b.Connect(notRng, "out", failGate, "b");
+		var tryFalse = b.AddBool("try-false", false, 2320, 240);
+		var setTryFalse = b.Add("set-try-false", "Set trySpawn", 2560, 200);
+		b.Connect(tryFalse, "bool", setTryFalse, "value");
+		b.Connect(failGate, "out", setTryFalse, "trigger");
 
-		var initRadius = b.AddNum("init-radius", AboveGroundAgent.InitialRadius, 2320, 220);
-		var setRadius = b.Add("set-radius", "Set Radius", 2560, 220);
-		b.Connect(become, "seq", setRadius, "trigger");
+		// Legacy order: unused yaw draw, crown pitch, become meristem, dominance, radius, lengthVar, energy, leaves.
+		var crownPitch = b.AddConfig("crown-pitch", ConfigIds.CrownPitch, false, 2320, 200);
+		var applyPitch = b.Add("apply-pitch", "Apply Crown Pitch", 2560, 140);
+		b.Connect(and4, "out", applyPitch, "trigger");
+		b.Connect(crownPitch, "num", applyPitch, "crownPitch");
+
+		var become = b.Add("become", "Become Meristem", 2800, 140);
+		b.Connect(applyPitch, "seq", become, "trigger");
+
+		var domOne = b.AddNum("dom-one", 1f, 2800, 200);
+		var setDom = b.Add("set-dom", "Set Dominance", 3040, 140);
+		b.Connect(become, "seq", setDom, "trigger");
+		b.Connect(domOne, "num", setDom, "value");
+
+		var initRadius = b.AddNum("init-radius", AboveGroundAgent.InitialRadius, 3040, 200);
+		var setRadius = b.Add("set-radius", "Set Radius", 3280, 140);
+		b.Connect(setDom, "seq", setRadius, "trigger");
 		b.Connect(initRadius, "num", setRadius, "value");
 
-		var setEnergy = b.Add("set-energy", "Set Energy", 2800, 220);
-		b.Connect(setRadius, "seq", setEnergy, "trigger");
-		b.Connect(state, "energyStorageCapacity", setEnergy, "value");
-
-		var nodeDist = b.AddConfig("node-dist", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance, false, 2800, 260);
-		var nodeDistVar = b.AddConfig("node-dist-var", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar, false, 2800, 300);
-		var rngVar = b.Add("rng-var", "Random Float Var Input", 3040, 300);
+		var nodeDist = b.AddConfig("node-dist", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistance, false, 3280, 260);
+		var nodeDistVar = b.AddConfig("node-dist-var", DefaultSpeciesGraphBuilder.ConfigIds.NodeDistanceVar, false, 3280, 300);
+		var rngVar = b.Add("rng-var", "Random Float Var Input", 3520, 300);
 		b.Connect(nodeDistVar, "num", rngVar, "variance");
-		var lengthVar = b.Add("length-var", "Add", 3280, 260);
+		var lengthVar = b.Add("length-var", "Add", 3760, 260);
 		b.Connect(nodeDist, "num", lengthVar, "a");
 		b.Connect(rngVar, "out", lengthVar, "b");
-		var setLenVar = b.Add("set-len-var", "Set Length Var", 3040, 220);
-		b.Connect(setEnergy, "seq", setLenVar, "trigger");
+		var setLenVar = b.Add("set-len-var", "Set Length Var", 3520, 140);
+		b.Connect(setRadius, "seq", setLenVar, "trigger");
 		b.Connect(lengthVar, "out", setLenVar, "value");
 
-		var domOne = b.AddNum("dom-one", 1f, 3280, 220);
-		var deltaDom = b.Add("delta-dom", "Delta Dominance", 3520, 220);
-		b.Connect(setLenVar, "seq", deltaDom, "trigger");
-		b.Connect(domOne, "num", deltaDom, "count");
+		var setEnergy = b.Add("set-energy", "Set Energy To Capacity", 3760, 140);
+		b.Connect(setLenVar, "seq", setEnergy, "trigger");
 
-		var turn = b.Add("turn", "Turn Upwards", 3760, 220);
-		b.Connect(deltaDom, "seq", turn, "trigger");
-
-		b.Add("yaw-gap", "Number Input", 3760, 260,
-			GraphNodePayload.FromComment("GAP: spring crown yaw orientation from RNG not implemented (Turn Upwards only)."));
-		b.Add("tryspawn-fail-gap", "Number Input", 4000, 260,
-			GraphNodePayload.FromComment("GAP: trySpawn=false on failed pNewCrown roll not wired (see legacy Bergania spring crown else branch)."));
-
-		var leaves = b.Add("leaves", "Create Leaves", 4240, 220);
-		b.Connect(turn, "seq", leaves, "trigger");
+		var leaves = b.Add("leaves", "Create Leaves", 4000, 140);
+		b.Connect(setEnergy, "seq", leaves, "trigger");
+		b.WireLeafLayoutConfig(leaves, 4000, 260, "crown");
 
 		return b.FinishWithActive(andRiz, "out").Build();
 	}
@@ -715,13 +872,15 @@ public static class BerganiaTickGraphBuilder
 		b.Connect(baseGate2, "out", baseGate3, "a");
 		b.Connect(hasTest3, "out", baseGate3, "b");
 
-		WireRhizomeSpawnBranch(b, baseGate3, state, pExpand, "test", "rizomeTest", "Set Rizome Test", 1600, 0);
-		WireRhizomeSpawnBranch(b, baseGate3, state, pExpand, "test2", "rizomeTest2", "Set Rizome Test2", 1600, 160);
+		WireRhizomeSpawnBranch(b, baseGate3, state, pExpand, "test", "rizomeTest", "Set Rizome Test", 1600, 0,
+			childYaw: MathF.PI / 4f, rootYaw: 0f);
+		WireRhizomeSpawnBranch(b, baseGate3, state, pExpand, "test2", "rizomeTest2", "Set Rizome Test2", 1600, 160,
+			childYaw: -MathF.PI / 4f, rootYaw: 0.666f * MathF.PI);
 		WireRhizomeSpawnBranch(b, baseGate3, state, pExpand, "test4", "rizomeTest4", "Set Rizome Test4", 1600, 320,
-			agentId, requireRoot: true);
+			childYaw: 0f, rootYaw: -0.666f * MathF.PI, agentId, requireRoot: true);
 
 		b.Add("orient-gap", "Number Input", 2800, 320,
-			GraphNodePayload.FromComment("GAP: per-branch rhizome spawn orientations + collision/soil checks not implemented."));
+			GraphNodePayload.FromComment("Rhizome branch yaw offsets + collision/soil checks are encoded in Spawn Rhizome."));
 
 		return b.FinishWithActive(baseGate3, "out").Build();
 	}
@@ -736,6 +895,8 @@ public static class BerganiaTickGraphBuilder
 		string clearNodeType,
 		int x,
 		int y,
+		float childYaw,
+		float rootYaw,
 		string? agentIdId = null,
 		bool requireRoot = false)
 	{
@@ -766,8 +927,13 @@ public static class BerganiaTickGraphBuilder
 			gate2 = gate3;
 		}
 
+		var childYawN = b.AddNum($"yaw-child-{rngSuffix}", childYaw, x + 1200, y + 60);
+		var rootYawN = b.AddNum($"yaw-root-{rngSuffix}", rootYaw, x + 1200, y + 100);
 		var spawn = b.Add($"spawn-{rngSuffix}", "Spawn Rhizome", x + 1200, y + 20);
 		b.Connect(gate2, "out", spawn, "trigger");
+		b.Connect(childYawN, "num", spawn, "yawOffset");
+		b.Connect(rootYawN, "num", spawn, "rootYawOffset");
+		b.WireRhizomeSpawnConfig(spawn, x + 1200, y + 140, rngSuffix);
 
 		var clearFalse = b.AddBool($"clear-false-{rngSuffix}", false, x + 1440, y + 60);
 		var clearTest = b.Add($"clear-{rngSuffix}", clearNodeType, x + 1440, y + 20);
@@ -775,14 +941,138 @@ public static class BerganiaTickGraphBuilder
 		b.Connect(gate2, "out", clearTest, "trigger");
 	}
 
-	/// <summary>Documents FlowerHelper gap — graph compiles; no flower-organ behavior in node mode.</summary>
-	static global::ExportedGraph BuildFlowerGapCommentSubgraph()
+	/// <summary>Legacy <c>FlowerHelper.grow</c> for FlowerMeristem.</summary>
+	static global::ExportedGraph BuildFlowerMeristemGrowthSubgraph()
 	{
-		var b = SubgraphBuilder.Create("flower-gap");
-		var never = b.AddBool("never", false, 400, 0);
-		b.Add("flower-gap-note", "Number Input", 640, 0,
-			GraphNodePayload.FromComment("GAP: FlowerHelper not implemented in behavior-graph mode."));
-		return b.FinishWithActive(never, "bool").Build();
+		var b = SubgraphBuilder.Create("fl-mer-gr");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var sim = b.Add("sim", "Simulation Settings Input", 0, 180);
+
+		var reserve = b.WireEnergyReserve(state);
+		var waterMin = b.WireMinFloat(form, "waterBalance", reserve, "out", "fl-water");
+		var scale1 = b.Add("scale1", "Multiply", 1200, 80);
+		b.Connect(reserve, "out", scale1, "a");
+		b.Connect(waterMin, "out", scale1, "b");
+		var scale = b.Add("scale", "Multiply", 1440, 80);
+		b.Connect(scale1, "out", scale, "a");
+		b.Connect(sim, "hoursPerTick", scale, "b");
+
+		var lenRate = b.AddConfig("len-rate", ConfigIds.FlowerMeristemLengthGrowth, false, 1440, 140);
+		var rawLen = b.Add("raw-len", "Multiply", 1680, 100);
+		b.Connect(lenRate, "num", rawLen, "a");
+		b.Connect(scale, "out", rawLen, "b");
+
+		var lenCap = b.AddConfig("len-cap", ConfigIds.FlowerLengthGrowthCap, false, 1680, 160);
+		var underCap = b.Add("under-cap", "Less Than or Equal", 1920, 120);
+		b.Connect(state, "length", underCap, "a");
+		b.Connect(lenCap, "num", underCap, "b");
+		var zero = b.AddNum("c0", 0f, 1920, 180);
+		var deltaLen = b.Add("delta-len", "If / Else", 2160, 100);
+		b.Connect(underCap, "out", deltaLen, "condition");
+		b.Connect(rawLen, "out", deltaLen, "trueValue");
+		b.Connect(zero, "num", deltaLen, "falseValue");
+
+		var radRate = b.AddConfig("rad-rate", ConfigIds.FlowerMeristemRadiusGrowth, false, 1440, 220);
+		var rawRad = b.Add("raw-rad", "Multiply", 1680, 220);
+		b.Connect(radRate, "num", rawRad, "a");
+		b.Connect(scale, "out", rawRad, "b");
+		var cappedRad = b.WireCapRadiusDeltaToParent(state, form, rawRad, "fl-mer");
+
+		var maxRad = b.AddConfig("max-rad", ConfigIds.FlowerStemMaxRadius, false, 1920, 260);
+		var underMax = b.Add("under-max", "Less Than", 2160, 260);
+		b.Connect(state, "radius", underMax, "a");
+		b.Connect(maxRad, "num", underMax, "b");
+		var deltaRad = b.Add("delta-rad", "If / Else", 2400, 220);
+		b.Connect(underMax, "out", deltaRad, "condition");
+		b.Connect(cappedRad, "out", deltaRad, "trueValue");
+		b.Connect(zero, "num", deltaRad, "falseValue");
+
+		var growth = b.Add("growth", "Growth", 2640, 140);
+		b.Connect(deltaLen, "out", growth, "Length");
+		b.Connect(deltaRad, "out", growth, "Radius");
+
+		return b.FinishWithActive(organ, "flowerMeristem").Build();
+	}
+
+	/// <summary>Legacy <c>FlowerHelper.grow</c> for FlowerStem (radius only).</summary>
+	static global::ExportedGraph BuildFlowerStemGrowthSubgraph()
+	{
+		var b = SubgraphBuilder.Create("fl-stem-gr");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var sim = b.Add("sim", "Simulation Settings Input", 0, 180);
+
+		var reserve = b.WireEnergyReserve(state);
+		var waterMin = b.WireMinFloat(form, "waterBalance", reserve, "out", "fls-water");
+		var scale1 = b.Add("scale1", "Multiply", 1200, 80);
+		b.Connect(reserve, "out", scale1, "a");
+		b.Connect(waterMin, "out", scale1, "b");
+		var scale = b.Add("scale", "Multiply", 1440, 80);
+		b.Connect(scale1, "out", scale, "a");
+		b.Connect(sim, "hoursPerTick", scale, "b");
+
+		var radRate = b.AddConfig("rad-rate", ConfigIds.FlowerStemRadiusGrowth, false, 1440, 140);
+		var rawRad = b.Add("raw-rad", "Multiply", 1680, 100);
+		b.Connect(radRate, "num", rawRad, "a");
+		b.Connect(scale, "out", rawRad, "b");
+		var cappedRad = b.WireCapRadiusDeltaToParent(state, form, rawRad, "fl-stem");
+
+		var maxRad = b.AddConfig("max-rad", ConfigIds.FlowerStemMaxRadius, false, 1920, 160);
+		var underMax = b.Add("under-max", "Less Than", 2160, 140);
+		b.Connect(state, "radius", underMax, "a");
+		b.Connect(maxRad, "num", underMax, "b");
+		var zero = b.AddNum("c0", 0f, 2160, 200);
+		var deltaRad = b.Add("delta-rad", "If / Else", 2400, 120);
+		b.Connect(underMax, "out", deltaRad, "condition");
+		b.Connect(cappedRad, "out", deltaRad, "trueValue");
+		b.Connect(zero, "num", deltaRad, "falseValue");
+
+		var growth = b.Add("growth", "Growth", 2640, 100);
+		b.Connect(zero, "num", growth, "Length");
+		b.Connect(deltaRad, "out", growth, "Radius");
+
+		return b.FinishWithActive(organ, "flowerStem").Build();
+	}
+
+	/// <summary>Legacy FlowerHelper ResetPending death for flower organs.</summary>
+	static global::ExportedGraph BuildFlowerResetDeathSubgraph()
+	{
+		var b = SubgraphBuilder.Create("fl-reset");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var phase = b.Add("phase", "Phase Input", 0, 60);
+
+		var isFlower = b.Add("is-fl", "Or", 400, 0);
+		b.Connect(organ, "flowerMeristem", isFlower, "a");
+		b.Connect(organ, "flowerStem", isFlower, "b");
+		var isFlower2 = b.Add("is-fl2", "Or", 640, 0);
+		b.Connect(isFlower, "out", isFlower2, "a");
+		b.Connect(organ, "flowerBud", isFlower2, "b");
+		var isFlower3 = b.Add("is-fl3", "Or", 880, 0);
+		b.Connect(isFlower2, "out", isFlower3, "a");
+		b.Connect(organ, "flowerPadel", isFlower3, "b");
+		var isFlower4 = b.Add("is-fl4", "Or", 1120, 0);
+		b.Connect(isFlower3, "out", isFlower4, "a");
+		b.Connect(organ, "flowerPetiol", isFlower4, "b");
+
+		var reset = b.Add("reset", "Equal To", 400, 80);
+		b.Connect(phase, "resetPending", reset, "a");
+		var t = b.AddBool("t", true, 400, 120);
+		b.Connect(t, "bool", reset, "b");
+
+		var gate = b.Add("gate", "And", 1360, 40);
+		b.Connect(isFlower4, "out", gate, "a");
+		b.Connect(reset, "out", gate, "b");
+
+		var death = b.Add("death", "Death", 1600, 40);
+		b.Connect(gate, "out", death, "trigger");
+
+		b.Add("chain-gap", "Number Input", 1600, 100,
+			GraphNodePayload.FromComment("GAP: FlowerHelper.chaning / createFlower still not graph-encoded."));
+
+		return b.FinishWithActive(gate, "out").Build();
 	}
 
 	static void SetNumber(List<BehaviorConfigUploadEntry> entries, string id, float value)
