@@ -205,7 +205,7 @@ public Dictionary<string, List<SpeciesGraphUploadEntry>>? SpeciesGraphs { get; i
 
 [Agro/PlantSpeciesProfile.cs](../Agro/PlantSpeciesProfile.cs) `Resolve(speciesName, settings)`:
 
-1. Resolves morphology via `SpeciesMorphology.Resolve`.
+1. Resolves morphology via `SpeciesMorphology.ResolveForNodeGraphs` (HUD overlay onto Init template). Legacy Tick* runs use `SpeciesMorphology.Resolve` instead.
 2. If `settings.SpeciesGraphs` contains a key for this species (case-insensitive fallback if no exact match), iterates each `SpeciesGraphUploadEntry`, compiles `Graph` when non-empty, and collects successful `CompiledBehaviorGraph` instances in list order.
 3. Logs to `Console.Error` for missing keys, empty entries, or per-graph compile errors.
 4. Returns `PlantSpeciesProfile { Morphology, BehaviorGraphs }`.

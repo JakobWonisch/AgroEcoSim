@@ -9,7 +9,7 @@ namespace Agro;
 /// </summary>
 public static class SpeciesMorphology
 {
-	static readonly Dictionary<string, string> PredefinedMorphologyJson = BuildPredefinedSnapshots();
+	static Dictionary<string, string>? PredefinedMorphologyJson;
 
 	/// <summary>
 	/// Fields the frontend <c>Species.serialize()</c> actually sends. Everything else
@@ -32,10 +32,63 @@ public static class SpeciesMorphology
 		"RootsGravitaxis",
 	];
 
-	static Dictionary<string, string> BuildPredefinedSnapshots()
+	/// <summary>
+	/// Frontend <c>Species.ts</c> signal defaults that differ from <see cref="SpeciesSettings"/> field defaults.
+	/// Treated as "unset HUD" so they do not overwrite catalog Init().
+	/// </summary>
+	static readonly Dictionary<string, float[]> UnsetHudNumericValues = new(StringComparer.Ordinal)
+	{
+		["Height"] = [10f, 12f],
+		["NodeDistance"] = [0.04f],
+		["NodeDistanceVar"] = [0.01f],
+		["MonopodialFactor"] = [1f],
+		["DominanceFactor"] = [0f, 0.7f],
+		["AuxinsProduction"] = [40f],
+		["LateralsPerNode"] = [2f],
+		["LateralRoll"] = [0f],
+		["LateralRollVar"] = [5f * MathF.PI / 180f],
+		["LateralPitch"] = [45f * MathF.PI / 180f],
+		["LateralPitchVar"] = [5f * MathF.PI / 180f],
+		["TwigsBending"] = [0.5f],
+		["TwigsBendingLevel"] = [1f],
+		["TwigsBendingApical"] = [0.02f],
+		["ShootsGravitaxis"] = [0.2f],
+		["WoodGrowthTime"] = [100f],
+		["WoodGrowthTimeVar"] = [10f],
+		["LeafLength"] = [0.12f],
+		["LeafLengthVar"] = [0.02f],
+		["LeafRadius"] = [0.04f],
+		["LeafRadiusVar"] = [0.01f],
+		["LeafGrowthTime"] = [480f],
+		["LeafGrowthTimeVar"] = [120f],
+		["LeafPitch"] = [20f * MathF.PI / 180f],
+		["LeafPitchVar"] = [5f * MathF.PI / 180f],
+		["PetioleLength"] = [0.04f, 0.05f],
+		["PetioleLengthVar"] = [0.01f],
+		["PetioleRadius"] = [0.0025f, 0.0015f],
+		["PetioleRadiusVar"] = [0.0005f],
+		["RootsGravitaxis"] = [0.2f],
+		["Behavior"] = [0f],
+	};
+
+	/// <summary>
+	/// Capture catalog morphology before any <see cref="SpeciesSettings.Init"/> can run.
+	/// Called from <see cref="SpeciesSettings"/> static construction.
+	/// </summary>
+	internal static void CapturePredefinedSnapshots(IReadOnlyList<SpeciesSettings> predefined)
+	{
+		if (PredefinedMorphologyJson != null)
+			return;
+		PredefinedMorphologyJson = BuildPredefinedSnapshots(predefined);
+	}
+
+	static Dictionary<string, string> Snapshots =>
+		PredefinedMorphologyJson ??= BuildPredefinedSnapshots(SpeciesSettings.Predefined);
+
+	static Dictionary<string, string> BuildPredefinedSnapshots(IReadOnlyList<SpeciesSettings> predefined)
 	{
 		var map = new Dictionary<string, string>(StringComparer.Ordinal);
-		foreach (var template in SpeciesSettings.Predefined)
+		foreach (var template in predefined)
 		{
 			if (string.IsNullOrEmpty(template.Name))
 				continue;
@@ -45,12 +98,36 @@ public static class SpeciesMorphology
 		return map;
 	}
 
+	/// <summary>
+	/// Legacy morphology resolve: request species object wins as-is, else shared predefined, else Default.
+	/// Do not change this path — it is part of the legacy simulation contract.
+	/// </summary>
 	public static SpeciesSettings Resolve(string? speciesName, SimulationRequest? settings)
 	{
 		if (!string.IsNullOrEmpty(speciesName))
 		{
+			var legacy = settings?.Species?.FirstOrDefault(x => x.Name == speciesName);
+			if (legacy != null)
+				return legacy;
+
+			var predefined = SpeciesSettings.Predefined.FirstOrDefault(x => x.Name == speciesName);
+			if (predefined != null)
+				return predefined;
+		}
+
+		return SpeciesSettings.Default;
+	}
+
+	/// <summary>
+	/// Node-graph morphology: fresh Init() template with HUD fields overlaid (rhizome / crown /
+	/// seasonal chaining stay on the catalog). Used by <see cref="PlantSpeciesProfile"/>.
+	/// </summary>
+	public static SpeciesSettings ResolveForNodeGraphs(string? speciesName, SimulationRequest? settings)
+	{
+		if (!string.IsNullOrEmpty(speciesName))
+		{
 			var ui = settings?.Species?.FirstOrDefault(x => x.Name == speciesName);
-			if (PredefinedMorphologyJson.TryGetValue(speciesName, out var json))
+			if (Snapshots.TryGetValue(speciesName, out var json))
 			{
 				var template = DeserializeFresh(speciesName, json);
 				return ui is null ? template : OverlayUiMorphology(template, ui);
@@ -65,8 +142,10 @@ public static class SpeciesMorphology
 
 	/// <summary>
 	/// Overlay HUD fields the frontend serialize() always sends. Rhizome / crown /
-	/// seasonal chaining stay on the predefined Init() template so legacy ticks
-	/// keep the original catalog values.
+	/// seasonal chaining stay on the predefined Init() template.
+	/// Tree-default HUD values (C# field default or Species.ts signal default) are
+	/// skipped when Init() customized that field — otherwise geranium internodes,
+	/// petioles, and leaf angles get replaced by the Default-species sliders.
 	/// </summary>
 	static SpeciesSettings OverlayUiMorphology(SpeciesSettings template, SpeciesSettings ui)
 	{
@@ -74,8 +153,11 @@ public static class SpeciesMorphology
 		var uiNode = JsonSerializer.SerializeToNode(ui, AgroJsonSerializerContext.Default.SpeciesSettings)!.AsObject();
 		foreach (var prop in UiMorphologyProperties)
 		{
-			if (uiNode[prop] is { } value)
-				templateNode[prop] = value.DeepClone();
+			if (uiNode[prop] is not { } value)
+				continue;
+			if (IsUnsetHudValue(prop, value, templateNode[prop]))
+				continue;
+			templateNode[prop] = value.DeepClone();
 		}
 
 		var merged = JsonSerializer.Deserialize(templateNode, AgroJsonSerializerContext.Default.SpeciesSettings)
@@ -83,6 +165,44 @@ public static class SpeciesMorphology
 		merged.DominanceFactors = (float[])template.DominanceFactors.Clone();
 		return merged;
 	}
+
+	static bool IsUnsetHudValue(string prop, JsonNode uiVal, JsonNode? templateVal)
+	{
+		if (JsonNumericEquals(uiVal, templateVal))
+			return false;
+
+		// Source-gen System.Text.Json zeros omitted properties (skips C# field initializers).
+		if (uiVal.GetValueKind() == JsonValueKind.Number
+			&& NearlyEqual(uiVal.GetValue<float>(), 0f)
+			&& templateVal is not null
+			&& templateVal.GetValueKind() == JsonValueKind.Number
+			&& !NearlyEqual(templateVal.GetValue<float>(), 0f))
+			return true;
+
+		if (uiVal.GetValueKind() == JsonValueKind.Number
+			&& UnsetHudNumericValues.TryGetValue(prop, out var unsetValues))
+		{
+			var uiNum = uiVal.GetValue<float>();
+			foreach (var unset in unsetValues)
+			{
+				if (NearlyEqual(uiNum, unset))
+					return true;
+			}
+		}
+
+		return false;
+	}
+
+	static bool JsonNumericEquals(JsonNode? a, JsonNode? b)
+	{
+		if (a is null || b is null)
+			return a is null && b is null;
+		if (a.GetValueKind() == JsonValueKind.Number && b.GetValueKind() == JsonValueKind.Number)
+			return NearlyEqual(a.GetValue<float>(), b.GetValue<float>());
+		return a.ToJsonString() == b.ToJsonString();
+	}
+
+	static bool NearlyEqual(float a, float b) => MathF.Abs(a - b) <= 1e-5f;
 
 	internal static SpeciesSettings DeserializeFresh(string speciesName, string json)
 	{

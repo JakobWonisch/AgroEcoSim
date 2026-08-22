@@ -272,7 +272,7 @@ public class SpeciesSettings
     {
         Predefined.Add(new() { DominanceFactor = 0.7f });
 
-        //Just gueesing
+        // Wood schedule from Agro/ML-Import224.json; laterals 4 for Persea whorl.
         Predefined.Add(new()
         {
             Name = "Persea americana",
@@ -287,6 +287,8 @@ public class SpeciesSettings
             LeafGrowthTime = 720,
             Height = 12f,
             LateralsPerNode = 4,
+            WoodGrowthTime = 2400f,
+            WoodGrowthTimeVar = 240f,
             //FirstFruitHour = 113952,
         });
 
@@ -299,6 +301,8 @@ public class SpeciesSettings
         // Fragaria;
         // Carex;
 
+        // Freeze pre-Init morphology for node-graph clones (Init scales gravitaxis/apical in place).
+        SpeciesMorphology.CapturePredefinedSnapshots(Predefined);
     }
 
     private bool Initialized = false;

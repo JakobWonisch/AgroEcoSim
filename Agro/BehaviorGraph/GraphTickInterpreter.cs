@@ -65,11 +65,20 @@ public static class GraphTickInterpreter
 		}
 		else
 		{
+			// TickDefault: effect nodes (Growth, BecomeStem, …) sit downstream of the Active gate.
+			// Other pass skips deferred RNG nodes; meristem spawns run in a second pass.
 			for (var t = 0; t < graph.NodesInOrder.Length; t++)
 			{
 				if (graph.ActiveSubtreeMask[t])
 					continue;
-				EvaluateNode(graph.NodesInOrder[t], ref agent, ctx, outs);
+				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.Other);
+			}
+
+			for (var t = 0; t < graph.NodesInOrder.Length; t++)
+			{
+				if (graph.ActiveSubtreeMask[t])
+					continue;
+				EvaluateInactiveNode(graph.NodesInOrder[t], ref agent, ctx, outs, InactivePassKind.MeristemSpawns);
 			}
 		}
 	}
@@ -104,7 +113,8 @@ public static class GraphTickInterpreter
 			InactivePassKind.MeristemSpawns => node.Kind is GraphNodeKind.SpawnMeristem or GraphNodeKind.CreateLeaves,
 			InactivePassKind.Other => node.Kind is not GraphNodeKind.SpawnFlowerMeristem
 				and not GraphNodeKind.SpawnMeristem
-				and not GraphNodeKind.CreateLeaves,
+				and not GraphNodeKind.CreateLeaves
+				&& !IsDeferredRandomKind(node.Kind),
 			_ => false,
 		};
 		if (run)
@@ -552,12 +562,12 @@ public static class GraphTickInterpreter
 				{
 					var plant = ctx.Formation!.Plant;
 					var world = plant.World;
-					var woodTime = BehaviorGraphConfig.Number(
-						ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime,
-						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTime);
-					var woodTimeVar = BehaviorGraphConfig.Number(
-						ctx.BehaviorConfiguration, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar,
-						DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTimeVar);
+					var woodTime = ResolveConfigNumber(DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime, ctx);
+					if (woodTime <= 0f)
+						woodTime = DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTime;
+					var woodTimeVar = ResolveConfigNumber(DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar, ctx);
+					if (woodTimeVar <= 0f)
+						woodTimeVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.WoodGrowthTimeVar;
 					agent.Organ = OrganTypes.Stem;
 					agent.GraphSetGrowthTimeVar(world.HoursPerTick / (woodTime + plant.RNG.NextFloatVar(woodTimeVar)));
 					outs[(g, "seq")] = WireValue.OfBool(true);
@@ -788,7 +798,7 @@ public static class GraphTickInterpreter
 			outs[(g, "childrenProductionSum")] = WireValue.OfFloat(productionSum);
 			var height = formation.Height;
 			outs[(g, "agentHeightRatio")] = WireValue.OfFloat(
-				height > 1e-6f ? 5f * formation.GetBaseCenter(ctx.AgentId).Y / height : 0f);
+				height > 1e-6f ? formation.GetBaseCenter(ctx.AgentId).Y / height : 0f);
 			outs[(g, "auxinLocalMinimum")] = WireValue.OfBool(
 				ComputeAuxinLocalMinimum(formation, ref agent, ctx));
 		}
@@ -945,6 +955,8 @@ public static class GraphTickInterpreter
 			case DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar: value = species.LateralPitchVar; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch: value = species.LeafPitch; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold: value = species.PetioleCoverThreshold; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime: value = species.WoodGrowthTime; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar: value = species.WoodGrowthTimeVar; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength: value = species.RizomeLength; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius: value = species.RizomeRadius; return true;
 			case BerganiaTickGraphBuilder.ConfigIds.CrownPitch: value = species.crownPitch; return true;

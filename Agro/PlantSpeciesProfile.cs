@@ -15,7 +15,8 @@ public sealed class PlantSpeciesProfile
 
 	public static PlantSpeciesProfile Resolve(string? speciesName, SimulationRequest? settings)
 	{
-		var morph = SpeciesMorphology.Resolve(speciesName, settings);
+		// Node-graph plants use HUD overlay morphology; legacy Tick* uses SpeciesMorphology.Resolve.
+		var morph = SpeciesMorphology.ResolveForNodeGraphs(speciesName, settings);
 		var graphs = new List<CompiledBehaviorGraph>();
 		if (!string.IsNullOrEmpty(speciesName) && settings?.SpeciesGraphs != null)
 		{

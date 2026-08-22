@@ -35,7 +35,9 @@ public static class BerganiaTickGraphBuilder
 		float LateralRoll = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralRoll,
 		float LateralRollVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralRollVar,
 		float LeafPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafPitch,
-		float CrownPitch = 0.5f)
+		float CrownPitch = 0.5f,
+		/// <summary>Geranium Tick lignifies stems (uncap when parent is rhizome). Bergenia Tick has that update commented out.</summary>
+		bool StemWoodLignify = false)
 	{
 		public static BerganiaGraphOptions GeraniumMacrorrhizum => new(
 			SpeciesLabel: "Geranium Macrorrhizum",
@@ -58,7 +60,8 @@ public static class BerganiaTickGraphBuilder
 			LateralRoll: 40f * DegToRad,
 			LateralRollVar: 5f * DegToRad,
 			LeafPitch: 85f * DegToRad,
-			CrownPitch: 0.38f);
+			CrownPitch: 0.38f,
+			StemWoodLignify: true);
 
 		public static BerganiaGraphOptions GeraniumCantabrigiense => new(
 			SpeciesLabel: "Geranium × Cantabrigiense",
@@ -81,7 +84,8 @@ public static class BerganiaTickGraphBuilder
 			LateralRoll: 40f * DegToRad,
 			LateralRollVar: 10f * DegToRad,
 			LeafPitch: 85f * DegToRad,
-			CrownPitch: 0.36f);
+			CrownPitch: 0.36f,
+			StemWoodLignify: true);
 
 		public static BerganiaGraphOptions BergeniaCordifolia => new(
 			SpeciesLabel: "Bergenia Cordifolia",
@@ -174,7 +178,9 @@ public static class BerganiaTickGraphBuilder
 			("Growth petiole", BuildBerganiaGrowthPetioleSubgraph()),
 			("Growth meristem", BuildBerganiaGrowthMeristemSubgraph()),
 			("Growth stem", BuildBerganiaGrowthStemSubgraph()),
-			("Wood lignify", BuildWoodLignifyNoOpSubgraph()),
+			("Wood lignify", opt.StemWoodLignify
+				? BuildWoodLignifyUncapRhizomeParentSubgraph()
+				: BuildWoodLignifyNoOpSubgraph()),
 			("Meristem chain", BuildBerganiaMeristemChainSubgraph(opt)),
 			("Petiole cover bud", BuildPetioleCoverBudNoOpSubgraph()),
 			("Petiole unproductive death", DefaultSpeciesGraphBuilder.BuildPetioleUnproductiveDeathSubgraph()),
@@ -374,6 +380,53 @@ public static class BerganiaTickGraphBuilder
 		b.Add("wood-gap", "Number Input", 240, 0,
 			GraphNodePayload.FromComment("Bergania.Tick: stem wood-factor update is commented out in legacy."));
 		return b.FinishWithActive(never, "bool").Build();
+	}
+
+	/// <summary>
+	/// Geranium Tick: min(wood, pw) + GTV with
+	/// <c>pw = parent is rhizome ? self.wood : parent.wood</c> so rhizome wood=0 does not freeze shoots.
+	/// </summary>
+	static global::ExportedGraph BuildWoodLignifyUncapRhizomeParentSubgraph()
+	{
+		var b = SubgraphBuilder.Create("wl-ger");
+		var organ = b.Add("organ", "Agent Type Input", 0, 0);
+		var state = b.Add("state", "Agent State Input", 0, 60);
+		var form = b.Add("form", "Formation Input", 0, 120);
+		var c1 = b.AddNum("c1", 1f, 280, 0);
+
+		var woodLt1 = b.Add("wood-lt", "Less Than", 520, 60);
+		b.Connect(state, "wood", woodLt1, "a");
+		b.Connect(c1, "num", woodLt1, "b");
+
+		var enough = b.WireEnoughEnergy(organ, state);
+		var and1 = b.Add("and1", "And", 1000, 20);
+		b.Connect(organ, "stem", and1, "a");
+		b.Connect(woodLt1, "out", and1, "b");
+
+		var and2 = b.Add("and2", "And", 1240, 40);
+		b.Connect(and1, "out", and2, "a");
+		b.Connect(enough, "out", and2, "b");
+
+		var effectivePw = b.Add("eff-pw", "If / Else", 1480, 160);
+		b.Connect(form, "parentIsRhizome", effectivePw, "condition");
+		b.Connect(state, "wood", effectivePw, "trueValue");
+		b.Connect(form, "parentWood", effectivePw, "falseValue");
+
+		var baseWood = b.WireMinFloat(state, "wood", effectivePw, "out", "base");
+
+		var newWood = b.Add("new-wood", "Add", 1960, 200);
+		b.Connect(baseWood, "out", newWood, "a");
+		b.Connect(state, "growthTimeVar", newWood, "b");
+
+		var one = b.AddNum("one", 1f, 2200, 240);
+		var clamped = b.Add("clamped", "Clamp Max", 2440, 200);
+		b.Connect(newWood, "out", clamped, "value");
+		b.Connect(one, "num", clamped, "max");
+
+		var setWood = b.Add("set-wood", "Set Wood", 2680, 200);
+		b.Connect(clamped, "out", setWood, "value");
+
+		return b.FinishWithActive(and2, "out").Build();
 	}
 
 	/// <summary>

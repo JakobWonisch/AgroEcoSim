@@ -56,6 +56,57 @@ public class BerganiaSpeciesParityTests
 			"ignore", "parity-traces", "bergania", speciesSlug);
 
 	[Fact]
+	public void Geranium_Node_At1440Hours_HoursPerTick4_GrowsPastInitialLeaves()
+	{
+		foreach (var speciesName in new[] { "Geranium Macrorrhizum", "Geranium × Cantabrigiense" })
+		{
+			const int totalHours = 1440;
+			const int hoursPerTick = 4;
+			var request = BuildBerganiaNodeRequest(speciesName, totalHours: totalHours, hoursPerTick: hoursPerTick);
+			var nodePath = Path.Combine(Path.GetTempPath(), $"g-hpt4-{Guid.NewGuid():N}.jsonl");
+			try
+			{
+				SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
+				var leaves = SimulationHarness.ReadSteps(nodePath).Last().Plants[0].AboveGround
+					.Count(a => a.Organ == "Leaf");
+				Assert.True(leaves > 2,
+					$"{speciesName} should chain past the germination leaf pair at 1440h/4h-tick; got {leaves} leaves.");
+			}
+			finally
+			{
+				if (File.Exists(nodePath)) File.Delete(nodePath);
+			}
+		}
+	}
+
+	[Fact]
+	public void Geranium_OrganCounts_LegacyVsNode_At200Hours()
+	{
+		foreach (var speciesName in new[] { "Geranium Macrorrhizum", "Geranium × Cantabrigiense" })
+		{
+			const int totalHours = 200;
+			var request = BuildBerganiaNodeRequest(speciesName, totalHours: totalHours, hoursPerTick: 1);
+			var legacyPath = Path.Combine(Path.GetTempPath(), $"g-leg-{Guid.NewGuid():N}.jsonl");
+			var nodePath = Path.Combine(Path.GetTempPath(), $"g-node-{Guid.NewGuid():N}.jsonl");
+			try
+			{
+				SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: totalHours);
+				SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
+				var legacy = SimulationHarness.ReadSteps(legacyPath).Last().Plants[0].AboveGround;
+				var node = SimulationHarness.ReadSteps(nodePath).Last().Plants[0].AboveGround;
+				Assert.Equal(legacy.Count(a => a.Organ == "Leaf"), node.Count(a => a.Organ == "Leaf"));
+				Assert.Equal(legacy.Count(a => a.Organ == "Stem" && !a.IsRizome), node.Count(a => a.Organ == "Stem" && !a.IsRizome));
+				Assert.Equal(legacy.Count(a => a.Organ == "Petiole"), node.Count(a => a.Organ == "Petiole"));
+			}
+			finally
+			{
+				if (File.Exists(legacyPath)) File.Delete(legacyPath);
+				if (File.Exists(nodePath)) File.Delete(nodePath);
+			}
+		}
+	}
+
+	[Fact]
 	public void BerganiaSpecies_SpringCrownRecruitsRhizomeBuds_AtTimestep3()
 	{
 		const int maxHours = 4;

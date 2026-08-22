@@ -12,10 +12,23 @@ const PREDEFINED_MORPHOLOGY_SUPPLEMENTS: Record<string, Partial<{
     height: number;
     leafGrowthTime: number;
     lateralsPerNode: number;
+    leafLengthVar: number;
+    petioleLengthVar: number;
+    leafRadiusVar: number;
+    petioleRadiusVar: number;
+    leafGrowthTimeVar: number;
 }>> = {
     "Persea americana": { height: 12, leafGrowthTime: 720, lateralsPerNode: 4 },
-    "Geranium Macrorrhizum": { height: 0.3, leafGrowthTime: 24 * 7 },
-    "Geranium × Cantabrigiense": { height: 0.25, leafGrowthTime: 24 * 7 },
+    "Geranium Macrorrhizum": { height: 0.3, leafGrowthTime: 24 * 7, leafLengthVar: 0.01, petioleLengthVar: 0.05 },
+    "Geranium × Cantabrigiense": {
+        height: 0.25,
+        leafGrowthTime: 24 * 7,
+        leafLengthVar: 0.01,
+        petioleLengthVar: 0.03,
+        leafRadiusVar: 0.005,
+        petioleRadiusVar: 0.0004,
+        leafGrowthTimeVar: 24 * 2,
+    },
     "Bergenia Cordifolia": { height: 0.04, leafGrowthTime: 24 * 7 * 12 },
 };
 
@@ -39,6 +52,7 @@ const ConfigIds = {
     twigsBending: "default-config-twig-bending",
     twigsBendingLevel: "default-config-twig-bending-level",
     twigsBendingApical: "default-config-twig-bending-apical",
+    shootsGravitaxis: "default-config-shoots-gravitaxis",
     woodGrowthTime: "default-config-wood-growth-time",
     woodGrowthTimeVar: "default-config-wood-growth-time-var",
     rizomeLength: "default-config-rizome-length",
@@ -113,15 +127,16 @@ function applyBehaviorConfigurationToMorphology(species: Species, entries: Behav
     if (n(ConfigIds.dominanceFactor) !== undefined) species.dominanceFactor.value = n(ConfigIds.dominanceFactor)!;
     if (n(ConfigIds.auxinsProduction) !== undefined) species.auxinsProduction.value = n(ConfigIds.auxinsProduction)!;
     if (n(ConfigIds.lateralsPerNode) !== undefined) species.lateralsPerNode.value = n(ConfigIds.lateralsPerNode)!;
-    if (n(ConfigIds.lateralRoll) !== undefined) species.lateralRollDeg.value = radToDeg(n(ConfigIds.lateralRoll)!);
-    if (n(ConfigIds.lateralRollVar) !== undefined) species.lateralRollDegVar.value = radToDeg(n(ConfigIds.lateralRollVar)!);
     if (n(ConfigIds.lateralPitch) !== undefined) species.lateralPitchDeg.value = radToDeg(n(ConfigIds.lateralPitch)!);
     if (n(ConfigIds.lateralPitchVar) !== undefined) species.lateralPitchDegVar.value = radToDeg(n(ConfigIds.lateralPitchVar)!);
+    if (n(ConfigIds.lateralRoll) !== undefined) species.lateralRollDeg.value = radToDeg(n(ConfigIds.lateralRoll)!);
+    if (n(ConfigIds.lateralRollVar) !== undefined) species.lateralRollDegVar.value = radToDeg(n(ConfigIds.lateralRollVar)!);
     if (n(ConfigIds.leafPitch) !== undefined) species.leafPitchDeg.value = radToDeg(n(ConfigIds.leafPitch)!);
     if (n(ConfigIds.twigsBending) !== undefined) species.twigsBending.value = n(ConfigIds.twigsBending)!;
     if (n(ConfigIds.twigsBendingLevel) !== undefined) species.bendingByLevel.value = n(ConfigIds.twigsBendingLevel)!;
     if (n(ConfigIds.twigsBendingApical) !== undefined) species.twigsBendingApical.value = n(ConfigIds.twigsBendingApical)!;
     // ShootsGravitaxis in graph config is the post-Init effective value (0.08); morphology Init applies ×0.4 again.
+    if (n(ConfigIds.shootsGravitaxis) !== undefined) species.shootsGravitaxis.value = n(ConfigIds.shootsGravitaxis)!;
     if (n(ConfigIds.woodGrowthTime) !== undefined) species.woodGrowthTime.value = n(ConfigIds.woodGrowthTime)!;
     if (n(ConfigIds.woodGrowthTimeVar) !== undefined) species.woodGrowthTimeVar.value = n(ConfigIds.woodGrowthTimeVar)!;
 
@@ -129,6 +144,11 @@ function applyBehaviorConfigurationToMorphology(species: Species, entries: Behav
     if (supplement?.height !== undefined) species.height.value = supplement.height;
     if (supplement?.leafGrowthTime !== undefined) species.leafGrowthTime.value = supplement.leafGrowthTime;
     if (supplement?.lateralsPerNode !== undefined) species.lateralsPerNode.value = supplement.lateralsPerNode;
+    if (supplement?.leafLengthVar !== undefined) species.leafLengthVar.value = supplement.leafLengthVar;
+    if (supplement?.petioleLengthVar !== undefined) species.petioleLengthVar.value = supplement.petioleLengthVar;
+    if (supplement?.leafRadiusVar !== undefined) species.leafRadiusVar.value = supplement.leafRadiusVar;
+    if (supplement?.petioleRadiusVar !== undefined) species.petioleRadiusVar.value = supplement.petioleRadiusVar;
+    if (supplement?.leafGrowthTimeVar !== undefined) species.leafGrowthTimeVar.value = supplement.leafGrowthTimeVar;
 }
 
 export class Species {
