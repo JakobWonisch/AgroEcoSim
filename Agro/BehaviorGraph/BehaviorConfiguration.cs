@@ -72,11 +72,13 @@ public static class BehaviorConfigurationCatalog
 	/// </summary>
 	static bool ShouldIgnoreUploadOverride(string configId, BehaviorConfigEntry catalogEntry, BehaviorConfigEntry uploadEntry)
 	{
-		if (uploadEntry.IsBoolean || uploadEntry.IsNumberArray)
+		if (uploadEntry.IsBoolean)
 			return false;
 		if (!configId.StartsWith("default-config-", StringComparison.Ordinal)
 			&& !configId.StartsWith("bergania-", StringComparison.Ordinal))
 			return false;
+		if (uploadEntry.IsNumberArray)
+			return uploadEntry.FloatArrayValue.Length == 0 && catalogEntry.FloatArrayValue.Length > 0;
 		return uploadEntry.NumberValue == 0f && MathF.Abs(catalogEntry.NumberValue) > 1e-8f;
 	}
 
