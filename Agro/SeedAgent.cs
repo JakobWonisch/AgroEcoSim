@@ -101,7 +101,7 @@ public struct SeedAgent : IAgent
 				var meristemIndex = plant.AG.Birth(meristem); //base stem
 
 				if (plant.Parameters.LateralsPerNode > 0)
-					AboveGroundAgent.CreateFirstLeaves(meristem, plant, 0, meristemIndex);
+					AboveGroundAgent.CreateFirstLeaves(meristem, plant, 0, meristemIndex, MorphologyParams.LeafLayout(plant.Parameters));
 
 				plant.SeedDeath();
 				Water_g = 0f;

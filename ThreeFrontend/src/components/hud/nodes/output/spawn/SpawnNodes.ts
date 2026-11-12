@@ -2,9 +2,16 @@ import { SpawnTriggerNode } from "./SpawnTriggerNode";
 import { boolSocket, numSocket } from "../../Sockets";
 import { ClassicPreset } from "rete";
 
+/** Optional legacy switches (unconnected = false); Bergania.Tick spawns from a by-value copy of the parent. */
+function addLegacySpawnInputs(node: SpawnTriggerNode) {
+    node.addInput("keepParentResources", new ClassicPreset.Input(boolSocket, "keep parent resources"));
+    node.addInput("resourcesFromProduction", new ClassicPreset.Input(boolSocket, "resources from production"));
+}
+
 export class SpawnMeristemNode extends SpawnTriggerNode {
     constructor() {
         super("Spawn Meristem");
+        addLegacySpawnInputs(this);
         this.addOutput("childId", new ClassicPreset.Output(numSocket, "child id"));
         this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
@@ -41,6 +48,7 @@ export class SpawnFlowerStemNode extends SpawnTriggerNode {
 export class SpawnFlowerMeristemNode extends SpawnTriggerNode {
     constructor() {
         super("Spawn Flower Meristem");
+        addLegacySpawnInputs(this);
     }
 }
 
@@ -59,5 +67,10 @@ export class SpawnFlowerPadelNode extends SpawnTriggerNode {
 export class SpawnRhizomeNode extends SpawnTriggerNode {
     constructor() {
         super("Spawn Rhizome");
+        this.addInput("yawOffset", new ClassicPreset.Input(numSocket, "yawOffset"));
+        this.addInput("rootYawOffset", new ClassicPreset.Input(numSocket, "rootYawOffset"));
+        this.addInput("rizomeLength", new ClassicPreset.Input(numSocket, "rizome length"));
+        this.addInput("rizomeRadius", new ClassicPreset.Input(numSocket, "rizome radius"));
+        this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }

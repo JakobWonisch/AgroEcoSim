@@ -1,3 +1,4 @@
+using System.Numerics;
 using Agro.BehaviorGraph;
 using Agro.Testing;
 using Xunit;
@@ -55,9 +56,60 @@ public class BerganiaSpeciesParityTests
 			"ignore", "parity-traces", "bergania", speciesSlug);
 
 	[Fact]
+	public void Geranium_Node_At1440Hours_HoursPerTick4_GrowsPastInitialLeaves()
+	{
+		foreach (var speciesName in new[] { "Geranium Macrorrhizum", "Geranium × Cantabrigiense" })
+		{
+			const int totalHours = 1440;
+			const int hoursPerTick = 4;
+			var request = BuildBerganiaNodeRequest(speciesName, totalHours: totalHours, hoursPerTick: hoursPerTick);
+			var nodePath = Path.Combine(Path.GetTempPath(), $"g-hpt4-{Guid.NewGuid():N}.jsonl");
+			try
+			{
+				SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
+				var leaves = SimulationHarness.ReadSteps(nodePath).Last().Plants[0].AboveGround
+					.Count(a => a.Organ == "Leaf");
+				Assert.True(leaves > 2,
+					$"{speciesName} should chain past the germination leaf pair at 1440h/4h-tick; got {leaves} leaves.");
+			}
+			finally
+			{
+				if (File.Exists(nodePath)) File.Delete(nodePath);
+			}
+		}
+	}
+
+	[Fact]
+	public void Geranium_OrganCounts_LegacyVsNode_At200Hours()
+	{
+		foreach (var speciesName in new[] { "Geranium Macrorrhizum", "Geranium × Cantabrigiense" })
+		{
+			const int totalHours = 200;
+			var request = BuildBerganiaNodeRequest(speciesName, totalHours: totalHours, hoursPerTick: 1);
+			var legacyPath = Path.Combine(Path.GetTempPath(), $"g-leg-{Guid.NewGuid():N}.jsonl");
+			var nodePath = Path.Combine(Path.GetTempPath(), $"g-node-{Guid.NewGuid():N}.jsonl");
+			try
+			{
+				SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: totalHours);
+				SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
+				var legacy = SimulationHarness.ReadSteps(legacyPath).Last().Plants[0].AboveGround;
+				var node = SimulationHarness.ReadSteps(nodePath).Last().Plants[0].AboveGround;
+				Assert.Equal(legacy.Count(a => a.Organ == "Leaf"), node.Count(a => a.Organ == "Leaf"));
+				Assert.Equal(legacy.Count(a => a.Organ == "Stem" && !a.IsRizome), node.Count(a => a.Organ == "Stem" && !a.IsRizome));
+				Assert.Equal(legacy.Count(a => a.Organ == "Petiole"), node.Count(a => a.Organ == "Petiole"));
+			}
+			finally
+			{
+				if (File.Exists(legacyPath)) File.Delete(legacyPath);
+				if (File.Exists(nodePath)) File.Delete(nodePath);
+			}
+		}
+	}
+
+	[Fact]
 	public void BerganiaSpecies_SpringCrownRecruitsRhizomeBuds_AtTimestep3()
 	{
-		const int maxHours = 3;
+		const int maxHours = 4;
 		var request = BuildBerganiaNodeRequest("Geranium Macrorrhizum", totalHours: maxHours, plantRngFixedUnit: 0f);
 		var legacyPath = Path.Combine(Path.GetTempPath(), $"berg-crown-legacy-{Guid.NewGuid():N}.jsonl");
 		var nodePath = Path.Combine(Path.GetTempPath(), $"berg-crown-node-{Guid.NewGuid():N}.jsonl");
@@ -72,7 +124,28 @@ public class BerganiaSpeciesParityTests
 			var nodeBuds = node.Plants[0].AboveGround.Count(a => a.Organ == "Bud");
 
 			Assert.Equal(0, legacyBuds);
+			Assert.Equal(0, nodeBuds);
 			Assert.Equal(legacy.Plants[0].AboveGround.Length, node.Plants[0].AboveGround.Length);
+
+			static Vector3 Axis(QuaternionSnapshot q) =>
+				Vector3.Transform(Vector3.UnitX, new Quaternion(q.X, q.Y, q.Z, q.W));
+
+			var legacyShoots = legacy.Plants[0].AboveGround
+				.Where(a => !a.IsRizome && (a.Organ == "Meristem" || a.Organ == "Stem"))
+				.Select(a => Axis(a.Orientation).Y)
+				.ToList();
+			var nodeShoots = node.Plants[0].AboveGround
+				.Where(a => !a.IsRizome && (a.Organ == "Meristem" || a.Organ == "Stem"))
+				.Select(a => Axis(a.Orientation).Y)
+				.ToList();
+			Assert.NotEmpty(legacyShoots);
+			Assert.Equal(legacyShoots.Count, nodeShoots.Count);
+			for (var i = 0; i < legacyShoots.Count; i++)
+			{
+				Assert.True(legacyShoots[i] > 0.5f, $"legacy shoot[{i}] should be pitched up, Y={legacyShoots[i]}");
+				Assert.True(nodeShoots[i] > 0.5f, $"node shoot[{i}] should be pitched up, Y={nodeShoots[i]}");
+				Assert.Equal(legacyShoots[i], nodeShoots[i], 3);
+			}
 		}
 		finally
 		{
@@ -278,15 +351,15 @@ public class BerganiaSpeciesParityTests
 		Assert.NotEmpty(profile.BehaviorGraphs);
 		Assert.True(profile.BehaviorConfiguration.ContainsKey(BerganiaTickGraphBuilder.ConfigIds.PChaining));
 		var pChain = profile.BehaviorConfiguration[BerganiaTickGraphBuilder.ConfigIds.PChaining].FloatArrayValue;
-		Assert.Equal(0.015f, pChain[0]);
+		Assert.Equal(BerganiaTickGraphBuilder.LegacyDefaultPChaining, pChain);
 	}
 
 	[Fact]
-	public void BergeniaCordifolia_Node_At200Hours_WithoutSpeciesConfiguration_StaysAtInitialLeaves()
+	public void BergeniaCordifolia_Node_At200Hours_CatalogConfigurationFallbackMatchesUpload()
 	{
 		const int totalHours = 200;
 		var baseRequest = BuildBerganiaNodeRequest("Bergenia Cordifolia", totalHours: totalHours, hoursPerTick: 1);
-		var request = new SimulationRequest
+		var withoutConfig = new SimulationRequest
 		{
 			Seed = baseRequest.Seed,
 			TotalHours = baseRequest.TotalHours,
@@ -294,17 +367,21 @@ public class BerganiaSpeciesParityTests
 			Plants = baseRequest.Plants,
 			SpeciesGraphs = baseRequest.SpeciesGraphs,
 		};
-		var nodePath = Path.Combine(Path.GetTempPath(), $"berg-node-nocfg-{Guid.NewGuid():N}.jsonl");
+		var withConfig = baseRequest;
+		var noCfgPath = Path.Combine(Path.GetTempPath(), $"berg-node-nocfg-{Guid.NewGuid():N}.jsonl");
+		var cfgPath = Path.Combine(Path.GetTempPath(), $"berg-node-cfg-{Guid.NewGuid():N}.jsonl");
 		try
 		{
-			SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
-			var step = SimulationHarness.ReadSteps(nodePath).Last();
-			var leafCount = step.Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
-			Assert.Equal(2, leafCount);
+			SimulationHarness.RecordTrace(withoutConfig, BehaviorRunMode.Node, noCfgPath, maxHours: totalHours);
+			SimulationHarness.RecordTrace(withConfig, BehaviorRunMode.Node, cfgPath, maxHours: totalHours);
+			var cfgLeaves = SimulationHarness.ReadSteps(cfgPath).Last().Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
+			Assert.True(cfgLeaves > 2, $"Expected meristem chaining by {totalHours} h; got {cfgLeaves} leaves.");
+			Assert.Null(TraceComparer.CompareFiles(cfgPath, noCfgPath, TraceCompareOptions.StructuralParity));
 		}
 		finally
 		{
-			if (File.Exists(nodePath)) File.Delete(nodePath);
+			if (File.Exists(noCfgPath)) File.Delete(noCfgPath);
+			if (File.Exists(cfgPath)) File.Delete(cfgPath);
 		}
 	}
 

@@ -124,7 +124,7 @@ namespace Agro.Plant.Flower
                         agent.Energy *= 0.9f;
                         agent.Water_g *= 0.9f;
                         if (true) {
-                            agent.CreateFlowerBaseLeaves(agent, formation.Plant, 25f, meristem);
+                            agent.CreateFlowerBaseLeaves(agent, formation.Plant, 25f, meristem, MorphologyParams.LeafLayout(formation.Plant.Parameters));
                         }
 
                         return;

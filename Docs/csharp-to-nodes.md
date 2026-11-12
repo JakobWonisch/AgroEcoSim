@@ -368,7 +368,8 @@ Legacy `DominanceFactors[DominanceLevel]` maps to:
 | `WireEnergyReserve` lower clamp | **Fixed** — `If / Else` floors negative `energy/capacity` before `Clamp Max` |
 | `crownPitch` spring crown yaw | **Gap** — stored in `BerganiaGraphOptions`; graph uses `Turn Upwards` only (yaw gap comment) |
 | `bendPetiol` | **Gap** — comment node in Bergania meristem chain |
-| `FlowerHelper` | **Gap** — Bergenia flower organs inactive in node mode (`Flower organs gap` graph) |
+| `FlowerHelper.grow` / ResetPending death | **Done** — flower meristem/stem growth + reset death graphs |
+| `FlowerHelper.chaning` / createFlower | **Gap** — documented on flower reset death graph |
 | Bergania `growthFactor` / `MaxRadius` on meristem growth | **Done** — multiply + radius gate wired |
 | Rhizome collision / `rizomeInfo` flags | **Gap** — simplified `Spawn Rhizome` + random chance only |
 | Multi-graph vs legacy early-return after depletion | **Gap** — documented approximation; auxins may run after depletion |

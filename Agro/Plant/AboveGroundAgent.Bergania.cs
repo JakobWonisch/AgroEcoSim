@@ -129,7 +129,7 @@ namespace Agro
 
                             agent.Energy = agent.EnergyStorageCapacity();
                             if (species.LateralsPerNode > 0)
-                                agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, agentID);
+                                agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, agentID, MorphologyParams.LeafLayout(species));
                            
                         }
                         else agent.trySpawn = false;
@@ -477,7 +477,7 @@ namespace Agro
                 agent.Water_g *= 0.9f;
 
                 if (formation.Plant.Parameters.LateralsPerNode > 0)
-                    agent.CreateLeaves(agent, formation.Plant, lateralPitch, meristem);
+                    agent.CreateLeaves(agent, formation.Plant, lateralPitch, meristem, MorphologyParams.LeafLayout(formation.Plant.Parameters));
 
             }
 

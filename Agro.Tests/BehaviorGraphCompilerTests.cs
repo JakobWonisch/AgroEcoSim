@@ -232,8 +232,11 @@ public class BehaviorGraphCompilerTests
 	[InlineData("Random Float Var Input")]
 	[InlineData("Set Lateral Angle")]
 	[InlineData("Delta Dominance")]
+	[InlineData("Set Dominance")]
 	[InlineData("Set Length Var")]
 	[InlineData("Turn Upwards")]
+	[InlineData("Apply Crown Pitch")]
+	[InlineData("Set Energy To Capacity")]
 	[InlineData("Set Was Meristem")]
 	[InlineData("Delta Energy")]
 	[InlineData("Set trySpawn")]
@@ -268,6 +271,9 @@ public class BehaviorGraphCompilerTests
 		var becomeIdx = Array.FindIndex(compiled!.NodesInOrder, n => n.Kind == GraphNodeKind.BecomeMeristem);
 		Assert.True(rngIdx >= 0 && becomeIdx >= 0);
 		Assert.True(rngIdx < becomeIdx, $"rng@{rngIdx} must precede become@{becomeIdx}");
+
+		var pitchIdx = Array.FindIndex(compiled.NodesInOrder, n => n.Kind == GraphNodeKind.ApplyCrownPitch);
+		Assert.True(pitchIdx >= 0 && pitchIdx < becomeIdx, $"crown pitch@{pitchIdx} must precede become@{becomeIdx}");
 
 		var and4Idx = -1;
 		for (var i = 0; i < compiled.NodesInOrder.Length; i++)
@@ -407,7 +413,7 @@ public class BehaviorGraphCompilerTests
 	public void DefaultSpeciesConfiguration_IncludesTickDefaultConstants()
 	{
 		var entries = DefaultSpeciesGraphBuilder.BuildDefaultConfiguration();
-		Assert.Equal(46, entries.Count);
+		Assert.Equal(56, entries.Count);
 
 		var leaf = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LeafThickness);
 		Assert.Equal("Leaf thickness", leaf.Label);
@@ -444,8 +450,10 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(1e-3f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthLength).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius).Value.GetSingle());
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
-		Assert.Equal(0.7f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
+		Assert.Equal(0f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
 		Assert.Equal(40f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
+		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach).Value.GetSingle());
+		Assert.Equal(0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity).Value.GetSingle());
 		Assert.Equal(
 			"Each meristem node generates this amount of auxins (given in unspecified units).",
 			Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Usage);
@@ -458,10 +466,13 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MonopodialFactor).Value.GetSingle());
 		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsThreshold).Value.GetSingle());
 		Assert.Equal(100f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime).Value.GetSingle());
+		Assert.Equal(10f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar).Value.GetSingle());
+		Assert.Equal(0.02f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical).Value.GetSingle());
 		Assert.Equal(2f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode).Value.GetSingle());
 		var dominance = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors);
 		Assert.Equal("number[]", dominance.Type);
-		Assert.Equal(0.7f, dominance.Value.EnumerateArray().Single().GetSingle());
+		var table = dominance.Value.EnumerateArray().Select(e => e.GetSingle()).ToArray();
+		Assert.Equal(DefaultSpeciesGraphBuilder.BuildUninitializedDominanceFactors(), table);
 	}
 
 	[Fact]
@@ -631,7 +642,7 @@ public class BehaviorGraphCompilerTests
 	}
 
 	[Fact]
-	public void BerganiaConfiguration_BergeniaPChaining_MatchesSpeciesInit()
+	public void BerganiaConfiguration_BergeniaPChaining_MatchesHistoricalUi()
 	{
 		var config = BerganiaTickGraphBuilder.BuildConfiguration(
 			BerganiaTickGraphBuilder.BerganiaGraphOptions.BergeniaCordifolia);
@@ -640,15 +651,8 @@ public class BehaviorGraphCompilerTests
 			"Bergenia Cordifolia");
 		var chaining = dict[BerganiaTickGraphBuilder.ConfigIds.PChaining].FloatArrayValue;
 		var flowering = dict[BerganiaTickGraphBuilder.ConfigIds.PFlowering].FloatArrayValue;
-		Assert.Equal(4, chaining.Length);
-		Assert.Equal(0.015f, chaining[0]);
-		Assert.Equal(0.02f, chaining[1]);
-		Assert.Equal(0.01f, chaining[2]);
-		Assert.Equal(0f, chaining[3]);
-		Assert.Equal(0.0005f, flowering[0]);
-		Assert.Equal(0.005f, flowering[1]);
-		Assert.Equal(0.0003f, flowering[2]);
-		Assert.Equal(0f, flowering[3]);
+		Assert.Equal(BerganiaTickGraphBuilder.LegacyDefaultPChaining, chaining);
+		Assert.Equal(BerganiaTickGraphBuilder.LegacyDefaultPFlowering, flowering);
 	}
 
 	[Theory]
@@ -676,7 +680,8 @@ public class BehaviorGraphCompilerTests
 			dict[DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold].NumberValue,
 			6);
 		var dominance = dict[DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors].FloatArrayValue;
-		Assert.Single(dominance);
-		Assert.Equal(0.7f, dominance[0]);
+		Assert.Equal(
+			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(DefaultSpeciesGraphBuilder.DefaultTickConstants.DominanceFactor),
+			dominance);
 	}
 }

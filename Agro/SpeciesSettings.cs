@@ -296,7 +296,6 @@ public class SpeciesSettings
         // Heuchera;
         // Fragaria;
         // Carex;
-
     }
 
     private bool Initialized = false;
