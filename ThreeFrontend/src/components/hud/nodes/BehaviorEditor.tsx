@@ -57,6 +57,7 @@ import { BecomeFlowerStemNode } from './output/BecomeFlowerStemNode';
 import { BecomeFlowerMeristemNode } from './output/BecomeFlowerMeristemNode';
 import { SetDominanceNode } from './output/SetDominanceNode';
 import { ApplyCrownPitchNode } from './output/ApplyCrownPitchNode';
+import { BendAncestorPetiolesNode } from './output/BendAncestorPetiolesNode';
 import {
     SpawnMeristemNode,
     SpawnBudNode,
@@ -222,6 +223,7 @@ export async function createEditor(container: HTMLElement, species: Species, nam
                 ['Become Stem', () => new BecomeStemNode()],
                 ['Become Flower Stem', () => new BecomeFlowerStemNode()],
                 ['Become Flower Meristem', () => new BecomeFlowerMeristemNode()],
+                ['Bend Ancestor Petioles', () => new BendAncestorPetiolesNode()],
             ]],
             ['output spawn', [
                 ['Spawn Meristem', () => new SpawnMeristemNode()],

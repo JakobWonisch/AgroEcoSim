@@ -57,6 +57,8 @@ public static class SpeciesSettingsFromConfiguration
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.MonopodialFactor, "MonopodialFactor");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor, "DominanceFactor");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction, "AuxinsProduction");
+		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach, "AuxinsReach");
+		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity, "RootsDensity");
 		SetInt(json, config, DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, "LateralsPerNode");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, "LateralRoll");
 		SetNum(json, config, DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar, "LateralRollVar");

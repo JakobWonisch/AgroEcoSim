@@ -13,6 +13,7 @@ public static class GraphTickInterpreter
 			AgentId = agentId,
 			Timestep = timestep,
 			BehaviorConfiguration = formation?.Plant.BehaviorConfiguration,
+			Scratch = new TickScratch(),
 		};
 		var outs = new Dictionary<(int NodeIndex, string Socket), WireValue>();
 
@@ -480,7 +481,13 @@ public static class GraphTickInterpreter
 					if (meristemId >= 0)
 					{
 						var layout = MorphologyGraphInputs.ReadLeafLayout(node, outs, ctx);
-						AboveGroundAgent.GraphCreateLeaves(ref agent, plant, lateral, meristemId, layout);
+						if (FirstBool(node.Inputs, "keepParentResources", outs))
+						{
+							var detached = ctx.Scratch?.DetachedParent ?? agent;
+							AboveGroundAgent.GraphCreateLeaves(ref detached, plant, lateral, meristemId, layout);
+						}
+						else
+							AboveGroundAgent.GraphCreateLeaves(ref agent, plant, lateral, meristemId, layout);
 					}
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
@@ -620,8 +627,21 @@ public static class GraphTickInterpreter
 				{
 					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
 					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
-					var childId = SpawnEffects.SpawnChild(
-						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem, twig, lateralRoll);
+					var resourcesFromProduction = FirstBool(node.Inputs, "resourcesFromProduction", outs);
+					int childId;
+					if (FirstBool(node.Inputs, "keepParentResources", outs))
+					{
+						var detached = agent;
+						childId = SpawnEffects.SpawnChild(
+							ref detached, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem, twig, lateralRoll,
+							resourcesFromProduction: resourcesFromProduction);
+						if (ctx.Scratch is not null)
+							ctx.Scratch.DetachedParent = detached;
+					}
+					else
+						childId = SpawnEffects.SpawnChild(
+							ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, OrganTypes.Meristem, twig, lateralRoll,
+							resourcesFromProduction: resourcesFromProduction);
 					outs[(g, "childId")] = WireValue.OfFloat(childId);
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
@@ -680,8 +700,29 @@ public static class GraphTickInterpreter
 				{
 					var twig = MorphologyGraphInputs.ReadTwigOrientation(node, outs, ctx);
 					var lateralRoll = MorphologyGraphInputs.ReadLateralRoll(node, outs, ctx);
-					SpawnEffects.SpawnFlowerMeristemChild(
-						ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, twig, lateralRoll);
+					var resourcesFromProduction = FirstBool(node.Inputs, "resourcesFromProduction", outs);
+					if (FirstBool(node.Inputs, "keepParentResources", outs))
+					{
+						var detached = agent;
+						SpawnEffects.SpawnFlowerMeristemChild(
+							ref detached, ctx.Formation!, ctx.AgentId, ctx.Timestep, twig, lateralRoll,
+							resourcesFromProduction: resourcesFromProduction);
+					}
+					else
+						SpawnEffects.SpawnFlowerMeristemChild(
+							ref agent, ctx.Formation!, ctx.AgentId, ctx.Timestep, twig, lateralRoll,
+							resourcesFromProduction: resourcesFromProduction);
+					outs[(g, "seq")] = WireValue.OfBool(true);
+				}
+				else
+					outs[(g, "seq")] = WireValue.OfBool(false);
+				break;
+			case GraphNodeKind.BendAncestorPetioles:
+				if (ctx.HasFormation && FirstBool(node.Inputs, "trigger", outs))
+				{
+					OrientationEffects.BendAncestorPetioles(ctx.Formation!, agent.Parent,
+						FirstFloat(node.Inputs, "petiolMoveDown", outs),
+						FirstFloat(node.Inputs, "petiolMoveDownMax", outs));
 					outs[(g, "seq")] = WireValue.OfBool(true);
 				}
 				else

@@ -113,7 +113,7 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
   - `Multiply Energy` / `Multiply Water` — input `factor`.
   - `Set trySpawn` — input `value` (bool).
   - `Accumulate Production` — input `amount`; adds to `CurrentDayProductionInv`.
-  - `Make Bud` / `Create Leaves` — input `trigger` (bool); `Create Leaves` optional `meristemId`; output `seq` on `Create Leaves`.
+  - `Make Bud` / `Create Leaves` — input `trigger` (bool); `Create Leaves` optional `meristemId` and `keepParentResources` (bool: take leaf energy from the parent copy left by a `Spawn Meristem` with the same flag); output `seq` on `Create Leaves`.
   - `Death` / `Death Parent` / `Death Children` — input `trigger`; `Death Children` output `seq`.
   - `Become Meristem` / `Become Stem` / `Become Flower Stem` / `Become Flower Meristem` — input `trigger`; output `seq` on meristem/stem transforms.
   - `Set Lateral Angle` — inputs `trigger`, `value`; output `seq`.
@@ -122,6 +122,12 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
   - `Turn Upwards` — input `trigger`; output `seq`.
   - `Set Was Meristem` — input `value` (bool); sets tick-scratch `wasMeristemThisTick` on the agent.
   - `Spawn Meristem`, `Spawn Bud`, `Spawn Stem`, … — input `trigger`; `Spawn Meristem` outputs `childId` and `seq`.
+    `Spawn Meristem` / `Spawn Flower Meristem` take optional bools (unconnected = false) that reproduce `Bergania.Tick`:
+    `keepParentResources` spawns from a copy of the parent so its energy/water stay unchanged, and
+    `resourcesFromProduction` seeds the child's resources invariant with the parent's production invariant.
+  - `Bend Ancestor Petioles` — inputs `trigger`, `petiolMoveDown`, `petiolMoveDownMax` (both ×π); output `seq`. Legacy `bendPetiol`:
+    walks from the agent's parent up to the rhizome and rotates every petiole child and its first child by orientation messages.
+    It renormalizes those orientations even when `petiolMoveDown` is 0.
 - boolean
   - `And`, `Or`, `Xor` — inputs `a, b: Boolean`; output `out: Boolean`.
   - `Not` — input `a: Boolean`; output `out: Boolean`.

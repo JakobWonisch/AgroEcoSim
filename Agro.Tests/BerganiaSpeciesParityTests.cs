@@ -351,11 +351,11 @@ public class BerganiaSpeciesParityTests
 		Assert.NotEmpty(profile.BehaviorGraphs);
 		Assert.True(profile.BehaviorConfiguration.ContainsKey(BerganiaTickGraphBuilder.ConfigIds.PChaining));
 		var pChain = profile.BehaviorConfiguration[BerganiaTickGraphBuilder.ConfigIds.PChaining].FloatArrayValue;
-		Assert.Equal(0.015f, pChain[0]);
+		Assert.Equal(BerganiaTickGraphBuilder.LegacyDefaultPChaining, pChain);
 	}
 
 	[Fact]
-	public void BergeniaCordifolia_Node_At200Hours_RequiresSpeciesConfigurationForChaining()
+	public void BergeniaCordifolia_Node_At200Hours_CatalogConfigurationFallbackMatchesUpload()
 	{
 		const int totalHours = 200;
 		var baseRequest = BuildBerganiaNodeRequest("Bergenia Cordifolia", totalHours: totalHours, hoursPerTick: 1);
@@ -374,11 +374,9 @@ public class BerganiaSpeciesParityTests
 		{
 			SimulationHarness.RecordTrace(withoutConfig, BehaviorRunMode.Node, noCfgPath, maxHours: totalHours);
 			SimulationHarness.RecordTrace(withConfig, BehaviorRunMode.Node, cfgPath, maxHours: totalHours);
-			var noCfgLeaves = SimulationHarness.ReadSteps(noCfgPath).Last().Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
 			var cfgLeaves = SimulationHarness.ReadSteps(cfgPath).Last().Plants[0].AboveGround.Count(a => a.Organ == "Leaf");
-			Assert.Equal(2, noCfgLeaves);
-			Assert.True(cfgLeaves > 2,
-				$"Meristem chaining requires behaviorConfiguration pChaining; got {cfgLeaves} leaves with catalog config.");
+			Assert.True(cfgLeaves > 2, $"Expected meristem chaining by {totalHours} h; got {cfgLeaves} leaves.");
+			Assert.Null(TraceComparer.CompareFiles(cfgPath, noCfgPath, TraceCompareOptions.StructuralParity));
 		}
 		finally
 		{

@@ -16,4 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Agro\Agro.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="TestData\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

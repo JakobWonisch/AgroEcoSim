@@ -62,6 +62,7 @@ import { SetWasMeristemNode } from "./output/SetWasMeristemNode";
 import { BecomeStemNode } from "./output/BecomeStemNode";
 import { BecomeFlowerStemNode } from "./output/BecomeFlowerStemNode";
 import { BecomeFlowerMeristemNode } from "./output/BecomeFlowerMeristemNode";
+import { BendAncestorPetiolesNode } from "./output/BendAncestorPetiolesNode";
 import { applyNodeComment } from "./nodeComment";
 import { applyNodeCollapsed } from "./nodeCollapse";
 import {
@@ -153,6 +154,7 @@ export const canonicalBehaviorNodeLabels = [
     "Spawn Flower Bud",
     "Spawn Flower Padel",
     "Spawn Rhizome",
+    "Bend Ancestor Petioles",
 ] as const;
 
 type Creator = (data: Record<string, unknown>) => any;
@@ -251,6 +253,7 @@ const creators: Record<string, Creator> = {
     "Spawn Flower Bud": () => new SpawnFlowerBudNode(),
     "Spawn Flower Padel": () => new SpawnFlowerPadelNode(),
     "Spawn Rhizome": () => new SpawnRhizomeNode(),
+    "Bend Ancestor Petioles": () => new BendAncestorPetiolesNode(),
 };
 
 export function isSupportedBehaviorExportLabel(label: string): boolean {

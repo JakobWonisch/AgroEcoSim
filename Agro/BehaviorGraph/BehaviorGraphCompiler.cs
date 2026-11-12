@@ -402,6 +402,9 @@ public static class BehaviorGraphCompiler
 			case "Spawn Rhizome":
 				kind = GraphNodeKind.SpawnRhizome;
 				return true;
+			case "Bend Ancestor Petioles":
+				kind = GraphNodeKind.BendAncestorPetioles;
+				return true;
 			case "Active":
 				kind = GraphNodeKind.Active;
 				return true;

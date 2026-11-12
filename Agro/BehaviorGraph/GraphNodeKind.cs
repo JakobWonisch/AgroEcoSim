@@ -78,4 +78,5 @@ public enum GraphNodeKind : byte
 	SpawnRhizome,
 	ConfigurationValueInput,
 	ConfigurationArrayInput,
+	BendAncestorPetioles,
 }

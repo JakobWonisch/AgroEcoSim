@@ -12,6 +12,8 @@ export class CreateLeavesNode extends ClassicPreset.Node {
         this.addInput("lateralPitchVar", new ClassicPreset.Input(numSocket, "lateral pitch var"));
         this.addInput("lateralPitch", new ClassicPreset.Input(numSocket, "lateral pitch"));
         this.addInput("leafPitch", new ClassicPreset.Input(numSocket, "leaf pitch"));
+        // Optional: derive leaf energy from the copy left by a Spawn Meristem with keep parent resources.
+        this.addInput("keepParentResources", new ClassicPreset.Input(boolSocket, "keep parent resources"));
         this.addOutput("seq", new ClassicPreset.Output(boolSocket, "seq"));
     }
 }

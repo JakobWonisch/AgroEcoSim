@@ -5,14 +5,17 @@ namespace Agro.BehaviorGraph;
 
 public static class SpawnEffects
 {
+	/// <param name="resourcesFromProduction">Bergania.Tick seeds the child's resources invariant with the parent's production invariant.</param>
 	static (float Resources, float Production) PrevDayInvariants(
 		ref AboveGroundAgent parent,
 		PlantSubFormation<AboveGroundAgent> formation,
-		uint timestep)
+		uint timestep,
+		bool resourcesFromProduction = false)
 	{
 		var world = formation.Plant.World;
 		if (timestep - parent.GraphBirthTime() > world.HoursPerTick)
-			return (parent.PreviousDayEnvResourcesInvariant, parent.PreviousDayProductionInvariant);
+			return (resourcesFromProduction ? parent.PreviousDayProductionInvariant : parent.PreviousDayEnvResourcesInvariant,
+				parent.PreviousDayProductionInvariant);
 		return (formation.DailyResourceMax, formation.DailyProductionMax);
 	}
 
@@ -26,11 +29,12 @@ public static class SpawnEffects
 		float lateralRoll,
 		float energyFraction = 0.1f,
 		float waterFraction = 0.1f,
-		Quaternion? orientationOverride = null)
+		Quaternion? orientationOverride = null,
+		bool resourcesFromProduction = false)
 	{
 		var plant = formation.Plant;
 
-		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep);
+		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep, resourcesFromProduction);
 
 		var orientation = orientationOverride
 			?? AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
@@ -59,10 +63,11 @@ public static class SpawnEffects
 		TwigOrientationParams twig,
 		float lateralRoll,
 		float energyFraction = 0.1f,
-		float waterFraction = 0.1f)
+		float waterFraction = 0.1f,
+		bool resourcesFromProduction = false)
 	{
 		var plant = formation.Plant;
-		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep);
+		var (prevResources, prevProduction) = PrevDayInvariants(ref parent, formation, timestep, resourcesFromProduction);
 		var orientation = AboveGroundAgent.TurnUpwards(OrientationEffects.RandomOrientation(
 			ref parent, plant, parent.Orientation, twig));
 		var lateralPitch = parent.LateralAngle + lateralRoll;

@@ -53,6 +53,10 @@ static class BehaviorConfigParameterFallback
 				value = species.DominanceFactor; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction:
 				value = species.AuxinsProduction; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach:
+				value = species.AuxinsReach; return true;
+			case DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity:
+				value = species.RootsDensity; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode:
 				value = species.LateralsPerNode; return true;
 			case DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll:

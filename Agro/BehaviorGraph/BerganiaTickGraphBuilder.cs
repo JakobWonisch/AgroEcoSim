@@ -11,6 +11,23 @@ public static class BerganiaTickGraphBuilder
 
 	const float DegToRad = MathF.PI / 180f;
 
+	/// <summary>
+	/// Values the reference simulation actually ran with: the historical UI serialized only its common
+	/// species fields, so these species-specific <c>Init()</c> values fell back to <see cref="SpeciesSettings"/> defaults.
+	/// </summary>
+	public static class UiRoundTrip
+	{
+		public const float MaxLeaveAge = 100f;
+		public const float GrowthFactor = 0.2f;
+		public const float MaxRadius = 0.0005f;
+		public const float PNewCrown = 1f;
+		public const float PExpandRizome = 0.005f;
+		public const float RizomeMaxDepth = 15f;
+		public const float RizomeLength = 0.01f;
+		public const float RizomeRadius = 0.0025f;
+		public const float CrownPitch = 0.5f;
+	}
+
 	public sealed record BerganiaGraphOptions(
 		string SpeciesLabel,
 		float Height,
@@ -34,7 +51,7 @@ public static class BerganiaTickGraphBuilder
 		float RizomeRadius,
 		float[] PChaining,
 		float[] PFlowering,
-		float DominanceFactor = 0.7f,
+		float DominanceFactor = DefaultSpeciesGraphBuilder.DefaultTickConstants.DominanceFactor,
 		float NodeDistance = 0f,
 		float NodeDistanceVar = 0f,
 		int LateralsPerNode = 2,
@@ -45,7 +62,7 @@ public static class BerganiaTickGraphBuilder
 		float LeafPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafPitch,
 		float LeafPitchVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LeafPitchVar,
 		float CrownPitch = 0.5f,
-		/// <summary>Geranium Tick lignifies stems (uncap when parent is rhizome). Bergenia Tick has that update commented out.</summary>
+		/// <summary>Stem lignify (uncap when parent is rhizome) as in the unused GeraniumCantabrigiense tick. Bergania.Tick, which all three predefined species run, has it commented out.</summary>
 		bool StemWoodLignify = false)
 	{
 		public static BerganiaGraphOptions GeraniumMacrorrhizum => new(
@@ -61,14 +78,14 @@ public static class BerganiaTickGraphBuilder
 			PetioleLengthVar: 0.05f,
 			PetioleRadius: 0.0018f,
 			PetioleRadiusVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.PetioleRadiusVar,
-			MaxLeaveAge: 160f,
-			GrowthFactor: 0.25f,
-			MaxRadius: 0.0035f,
-			PNewCrown: 0.70f,
-			PExpandRizome: 0.0012f,
-			RizomeMaxDepth: 3f,
-			RizomeLength: 0.045f,
-			RizomeRadius: 0.0035f,
+			MaxLeaveAge: UiRoundTrip.MaxLeaveAge,
+			GrowthFactor: UiRoundTrip.GrowthFactor,
+			MaxRadius: UiRoundTrip.MaxRadius,
+			PNewCrown: UiRoundTrip.PNewCrown,
+			PExpandRizome: UiRoundTrip.PExpandRizome,
+			RizomeMaxDepth: UiRoundTrip.RizomeMaxDepth,
+			RizomeLength: UiRoundTrip.RizomeLength,
+			RizomeRadius: UiRoundTrip.RizomeRadius,
 			PChaining: LegacyDefaultPChaining,
 			PFlowering: LegacyDefaultPFlowering,
 			LateralPitch: 15f * DegToRad,
@@ -77,8 +94,7 @@ public static class BerganiaTickGraphBuilder
 			LateralRollVar: 5f * DegToRad,
 			LeafPitch: 85f * DegToRad,
 			LeafPitchVar: 5f * DegToRad,
-			CrownPitch: 0.38f,
-			StemWoodLignify: true);
+			CrownPitch: UiRoundTrip.CrownPitch);
 
 		public static BerganiaGraphOptions GeraniumCantabrigiense => new(
 			SpeciesLabel: "Geranium × Cantabrigiense",
@@ -93,14 +109,14 @@ public static class BerganiaTickGraphBuilder
 			PetioleLengthVar: 0.03f,
 			PetioleRadius: 0.0017f,
 			PetioleRadiusVar: 0.0004f,
-			MaxLeaveAge: 140f,
-			GrowthFactor: 0.20f,
-			MaxRadius: 0.0030f,
-			PNewCrown: 0.45f,
-			PExpandRizome: 0.0008f,
-			RizomeMaxDepth: 3f,
-			RizomeLength: 0.05f,
-			RizomeRadius: 0.0030f,
+			MaxLeaveAge: UiRoundTrip.MaxLeaveAge,
+			GrowthFactor: UiRoundTrip.GrowthFactor,
+			MaxRadius: UiRoundTrip.MaxRadius,
+			PNewCrown: UiRoundTrip.PNewCrown,
+			PExpandRizome: UiRoundTrip.PExpandRizome,
+			RizomeMaxDepth: UiRoundTrip.RizomeMaxDepth,
+			RizomeLength: UiRoundTrip.RizomeLength,
+			RizomeRadius: UiRoundTrip.RizomeRadius,
 			PChaining: LegacyDefaultPChaining,
 			PFlowering: LegacyDefaultPFlowering,
 			LateralPitch: 20f * DegToRad,
@@ -109,8 +125,7 @@ public static class BerganiaTickGraphBuilder
 			LateralRollVar: 10f * DegToRad,
 			LeafPitch: 85f * DegToRad,
 			LeafPitchVar: 5f * DegToRad,
-			CrownPitch: 0.36f,
-			StemWoodLignify: true);
+			CrownPitch: UiRoundTrip.CrownPitch);
 
 		public static BerganiaGraphOptions BergeniaCordifolia => new(
 			SpeciesLabel: "Bergenia Cordifolia",
@@ -125,17 +140,17 @@ public static class BerganiaTickGraphBuilder
 			PetioleLengthVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.PetioleLengthVar,
 			PetioleRadius: 0.004f,
 			PetioleRadiusVar: DefaultSpeciesGraphBuilder.DefaultTickConstants.PetioleRadiusVar,
-			MaxLeaveAge: 100f,
-			GrowthFactor: 0.20f,
-			MaxRadius: 0.005f,
-			PNewCrown: 0.50f,
-			PExpandRizome: 0.0005f,
-			RizomeMaxDepth: 3f,
-			RizomeLength: 0.04f,
-			RizomeRadius: 0.0025f,
-			PChaining: [0.015f, 0.02f, 0.01f, 0f],
-			PFlowering: [0.0005f, 0.005f, 0.0003f, 0f],
-			CrownPitch: 0.4f);
+			MaxLeaveAge: UiRoundTrip.MaxLeaveAge,
+			GrowthFactor: UiRoundTrip.GrowthFactor,
+			MaxRadius: UiRoundTrip.MaxRadius,
+			PNewCrown: UiRoundTrip.PNewCrown,
+			PExpandRizome: UiRoundTrip.PExpandRizome,
+			RizomeMaxDepth: UiRoundTrip.RizomeMaxDepth,
+			RizomeLength: UiRoundTrip.RizomeLength,
+			RizomeRadius: UiRoundTrip.RizomeRadius,
+			PChaining: LegacyDefaultPChaining,
+			PFlowering: LegacyDefaultPFlowering,
+			CrownPitch: UiRoundTrip.CrownPitch);
 	}
 
 	public static class ConfigIds
@@ -153,6 +168,8 @@ public static class BerganiaTickGraphBuilder
 		public const string FlowerStemRadiusGrowth = "default-config-flower-stem-radius-growth";
 		public const string FlowerStemMaxRadius = "default-config-flower-stem-max-radius";
 		public const string FlowerLengthGrowthCap = "default-config-flower-length-growth-cap";
+		public const string PetiolMoveDown = "default-config-petiol-move-down";
+		public const string PetiolMoveDownMax = "default-config-petiol-move-down-max";
 	}
 
 	public static List<BehaviorConfigUploadEntry> BuildConfiguration(BerganiaGraphOptions opt)
@@ -176,7 +193,7 @@ public static class BerganiaTickGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleAgeBudReferenceHours, 8760f * 2f);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor, opt.DominanceFactor);
 		SetArray(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors,
-			DefaultSpeciesGraphBuilder.BuildUninitializedDominanceFactors(opt.DominanceFactor));
+			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(opt.DominanceFactor));
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, opt.LateralPitch);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, opt.LateralPitchVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, opt.LateralRoll);
@@ -199,6 +216,8 @@ public static class BerganiaTickGraphBuilder
 		AddOrReplace(entries, ConfigIds.FlowerStemRadiusGrowth, "Flower stem radius growth", 2e-5f);
 		AddOrReplace(entries, ConfigIds.FlowerStemMaxRadius, "Flower stem max radius", 0.00025f);
 		AddOrReplace(entries, ConfigIds.FlowerLengthGrowthCap, "Flower length growth cap", 0.01f);
+		AddOrReplace(entries, ConfigIds.PetiolMoveDown, "Petiole move down (×π per chain)", 0f);
+		AddOrReplace(entries, ConfigIds.PetiolMoveDownMax, "Petiole move down max angle (×π)", 0.3f);
 		AddOrReplaceArray(entries, ConfigIds.PChaining, "P chaining by phase", opt.PChaining);
 		AddOrReplaceArray(entries, ConfigIds.PFlowering, "P flowering by phase", opt.PFlowering);
 		return entries;
@@ -274,7 +293,8 @@ public static class BerganiaTickGraphBuilder
 			state, form,
 			DefaultSpeciesGraphBuilder.ConfigIds.PetioleLength,
 			DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius,
-			capRadiusToParent: true);
+			capRadiusToParent: true,
+			uncapRhizomeParent: true);
 		var underLimit = b.WireUnderSizeLimit(state, sizeLimitL, sizeLimitR);
 		var growthGate = b.Add("growth-gate", "And", 2200, 40);
 		b.Connect(activeGate, "out", growthGate, "a");
@@ -300,7 +320,8 @@ public static class BerganiaTickGraphBuilder
 			state, form, sim,
 			growthFactorConfigId: ConfigIds.GrowthFactor,
 			maxRadiusConfigId: ConfigIds.MaxRadius,
-			gateLengthByLengthVar: true);
+			gateLengthByLengthVar: true,
+			uncapRhizomeParent: true);
 
 		var growth = b.Add("growth", "Growth", 2600, 200);
 		b.Connect(deltaLen, "out", growth, "Length");
@@ -411,8 +432,21 @@ public static class BerganiaTickGraphBuilder
 		b.Connect(spawnMeristem, "childId", createLeaves, "meristemId");
 		b.WireLeafLayoutConfig(createLeaves, 2680, 240, "mer");
 
-		b.Add("bend-gap", "Number Input", 2680, 200,
-			GraphNodePayload.FromComment("GAP: bendPetiol multi-agent orientation mutation not implemented in graph mode."));
+		// Bergania.Tick passes the agent by value into commitToFlower/doChaning and seeds the
+		// children's resources invariant with the parent's production invariant.
+		var legacyQuirk = b.AddBool("legacy-by-value", true, 2200, 360);
+		b.Connect(legacyQuirk, "bool", spawnFlower, "keepParentResources");
+		b.Connect(legacyQuirk, "bool", spawnFlower, "resourcesFromProduction");
+		b.Connect(legacyQuirk, "bool", spawnMeristem, "keepParentResources");
+		b.Connect(legacyQuirk, "bool", spawnMeristem, "resourcesFromProduction");
+		b.Connect(legacyQuirk, "bool", createLeaves, "keepParentResources");
+
+		var moveDown = b.AddConfig("petiol-move-down", ConfigIds.PetiolMoveDown, false, 2440, 440);
+		var moveDownMax = b.AddConfig("petiol-move-down-max", ConfigIds.PetiolMoveDownMax, false, 2440, 480);
+		var bend = b.Add("bend-petioles", "Bend Ancestor Petioles", 2680, 400);
+		b.Connect(chainTrig, "out", bend, "trigger");
+		b.Connect(moveDown, "num", bend, "petiolMoveDown");
+		b.Connect(moveDownMax, "num", bend, "petiolMoveDownMax");
 
 		return b.FinishWithActive(and4, "out").Build();
 	}
@@ -763,7 +797,8 @@ public static class BerganiaTickGraphBuilder
 		b.Connect(setEnergy, "seq", leaves, "trigger");
 		b.WireLeafLayoutConfig(leaves, 4000, 260, "crown");
 
-		return b.FinishWithActive(andRiz, "out").Build();
+		// Random nodes draw whenever the subgraph is active; legacy only rolls in PreFlower with trySpawn set.
+		return b.FinishWithActive(and3, "out").Build();
 	}
 
 	static global::ExportedGraph BuildTrySpawnResetSubgraph()

@@ -41,6 +41,8 @@ public static class DefaultSpeciesGraphBuilder
 		public const string DominanceFactor = "default-config-dominance-factor";
 		public const string DominanceFactors = "default-config-dominance-factors";
 		public const string AuxinsProduction = "default-config-auxins-production";
+		public const string AuxinsReach = "default-config-auxins-reach";
+		public const string RootsDensity = "default-config-roots-density";
 		public const string NodeDistance = "default-config-node-distance";
 		public const string NodeDistanceVar = "default-config-node-distance-var";
 		public const string TwigLateralAngle = "default-config-twig-lateral-angle";
@@ -64,7 +66,6 @@ public static class DefaultSpeciesGraphBuilder
 		public const string FloweringStartAgeHours = "default-config-flowering-start-age-hours";
 		public const string FloweringEndAgeHours = "default-config-flowering-end-age-hours";
 
-		// TODO(config): Add AuxinsReach â€” Usage: "Auxines propagate this far within the plant with a linear falloff."
 		// TODO(config): Add MaxLeafLevel â€” Usage: "Limits the level of branches that support petioles. Technically it corresponds to the maximum possible level of descendants."
 	}
 
@@ -82,20 +83,34 @@ public static class DefaultSpeciesGraphBuilder
 		public const float PetioleLengthVar = 0.01f;
 		public const float PetioleRadius = 0.0025f;
 		public const float PetioleRadiusVar = 0.0005f;
-		public const float DominanceFactor = 0.7f;
+		/// <summary>
+		/// The historical UI never initialized its dominance field, so the server received 0
+		/// (table <c>[1, 1, 0, …]</c>); see Agro/ML-Import224.json.
+		/// </summary>
+		public const float DominanceFactor = 0f;
 		public const float AuxinsProduction = 40f;
+		/// <summary>
+		/// The historical UI sent the misspelled key <c>AusinsReach</c>; the server's source-generated
+		/// deserializer sets omitted init-only <see cref="SpeciesSettings"/> properties to 0.
+		/// </summary>
+		public const float AuxinsReach = 0f;
+		/// <summary>The historical UI sent <c>RootsSparsity</c> (not a property), so the server received 0 like <see cref="AuxinsReach"/>.</summary>
+		public const float RootsDensity = 0f;
 		public const float NodeDistance = 0.04f;
 		public const float NodeDistanceVar = 0.01f;
 		public const float MonopodialFactor = 1f;
 		public const float LateralRoll = 0f;
-		public const float LateralRollVar = 5f * MathF.PI / 180f;
-		public const float LateralPitch = 45f * MathF.PI / 180f;
-		public const float LateralPitchVar = 5f * MathF.PI / 180f;
-		public const float LeafPitch = 20f * MathF.PI / 180f;
-		public const float LeafPitchVar = 5f * MathF.PI / 180f;
+		/// <summary>Must round like <see cref="SpeciesSettings"/>: <c>deg * (π / 180)</c>, not <c>deg * π / 180</c>.</summary>
+		public const float DegToRad = MathF.PI / 180f;
+		public const float LateralRollVar = 5f * DegToRad;
+		public const float LateralPitch = 45f * DegToRad;
+		public const float LateralPitchVar = 5f * DegToRad;
+		public const float LeafPitch = 20f * DegToRad;
+		public const float LeafPitchVar = 5f * DegToRad;
 		public const float AuxinsThreshold = 1f;
-		public const float WoodGrowthTime = 100f;
-		public const float WoodGrowthTimeVar = 10f;
+		/// <summary>Historical UI serialized wood growth in days (100 × 24 h); see Agro/ML-Import224.json.</summary>
+		public const float WoodGrowthTime = 2400f;
+		public const float WoodGrowthTimeVar = 240f;
 		public const int LateralsPerNode = 2;
 		public const float TwigsBending = 0.5f;
 		public const float TwigsBendingLevel = 1f;
@@ -105,8 +120,8 @@ public static class DefaultSpeciesGraphBuilder
 		/// and Agro/ML-Import224.json; keeps dominance-1 leaders nearly straight.
 		/// </summary>
 		public const float TwigsBendingApical = 0.98f;
-		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 Ã— 0.4).</summary>
-		public const float ShootsGravitaxis = 0.08f;
+		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 × 0.4, which rounds above 0.08f).</summary>
+		public const float ShootsGravitaxis = 0.2f * 0.4f;
 		public const float RizomeLength = 0.01f;
 		public const float RizomeRadius = 0.0025f;
 		public const float FloweringStartAgeHours = 24f * 45f;
@@ -399,6 +414,24 @@ public static class DefaultSpeciesGraphBuilder
 			Usage = "Each meristem node generates this amount of auxins (given in unspecified units).",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.AuxinsProduction),
+		},
+		new()
+		{
+			Id = ConfigIds.AuxinsReach,
+			Key = "Auxins reach",
+			Label = "Auxins reach",
+			Usage = "Auxines propagate this far within the plant with a linear falloff.",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.AuxinsReach),
+		},
+		new()
+		{
+			Id = ConfigIds.RootsDensity,
+			Key = "Roots density",
+			Label = "Roots density",
+			Usage = "Density of the roots system (affects branching probability). Valued 0 to 1 (with one being the most dense).",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.RootsDensity),
 		},
 		new()
 		{

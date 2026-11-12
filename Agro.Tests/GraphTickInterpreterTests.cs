@@ -354,7 +354,7 @@ public class GraphTickInterpreterTests
 			},
 			"Default");
 		var table = parsed[DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors].FloatArrayValue;
-		var species = new SpeciesSettings { DominanceFactor = 0.7f };
+		var species = new SpeciesSettings { DominanceFactor = DefaultSpeciesGraphBuilder.DefaultTickConstants.DominanceFactor };
 		for (var level = 0; level < 5; ++level)
 		{
 			var legacy = level < species.DominanceFactors.Length

@@ -14,6 +14,12 @@ public enum BehaviorRunMode
 
 public static class SimulationHarness
 {
+	/// <summary>
+	/// Species objects (request JSON shape) that replace same-named request species in legacy runs,
+	/// e.g. what the historical web UI uploaded for each predefined species. Null keeps the request as-is.
+	/// </summary>
+	public static JsonArray? LegacySpeciesPayload { get; set; }
+
 	public static SimulationRequest PrepareForParity(SimulationRequest source, BehaviorRunMode mode, int? maxHours = null)
 		=> PrepareForParity(source, mode, maxHours, includeGraphNames: null, plantRngFixedUnit: null, plantPosition: null);
 
@@ -49,13 +55,42 @@ public static class SimulationHarness
 		}
 
 		if (mode == BehaviorRunMode.Legacy)
+		{
 			node.Remove("SpeciesGraphs");
+			if (LegacySpeciesPayload is { } payload)
+				node["Species"] = MergeSpeciesByName(node["Species"] as JsonArray, payload);
+		}
 		else if (includeGraphNames is { Count: > 0 } && node["SpeciesGraphs"] is JsonObject speciesGraphs)
 			FilterSpeciesGraphs(speciesGraphs, includeGraphNames);
 
 		var prepared = node.Deserialize(AgroJsonSerializerContext.Default.SimulationRequest)
 			?? throw new InvalidOperationException("Failed to clone simulation request.");
 		return prepared;
+	}
+
+	static JsonArray MergeSpeciesByName(JsonArray? requestSpecies, JsonArray payload)
+	{
+		var merged = new JsonArray();
+		var replaced = new HashSet<string>();
+		foreach (var item in requestSpecies ?? [])
+		{
+			var name = item?["Name"]?.GetValue<string>();
+			var replacement = name is null ? null : payload.FirstOrDefault(p => p?["Name"]?.GetValue<string>() == name);
+			if (replacement is not null)
+			{
+				merged.Add(replacement.DeepClone());
+				replaced.Add(name!);
+			}
+			else
+				merged.Add(item?.DeepClone());
+		}
+		foreach (var p in payload)
+		{
+			var name = p?["Name"]?.GetValue<string>();
+			if (name is not null && !replaced.Contains(name))
+				merged.Add(p!.DeepClone());
+		}
+		return merged;
 	}
 
 	static void FilterSpeciesGraphs(JsonObject speciesGraphs, IReadOnlyCollection<string> includeGraphNames)

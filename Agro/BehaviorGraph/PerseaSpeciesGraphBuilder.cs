@@ -11,9 +11,6 @@ public static class PerseaSpeciesGraphBuilder
 		public const float PetioleRadius = 0.007f;
 		public const float LeafGrowthTimeHours = 720f;
 		public const float Height = 12f;
-		public const float WoodGrowthTime = 2400f;
-		public const float WoodGrowthTimeVar = 240f;
-		public const float LateralsPerNode = 4f;
 		/// <summary>45° leaf pitch (SpeciesSettings default); whorl offset uses LateralRoll=0 like TickDefault.</summary>
 		public const float LateralPitch = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch;
 		public const float LateralPitchVar = DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitchVar;
@@ -33,13 +30,10 @@ public static class PerseaSpeciesGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleRadius, PerseaTickConstants.PetioleRadius);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.Height, PerseaTickConstants.Height);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LeafGrowthTime, PerseaTickConstants.LeafGrowthTimeHours);
-		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, PerseaTickConstants.LateralsPerNode);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.PetioleCoverThreshold,
 			DefaultSpeciesGraphBuilder.ComputePetioleCoverThreshold(
 				DefaultSpeciesGraphBuilder.DefaultTickConstants.LateralPitch,
 				PerseaTickConstants.PetioleLength));
-		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime, PerseaTickConstants.WoodGrowthTime);
-		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar, PerseaTickConstants.WoodGrowthTimeVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, PerseaTickConstants.LateralPitch);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, PerseaTickConstants.LateralPitchVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, PerseaTickConstants.LateralRoll);

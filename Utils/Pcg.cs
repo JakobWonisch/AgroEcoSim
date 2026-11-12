@@ -81,7 +81,8 @@ public class Pcg
 	[IgnoreDataMember]
 	public float? FixedUnitFloat;
 
-	[M(AI)] float UnitFloat01() => FixedUnitFloat ?? (float)(NextUInt() * ToDouble01);
+	/// <remarks>Must stay in double precision: the float-returning draws below round exactly like the original implementation.</remarks>
+	[M(AI)] double UnitDouble01() => FixedUnitFloat ?? NextUInt() * ToDouble01;
 
 	// This attribute ensures that every thread will get its own instance of PCG.
 	// An alternative, since PCG supports streams, is to use a different stream per
@@ -258,12 +259,12 @@ public class Pcg
 
 	[M(AI)]public ulong NextULong() => (((ulong)NextUInt()) << 32) | NextUInt();
 
-	[M(AI)]public float NextFloat() => UnitFloat01();
+	[M(AI)]public float NextFloat() => (float)UnitDouble01();
 
 	[M(AI)]public float NextPositiveFloat(float maxInclusive)
 	{
 		if (maxInclusive <= 0) return 0f;
-		return UnitFloat01() * maxInclusive;
+		return (float)(UnitDouble01() * maxInclusive);
 	}
 
 	[M(AI)]public float NextFloat(float minInclusive, float maxInclusive)
@@ -271,10 +272,10 @@ public class Pcg
 		if (maxInclusive < minInclusive)
 			throw new ArgumentException("Max must be larger than min");
 
-		return UnitFloat01() * (maxInclusive - minInclusive) + minInclusive;
+		return (float)(UnitDouble01() * (maxInclusive - minInclusive) + minInclusive);
 	}
 
-    [M(AI)]public float NextFloatVar(float amplitude) => 2f * amplitude * (UnitFloat01() - 0.5f);
+    [M(AI)]public float NextFloatVar(float amplitude) => 2f * amplitude * (float)(UnitDouble01() - 0.5);
 
     [M(AI)]public float[] NextFloats(int count)
 	{
