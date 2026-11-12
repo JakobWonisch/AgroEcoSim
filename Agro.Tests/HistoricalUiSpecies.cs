@@ -38,6 +38,10 @@ public static class HistoricalUiSpecies
 		foreach (var item in serverSpecies)
 		{
 			var s = item!.AsObject();
+			// Baseline editor seed was "default" while catalog species is "Default", so legacy fell back to
+			// SpeciesSettings.Default (raw preset). Omit Default from the UI payload so harness legacy does the same.
+			if (string.Equals(s["name"]?.GetValue<string>(), "Default", StringComparison.OrdinalIgnoreCase))
+				continue;
 			double N(string key) => s[key]!.GetValue<double>();
 			result.Add(new JsonObject
 			{

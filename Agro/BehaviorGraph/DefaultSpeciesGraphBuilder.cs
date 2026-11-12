@@ -69,7 +69,11 @@ public static class DefaultSpeciesGraphBuilder
 		// TODO(config): Add MaxLeafLevel â€” Usage: "Limits the level of branches that support petioles. Technically it corresponds to the maximum possible level of descendants."
 	}
 
-	/// <summary>TickDefault reference literals for bootstrap configuration (not <see cref="SpeciesSettings"/>).</summary>
+	/// <summary>
+	/// Raw <see cref="SpeciesSettings"/> Default preset (<c>Predefined[0]</c> / <c>new()</c>), post-<see cref="SpeciesSettings.Init"/> where noted.
+	/// The baseline editor seed was named <c>default</c> (see <c>Species.Default()</c>) while the catalog species is <c>Default</c>,
+	/// so the server name lookup failed and fell back to this preset — that is the leftmost plant users actually saw.
+	/// </summary>
 	public static class DefaultTickConstants
 	{
 		public const float Height = 10f;
@@ -84,18 +88,13 @@ public static class DefaultSpeciesGraphBuilder
 		public const float PetioleRadius = 0.0025f;
 		public const float PetioleRadiusVar = 0.0005f;
 		/// <summary>
-		/// The historical UI never initialized its dominance field, so the server received 0
-		/// (table <c>[1, 1, 0, …]</c>); see Agro/ML-Import224.json.
+		/// Field default when the DominanceFactor setter never runs; the live table is
+		/// <see cref="BuildUninitializedDominanceFactors"/> (<c>[0.7]</c>), not <see cref="BuildDominanceFactorsTable"/>.
 		/// </summary>
 		public const float DominanceFactor = 0f;
 		public const float AuxinsProduction = 40f;
-		/// <summary>
-		/// The historical UI sent the misspelled key <c>AusinsReach</c>; the server's source-generated
-		/// deserializer sets omitted init-only <see cref="SpeciesSettings"/> properties to 0.
-		/// </summary>
-		public const float AuxinsReach = 0f;
-		/// <summary>The historical UI sent <c>RootsSparsity</c> (not a property), so the server received 0 like <see cref="AuxinsReach"/>.</summary>
-		public const float RootsDensity = 0f;
+		public const float AuxinsReach = 1f;
+		public const float RootsDensity = 0.5f;
 		public const float NodeDistance = 0.04f;
 		public const float NodeDistanceVar = 0.01f;
 		public const float MonopodialFactor = 1f;
@@ -108,18 +107,13 @@ public static class DefaultSpeciesGraphBuilder
 		public const float LeafPitch = 20f * DegToRad;
 		public const float LeafPitchVar = 5f * DegToRad;
 		public const float AuxinsThreshold = 1f;
-		/// <summary>Historical UI serialized wood growth in days (100 × 24 h); see Agro/ML-Import224.json.</summary>
-		public const float WoodGrowthTime = 2400f;
-		public const float WoodGrowthTimeVar = 240f;
+		public const float WoodGrowthTime = 100f;
+		public const float WoodGrowthTimeVar = 10f;
 		public const int LateralsPerNode = 2;
 		public const float TwigsBending = 0.5f;
 		public const float TwigsBendingLevel = 1f;
-		/// <summary>
-		/// Post-<see cref="SpeciesSettings.Init"/> value used by RandomOrientation.
-		/// Matches historical frontend serialize <c>1 - apexBendingRate</c> (UI 0.02 → 0.98)
-		/// and Agro/ML-Import224.json; keeps dominance-1 leaders nearly straight.
-		/// </summary>
-		public const float TwigsBendingApical = 0.98f;
+		/// <summary>Post-<see cref="SpeciesSettings.Init"/> apical bend subtractor (0.02 × level 1).</summary>
+		public const float TwigsBendingApical = 0.02f;
 		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 × 0.4, which rounds above 0.08f).</summary>
 		public const float ShootsGravitaxis = 0.2f * 0.4f;
 		public const float RizomeLength = 0.01f;
@@ -129,6 +123,21 @@ public static class DefaultSpeciesGraphBuilder
 
 		public static float PetioleCoverThreshold =>
 			MathF.Cos(MathF.PI * 0.5f - LateralPitch) * PetioleLength * 0.25f;
+	}
+
+	/// <summary>
+	/// Values the baseline web UI delivered after serialize (dominance unset → 0, apical <c>1 − x</c>, wood ×24,
+	/// misspelled auxins key, RootsSparsity). Applied by Persea / Bergania catalog configs.
+	/// </summary>
+	public static class HistoricalUiRoundTrip
+	{
+		public const float DominanceFactor = 0f;
+		public const float AuxinsReach = 0f;
+		public const float RootsDensity = 0f;
+		public const float WoodGrowthTime = 2400f;
+		public const float WoodGrowthTimeVar = 240f;
+		/// <summary>Post-Init apical: UI sent <c>1 − 0.02</c>.</summary>
+		public const float TwigsBendingApical = 0.98f;
 	}
 
 	static float DefaultPetioleCoverThreshold() =>
@@ -404,7 +413,7 @@ public static class DefaultSpeciesGraphBuilder
 			Label = "Dominance factors",
 			Usage = "Per-level growth multiplier indexed by dominance level (legacy SpeciesSettings.DominanceFactor table).",
 			Type = "number[]",
-			Value = BehaviorGraphJson.NumberArray(BuildDominanceFactorsTable(DefaultTickConstants.DominanceFactor)),
+			Value = BehaviorGraphJson.NumberArray(BuildUninitializedDominanceFactors()),
 		},
 		new()
 		{
@@ -566,7 +575,7 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.TwigsBendingApical,
 			Key = "Twig bending apical",
 			Label = "Twig bending apical",
-			Usage = "Post-Init apical bend subtractor in RandomOrientation (level×dominance − apical). Historical UI sent 1−apexRate (default 0.98).",
+			Usage = "Post-Init apical bend subtractor in RandomOrientation (level×dominance − apical). Raw Default preset is 0.02.",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.TwigsBendingApical),
 		},

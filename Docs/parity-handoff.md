@@ -20,9 +20,10 @@ Legacy never ran on the raw C# presets. In the baseline app, species went from t
 - Rhizome, chaining and crown fields weren't sent at all.
 - **The server used a .NET 8 source-generated deserializer.** It sets every init-only `SpeciesSettings` property missing from the JSON to 0, not to its C# default. So the real app ran with `RootsDensity` = 0 and `AuxinsReach` = 0. Any harness must deserialize the same way.
 
-Graph-side constants that encode this round trip:
+Graph-side constants:
 
-- `DefaultTickConstants` (in `DefaultSpeciesGraphBuilder.cs`)
+- `DefaultTickConstants` — raw `SpeciesSettings.Default` preset. The baseline editor seed was named `default` while the catalog species is `Default`, so the server lookup failed and fell back to this preset (that is the leaning leftmost plant).
+- `HistoricalUiRoundTrip` — UI serialize values; applied by Persea and Bergania catalog configs
 - `BerganiaTickGraphBuilder.UiRoundTrip`
 - `LegacyDefaultPChaining` and `LegacyDefaultPFlowering`
 
@@ -30,7 +31,8 @@ Tests feed legacy the same payload: `Agro.Tests/HistoricalUiSpecies.cs` builds i
 
 ## Current state (uncommitted working tree)
 
-- All five predefined species are bit-identical to baseline through 2400 h. The five-plant scene is identical through 8760 h.
+- Persea and the three Bergania species match baseline UI round-trip through 2400 h.
+- Default graphs match the raw C# preset (baseline seed name `default` / `SpeciesSettings.Default`), not a UI-round-tripped `Default` payload.
 - `dotnet test Agro.Tests`: 322 passed, 4 skipped, 0 failed.
 - The frontend typechecks. `ThreeFrontend/tsconfig.json` has pre-existing option conflicts, so typecheck with a temporary config that extends it and unsets `jsxFactory` and `jsxFragmentFactory`, with `"jsx": "react-jsx"` and `"types": []`.
 

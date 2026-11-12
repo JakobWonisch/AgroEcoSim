@@ -194,6 +194,17 @@ public static class BerganiaTickGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor, opt.DominanceFactor);
 		SetArray(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors,
 			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(opt.DominanceFactor));
+		// Keep baseline UI round-trip morphology (Default catalog uses the raw C# preset).
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.AuxinsReach);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.RootsDensity);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.WoodGrowthTime);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.WoodGrowthTimeVar);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.TwigsBendingApical);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, opt.LateralPitch);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, opt.LateralPitchVar);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, opt.LateralRoll);

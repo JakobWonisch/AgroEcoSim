@@ -108,7 +108,7 @@ public class FrontendScenarioScratch
 		var resolved = BehaviorConfigurationCatalog.ResolveForSpecies(
 			new Dictionary<string, List<BehaviorConfigUploadEntry>> { ["Default"] = badConfig },
 			"Default");
-		Assert.Equal(2400f, resolved[DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime].NumberValue);
+		Assert.Equal(100f, resolved[DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime].NumberValue);
 		Assert.Equal(2f, resolved[DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode].NumberValue);
 		Assert.Equal(0.08f, resolved[DefaultSpeciesGraphBuilder.ConfigIds.ShootsGravitaxis].NumberValue, 3);
 

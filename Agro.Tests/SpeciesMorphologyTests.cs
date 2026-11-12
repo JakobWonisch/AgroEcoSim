@@ -190,7 +190,7 @@ public class SpeciesMorphologyTests
 		resolved.Init(4);
 		shared.Init(4);
 		Assert.Equal(
-			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(DefaultSpeciesGraphBuilder.DefaultTickConstants.DominanceFactor),
+			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.DominanceFactor),
 			resolved.DominanceFactors);
 		Assert.Equal(720f, resolved.LeafGrowthTime);
 		Assert.Equal(shared.PetioleCoverThreshold, resolved.PetioleCoverThreshold);

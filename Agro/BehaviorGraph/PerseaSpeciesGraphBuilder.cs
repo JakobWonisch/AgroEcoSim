@@ -17,8 +17,8 @@ public static class PerseaSpeciesGraphBuilder
 		public const float LateralRoll = 0f;
 		/// <summary>Post-<see cref="SpeciesSettings.Init"/> gravitaxis (0.2×0.4); keeps apical meristems upright.</summary>
 		public const float ShootsGravitaxis = DefaultSpeciesGraphBuilder.DefaultTickConstants.ShootsGravitaxis;
-		/// <summary>Post-Init apical bend subtractor; same as default / historical <c>1 − 0.02</c> UI serialize.</summary>
-		public const float TwigsBendingApical = DefaultSpeciesGraphBuilder.DefaultTickConstants.TwigsBendingApical;
+		/// <summary>Post-Init apical bend subtractor; historical UI <c>1 − 0.02</c> serialize.</summary>
+		public const float TwigsBendingApical = DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.TwigsBendingApical;
 	}
 
 	public static List<BehaviorConfigUploadEntry> BuildConfiguration()
@@ -39,7 +39,37 @@ public static class PerseaSpeciesGraphBuilder
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, PerseaTickConstants.LateralRoll);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.ShootsGravitaxis, PerseaTickConstants.ShootsGravitaxis);
 		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical, PerseaTickConstants.TwigsBendingApical);
+		// Keep baseline UI round-trip morphology (Default catalog uses the raw C# preset).
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.DominanceFactor);
+		SetArray(entries, DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors,
+			DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(
+				DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.DominanceFactor));
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.AuxinsReach);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.RootsDensity);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.WoodGrowthTime);
+		SetNumber(entries, DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar,
+			DefaultSpeciesGraphBuilder.HistoricalUiRoundTrip.WoodGrowthTimeVar);
 		return entries;
+	}
+
+	static void SetArray(List<BehaviorConfigUploadEntry> entries, string id, float[] value)
+	{
+		var i = entries.FindIndex(e => e.Id == id);
+		if (i < 0) return;
+		var e = entries[i];
+		entries[i] = new BehaviorConfigUploadEntry
+		{
+			Id = e.Id,
+			Key = e.Key,
+			Label = e.Label,
+			Usage = e.Usage,
+			Type = e.Type,
+			Value = BehaviorGraphJson.NumberArray(value),
+		};
 	}
 
 	public static IReadOnlyList<(string Name, global::ExportedGraph Graph)> BuildSpeciesSubgraphs() =>

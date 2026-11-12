@@ -452,8 +452,8 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(2e-5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.StemGrowthRadius).Value.GetSingle());
 		Assert.Equal(0f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactor).Value.GetSingle());
 		Assert.Equal(40f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Value.GetSingle());
-		Assert.Equal(0f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach).Value.GetSingle());
-		Assert.Equal(0f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity).Value.GetSingle());
+		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsReach).Value.GetSingle());
+		Assert.Equal(0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.RootsDensity).Value.GetSingle());
 		Assert.Equal(
 			"Each meristem node generates this amount of auxins (given in unspecified units).",
 			Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsProduction).Usage);
@@ -465,12 +465,14 @@ public class BehaviorGraphCompilerTests
 		Assert.Equal(MathF.PI * 0.5f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.TwigLateralAngle).Value.GetSingle(), 5);
 		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.MonopodialFactor).Value.GetSingle());
 		Assert.Equal(1f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.AuxinsThreshold).Value.GetSingle());
-		Assert.Equal(2400f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime).Value.GetSingle());
+		Assert.Equal(100f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTime).Value.GetSingle());
+		Assert.Equal(10f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.WoodGrowthTimeVar).Value.GetSingle());
+		Assert.Equal(0.02f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical).Value.GetSingle());
 		Assert.Equal(2f, Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode).Value.GetSingle());
 		var dominance = Assert.Single(entries, e => e.Id == DefaultSpeciesGraphBuilder.ConfigIds.DominanceFactors);
 		Assert.Equal("number[]", dominance.Type);
 		var table = dominance.Value.EnumerateArray().Select(e => e.GetSingle()).ToArray();
-		Assert.Equal(DefaultSpeciesGraphBuilder.BuildDominanceFactorsTable(0f), table);
+		Assert.Equal(DefaultSpeciesGraphBuilder.BuildUninitializedDominanceFactors(), table);
 	}
 
 	[Fact]
