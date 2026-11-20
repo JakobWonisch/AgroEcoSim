@@ -55,8 +55,18 @@ public static class Initialize
 										 rnd.NextPositiveFloat(0.02f),
 										 new Vector2(minVegTemp, minVegTemp + rnd.NextFloat(8f, 14f)));
 				var plantSpeciesName = settings.Plants[i].SpeciesName;
-				var profile = PlantSpeciesProfile.Resolve(plantSpeciesName, settings);
-				plantsFormation[i] = new PlantFormation2(world, profile.Morphology, soil, seed, rnd, world.HoursPerTick, profile.BehaviorGraphs, profile.BehaviorConfiguration);
+				var useNodeGraphs = HasSpeciesGraphs(settings, plantSpeciesName);
+				if (useNodeGraphs)
+				{
+					var profile = PlantSpeciesProfile.Resolve(plantSpeciesName, settings);
+					plantsFormation[i] = new PlantFormation2(world, profile.Morphology, soil, seed, rnd, world.HoursPerTick, profile.BehaviorGraphs, profile.BehaviorConfiguration);
+				}
+				else
+				{
+					// Legacy Tick*: keep old SpeciesMorphology.Resolve (request species wins as-is).
+					var morph = SpeciesMorphology.Resolve(plantSpeciesName, settings);
+					plantsFormation[i] = new PlantFormation2(world, morph, soil, seed, rnd, world.HoursPerTick);
+				}
 			}
 		}
 		else
@@ -93,5 +103,18 @@ public static class Initialize
 				}
 
 		return world;
+	}
+
+	static bool HasSpeciesGraphs(SimulationRequest settings, string? speciesName)
+	{
+		if (string.IsNullOrEmpty(speciesName) || settings.SpeciesGraphs is null)
+			return false;
+		if (!settings.SpeciesGraphs.TryGetValue(speciesName, out var entries))
+		{
+			entries = settings.SpeciesGraphs
+				.FirstOrDefault(kv => string.Equals(kv.Key, speciesName, StringComparison.OrdinalIgnoreCase))
+				.Value;
+		}
+		return entries is { Count: > 0 };
 	}
 }

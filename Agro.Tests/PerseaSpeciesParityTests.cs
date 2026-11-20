@@ -6,7 +6,11 @@ namespace Agro.Tests;
 
 public class PerseaSpeciesParityTests
 {
-	static SimulationRequest BuildPerseaNodeRequest(int totalHours = ParityTestLimits.MaxHours, float? plantRngFixedUnit = null)
+	static SimulationRequest BuildPerseaNodeRequest(
+		int totalHours = ParityTestLimits.MaxHours,
+		int hoursPerTick = 1,
+		float? plantRngFixedUnit = null,
+		SpeciesSettings[]? speciesOverride = null)
 	{
 		var perseaEntry = PredefinedSpeciesCatalog.All.First(s => s.Name == "Persea americana");
 		var graphs = perseaEntry.Graphs.Select(g => new SpeciesGraphUploadEntry
@@ -20,8 +24,9 @@ public class PerseaSpeciesParityTests
 		{
 			Seed = 42,
 			TotalHours = totalHours,
-			HoursPerTick = 1,
+			HoursPerTick = hoursPerTick,
 			PlantRngFixedUnit = plantRngFixedUnit,
+			Species = speciesOverride,
 			Plants = [new PlantRequest { SpeciesName = "Persea americana" }],
 			SpeciesGraphs = new Dictionary<string, List<SpeciesGraphUploadEntry>>
 			{
@@ -44,6 +49,49 @@ public class PerseaSpeciesParityTests
 	public void PerseaSpecies_ExtremalParity_FixedUnit1_Structural()
 	{
 		RunExtremalStructuralParity(fixedUnit: 1f);
+	}
+
+	[Fact]
+	public void PerseaSpecies_UserSettings_1440Hours_StructuralParity()
+	{
+		const int totalHours = 1440;
+		const int hoursPerTick = 4;
+		var request = BuildPerseaNodeRequest(totalHours: totalHours, hoursPerTick: hoursPerTick);
+		var traceDir = Path.Combine(Path.GetTempPath(), "persea-parity-debug");
+		Directory.CreateDirectory(traceDir);
+		var legacyPath = Path.Combine(traceDir, "legacy-1440h-4t.jsonl");
+		var nodePath = Path.Combine(traceDir, "node-1440h-4t.jsonl");
+		SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: totalHours);
+		SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
+		var mismatch = TraceComparer.CompareFiles(legacyPath, nodePath, TraceCompareOptions.StructuralParity);
+		if (mismatch is not null)
+		{
+			Assert.Fail(
+				$"Persea 1440h/4t structural parity mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected}, actual {mismatch.Actual}");
+		}
+	}
+
+	[Fact]
+	public void PerseaSpecies_UserSettings_1440Hours_ParityDiagnostic()
+	{
+		const int totalHours = 1440;
+		const int hoursPerTick = 4;
+		var request = BuildPerseaNodeRequest(
+			totalHours: totalHours,
+			hoursPerTick: hoursPerTick,
+			speciesOverride: [SpeciesSettings.Predefined.First(s => s.Name == "Persea americana")]);
+		var traceDir = Path.Combine("ignore", "parity-traces", "persea");
+		Directory.CreateDirectory(traceDir);
+		var legacyPath = Path.Combine(traceDir, "legacy-1440h-4t-ui.jsonl");
+		var nodePath = Path.Combine(traceDir, "node-1440h-4t-ui.jsonl");
+		SimulationHarness.RecordTrace(request, BehaviorRunMode.Legacy, legacyPath, maxHours: totalHours);
+		SimulationHarness.RecordTrace(request, BehaviorRunMode.Node, nodePath, maxHours: totalHours);
+		var mismatch = TraceComparer.CompareFiles(legacyPath, nodePath, TraceCompareOptions.StructuralParity);
+		if (mismatch is not null)
+		{
+			Assert.Fail(
+				$"Persea 1440h/4t UI-species structural parity mismatch at t={mismatch.Timestep} path {mismatch.Path}: expected {mismatch.Expected}, actual {mismatch.Actual}");
+		}
 	}
 
 	[Fact]

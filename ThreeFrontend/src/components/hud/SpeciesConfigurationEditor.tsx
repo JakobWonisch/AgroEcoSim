@@ -10,6 +10,7 @@ import {
 } from './nodes/behaviorConfiguration';
 import { BooleanToggleGroup } from './nodes/ConfigurationControls';
 import { deleteConfigurationEntry } from './nodes/configurationBridge';
+import { syncSpeciesSignalsFromConfiguration } from './nodes/syncConfigurationSignals';
 import { getEditorContext } from './nodes/editorContext';
 import { graphUpdateTrigger } from './nodes/graphUpdate';
 
@@ -277,6 +278,7 @@ export default function SpeciesConfigurationEditor({ species }: { species: Speci
     const setValue = (id: string, value: number | boolean | number[]) => {
         species.behaviorConfiguration.value = species.behaviorConfiguration.peek().map(e =>
             e.id === id ? { ...e, value } : e);
+        syncSpeciesSignalsFromConfiguration(species, species.behaviorConfiguration.peek());
         graphUpdateTrigger.dispatchEvent(new Event('update'));
     };
 

@@ -6,8 +6,8 @@ namespace Agro.Tests;
 static class ParityTestLimits
 {
 	/// <summary>Hours simulated in parity comparisons (legacy vs node).</summary>
-	public const int MaxHours = 10;
+	public const int MaxHours = 24;
 
 	/// <summary>Next expansion target after <see cref="MaxHours"/> matches.</summary>
-	public const int NextExpansionHours = 12;
+	public const int NextExpansionHours = 48;
 }

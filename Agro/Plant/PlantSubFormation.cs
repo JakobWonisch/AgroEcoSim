@@ -71,12 +71,16 @@ public partial class PlantSubFormation<T> : IPlantSubFormation<T> where T: struc
 
 	public int Birth(T agent)
 	{
+		if (Plant.World.ParitySuppressSpawn)
+			return -1;
 		Births.Add(agent);
 		return Agents.Length + Births.Count - 1;
 	}
 
 	public List<int>? Death(int index)
 	{
+		if (Plant.World.ParitySuppressDeath)
+			return null;
 		List<int> result = null;
 		if (Deaths.Add(index))
 		{

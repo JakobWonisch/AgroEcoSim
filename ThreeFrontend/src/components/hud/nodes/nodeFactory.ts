@@ -38,6 +38,7 @@ import { SetWoodNode } from "./output/SetWoodNode";
 import { MultiplyEnergyNode } from "./output/MultiplyEnergyNode";
 import { MultiplyWaterNode } from "./output/MultiplyWaterNode";
 import { SetEnergyNode } from "./output/SetEnergyNode";
+import { SetEnergyToCapacityNode } from "./output/SetEnergyToCapacityNode";
 import { SetAuxinsNode } from "./output/SetAuxinsNode";
 import { SetTrySpawnNode } from "./output/SetTrySpawnNode";
 import { SetRizomeTestNode, SetRizomeTest2Node, SetRizomeTest3Node, SetRizomeTest4Node } from "./output/SetRizomeFlagNodes";
@@ -52,13 +53,16 @@ import { DeathChildrenNode } from "./output/DeathChildrenNode";
 import { BecomeMeristemNode } from "./output/BecomeMeristemNode";
 import { SetLateralAngleNode } from "./output/SetLateralAngleNode";
 import { DeltaDominanceNode } from "./output/DeltaDominanceNode";
+import { SetDominanceNode } from "./output/SetDominanceNode";
 import { SetLengthVarNode } from "./output/SetLengthVarNode";
 import { SetRadiusNode } from "./output/SetRadiusNode";
 import { TurnUpwardsNode } from "./output/TurnUpwardsNode";
+import { ApplyCrownPitchNode } from "./output/ApplyCrownPitchNode";
 import { SetWasMeristemNode } from "./output/SetWasMeristemNode";
 import { BecomeStemNode } from "./output/BecomeStemNode";
 import { BecomeFlowerStemNode } from "./output/BecomeFlowerStemNode";
 import { BecomeFlowerMeristemNode } from "./output/BecomeFlowerMeristemNode";
+import { BendAncestorPetiolesNode } from "./output/BendAncestorPetiolesNode";
 import { applyNodeComment } from "./nodeComment";
 import { applyNodeCollapsed } from "./nodeCollapse";
 import {
@@ -114,6 +118,7 @@ export const canonicalBehaviorNodeLabels = [
     "Multiply Energy",
     "Multiply Water",
     "Set Energy",
+    "Set Energy To Capacity",
     "Set Auxins",
     "Set trySpawn",
     "Set Rizome Test",
@@ -131,9 +136,11 @@ export const canonicalBehaviorNodeLabels = [
     "Become Meristem",
     "Set Lateral Angle",
     "Delta Dominance",
+    "Set Dominance",
     "Set Length Var",
     "Set Radius",
     "Turn Upwards",
+    "Apply Crown Pitch",
     "Set Was Meristem",
     "Become Stem",
     "Become Flower Stem",
@@ -147,6 +154,7 @@ export const canonicalBehaviorNodeLabels = [
     "Spawn Flower Bud",
     "Spawn Flower Padel",
     "Spawn Rhizome",
+    "Bend Ancestor Petioles",
 ] as const;
 
 type Creator = (data: Record<string, unknown>) => any;
@@ -209,6 +217,7 @@ const creators: Record<string, Creator> = {
     "Multiply Energy": () => new MultiplyEnergyNode(),
     "Multiply Water": () => new MultiplyWaterNode(),
     "Set Energy": () => new SetEnergyNode(),
+    "Set Energy To Capacity": () => new SetEnergyToCapacityNode(),
     "Set Auxins": () => new SetAuxinsNode(),
     "Set trySpawn": () => new SetTrySpawnNode(),
     "Set Rizome Test": () => new SetRizomeTestNode(),
@@ -226,9 +235,11 @@ const creators: Record<string, Creator> = {
     "Become Meristem": () => new BecomeMeristemNode(),
     "Set Lateral Angle": () => new SetLateralAngleNode(),
     "Delta Dominance": () => new DeltaDominanceNode(),
+    "Set Dominance": () => new SetDominanceNode(),
     "Set Length Var": () => new SetLengthVarNode(),
     "Set Radius": () => new SetRadiusNode(),
     "Turn Upwards": () => new TurnUpwardsNode(),
+    "Apply Crown Pitch": () => new ApplyCrownPitchNode(),
     "Set Was Meristem": () => new SetWasMeristemNode(),
     "Become Stem": () => new BecomeStemNode(),
     "Become Flower Stem": () => new BecomeFlowerStemNode(),
@@ -242,6 +253,7 @@ const creators: Record<string, Creator> = {
     "Spawn Flower Bud": () => new SpawnFlowerBudNode(),
     "Spawn Flower Padel": () => new SpawnFlowerPadelNode(),
     "Spawn Rhizome": () => new SpawnRhizomeNode(),
+    "Bend Ancestor Petioles": () => new BendAncestorPetiolesNode(),
 };
 
 export function isSupportedBehaviorExportLabel(label: string): boolean {

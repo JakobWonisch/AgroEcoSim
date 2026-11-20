@@ -1,0 +1,25 @@
+---
+description: Never change legacy Tick*/Seed/Init behavior — graphs emulate it
+alwaysApply: true
+---
+
+# NEVER CHANGE THE BEHAVIOR OF THE LEGACY IMPLEMENTATION
+
+The C# `Tick*` paths (`TickDefault`, Bergania/Geranium ticks), `SeedAgent`, and other pre-graph plant logic are the **reference** the node graphs must match.
+
+## Do not
+
+- Edit legacy tick bodies, growth/lignify/chaining formulas, or ctor side effects to “fix” parity or visuals
+- Change rhizome birth, wood, energy, or morphology so legacy runs differently than before
+- “Improve” legacy while porting features — put new behavior only in graphs / graph config / graph interpreters
+
+## Do
+
+- Emulate legacy in **behavior graphs** and graph-side config resolution
+- Keep `SpeciesMorphology.Resolve` (no-graphs / legacy) on the **old** replace-or-predefined path
+- Build node-graph morphology from `behaviorConfiguration` via `SpeciesSettingsFromConfiguration` in `PlantSpeciesProfile`
+- If legacy and graphs disagree, change the **graph** (or tests), not Tick*
+
+## Exceptions
+
+Only when the user **explicitly** asks to change legacy implementation behavior.

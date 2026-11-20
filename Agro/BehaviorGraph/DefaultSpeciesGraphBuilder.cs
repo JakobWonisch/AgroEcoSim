@@ -24,16 +24,25 @@ public static class DefaultSpeciesGraphBuilder
 		public const string StemDeathHeightCoeff = "default-config-stem-death-height-coeff";
 		public const string StemDeathEfficiencyCoeff = "default-config-stem-death-efficiency-coeff";
 		public const string StemDeathRadiusCoeff = "default-config-stem-death-radius-coeff";
+		public const string Height = "default-config-height";
 		public const string LeafLength = "default-config-leaf-length";
+		public const string LeafLengthVar = "default-config-leaf-length-var";
 		public const string LeafRadius = "default-config-leaf-radius";
+		public const string LeafRadiusVar = "default-config-leaf-radius-var";
+		public const string LeafGrowthTime = "default-config-leaf-growth-time";
+		public const string LeafGrowthTimeVar = "default-config-leaf-growth-time-var";
 		public const string PetioleLength = "default-config-petiole-length";
+		public const string PetioleLengthVar = "default-config-petiole-length-var";
 		public const string PetioleRadius = "default-config-petiole-radius";
+		public const string PetioleRadiusVar = "default-config-petiole-radius-var";
 		public const string MeristemGrowthLength = "default-config-meristem-growth-length";
 		public const string MeristemGrowthRadius = "default-config-meristem-growth-radius";
 		public const string StemGrowthRadius = "default-config-stem-growth-radius";
 		public const string DominanceFactor = "default-config-dominance-factor";
 		public const string DominanceFactors = "default-config-dominance-factors";
 		public const string AuxinsProduction = "default-config-auxins-production";
+		public const string AuxinsReach = "default-config-auxins-reach";
+		public const string RootsDensity = "default-config-roots-density";
 		public const string NodeDistance = "default-config-node-distance";
 		public const string NodeDistanceVar = "default-config-node-distance-var";
 		public const string TwigLateralAngle = "default-config-twig-lateral-angle";
@@ -43,6 +52,7 @@ public static class DefaultSpeciesGraphBuilder
 		public const string LateralPitch = "default-config-lateral-pitch";
 		public const string LateralPitchVar = "default-config-lateral-pitch-var";
 		public const string LeafPitch = "default-config-leaf-pitch";
+		public const string LeafPitchVar = "default-config-leaf-pitch-var";
 		public const string AuxinsThreshold = "default-config-auxins-threshold";
 		public const string WoodGrowthTime = "default-config-wood-growth-time";
 		public const string WoodGrowthTimeVar = "default-config-wood-growth-time-var";
@@ -56,36 +66,56 @@ public static class DefaultSpeciesGraphBuilder
 		public const string FloweringStartAgeHours = "default-config-flowering-start-age-hours";
 		public const string FloweringEndAgeHours = "default-config-flowering-end-age-hours";
 
-		// TODO(config): Add AuxinsReach â€” Usage: "Auxines propagate this far within the plant with a linear falloff."
 		// TODO(config): Add MaxLeafLevel â€” Usage: "Limits the level of branches that support petioles. Technically it corresponds to the maximum possible level of descendants."
 	}
 
-	/// <summary>TickDefault reference literals for bootstrap configuration (not <see cref="SpeciesSettings"/>).</summary>
+	/// <summary>
+	/// Raw <see cref="SpeciesSettings"/> Default preset (<c>Predefined[0]</c> / <c>new()</c>), post-<see cref="SpeciesSettings.Init"/> where noted.
+	/// The baseline editor seed was named <c>default</c> (see <c>Species.Default()</c>) while the catalog species is <c>Default</c>,
+	/// so the server name lookup failed and fell back to this preset — that is the leftmost plant users actually saw.
+	/// </summary>
 	public static class DefaultTickConstants
 	{
+		public const float Height = 10f;
 		public const float LeafLength = 0.12f;
+		public const float LeafLengthVar = 0.02f;
 		public const float LeafRadius = 0.04f;
+		public const float LeafRadiusVar = 0.01f;
+		public const float LeafGrowthTime = 480f;
+		public const float LeafGrowthTimeVar = 120f;
 		public const float PetioleLength = 0.04f;
+		public const float PetioleLengthVar = 0.01f;
 		public const float PetioleRadius = 0.0025f;
-		public const float DominanceFactor = 0.7f;
+		public const float PetioleRadiusVar = 0.0005f;
+		/// <summary>
+		/// Field default when the DominanceFactor setter never runs; the live table is
+		/// <see cref="BuildUninitializedDominanceFactors"/> (<c>[0.7]</c>), not <see cref="BuildDominanceFactorsTable"/>.
+		/// </summary>
+		public const float DominanceFactor = 0f;
 		public const float AuxinsProduction = 40f;
+		public const float AuxinsReach = 1f;
+		public const float RootsDensity = 0.5f;
 		public const float NodeDistance = 0.04f;
 		public const float NodeDistanceVar = 0.01f;
 		public const float MonopodialFactor = 1f;
 		public const float LateralRoll = 0f;
-		public const float LateralRollVar = 5f * MathF.PI / 180f;
-		public const float LateralPitch = 45f * MathF.PI / 180f;
-		public const float LateralPitchVar = 5f * MathF.PI / 180f;
-		public const float LeafPitch = 20f * MathF.PI / 180f;
+		/// <summary>Must round like <see cref="SpeciesSettings"/>: <c>deg * (π / 180)</c>, not <c>deg * π / 180</c>.</summary>
+		public const float DegToRad = MathF.PI / 180f;
+		public const float LateralRollVar = 5f * DegToRad;
+		public const float LateralPitch = 45f * DegToRad;
+		public const float LateralPitchVar = 5f * DegToRad;
+		public const float LeafPitch = 20f * DegToRad;
+		public const float LeafPitchVar = 5f * DegToRad;
 		public const float AuxinsThreshold = 1f;
 		public const float WoodGrowthTime = 100f;
 		public const float WoodGrowthTimeVar = 10f;
 		public const int LateralsPerNode = 2;
 		public const float TwigsBending = 0.5f;
 		public const float TwigsBendingLevel = 1f;
+		/// <summary>Post-<see cref="SpeciesSettings.Init"/> apical bend subtractor (0.02 × level 1).</summary>
 		public const float TwigsBendingApical = 0.02f;
-		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 Ã— 0.4).</summary>
-		public const float ShootsGravitaxis = 0.08f;
+		/// <summary>Effective value after <see cref="SpeciesSettings.Init"/> (0.2 × 0.4, which rounds above 0.08f).</summary>
+		public const float ShootsGravitaxis = 0.2f * 0.4f;
 		public const float RizomeLength = 0.01f;
 		public const float RizomeRadius = 0.0025f;
 		public const float FloweringStartAgeHours = 24f * 45f;
@@ -93,6 +123,21 @@ public static class DefaultSpeciesGraphBuilder
 
 		public static float PetioleCoverThreshold =>
 			MathF.Cos(MathF.PI * 0.5f - LateralPitch) * PetioleLength * 0.25f;
+	}
+
+	/// <summary>
+	/// Values the baseline web UI delivered after serialize (dominance unset → 0, apical <c>1 − x</c>, wood ×24,
+	/// misspelled auxins key, RootsSparsity). Applied by Persea / Bergania catalog configs.
+	/// </summary>
+	public static class HistoricalUiRoundTrip
+	{
+		public const float DominanceFactor = 0f;
+		public const float AuxinsReach = 0f;
+		public const float RootsDensity = 0f;
+		public const float WoodGrowthTime = 2400f;
+		public const float WoodGrowthTimeVar = 240f;
+		/// <summary>Post-Init apical: UI sent <c>1 − 0.02</c>.</summary>
+		public const float TwigsBendingApical = 0.98f;
 	}
 
 	static float DefaultPetioleCoverThreshold() =>
@@ -242,11 +287,27 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.Height,
+			Key = "Height",
+			Label = "Height",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.Height),
+		},
+		new()
+		{
 			Id = ConfigIds.LeafLength,
 			Key = "Leaf length",
 			Label = "Leaf length",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafLength),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafLengthVar,
+			Key = "Leaf length var",
+			Label = "Leaf length var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafLengthVar),
 		},
 		new()
 		{
@@ -258,6 +319,30 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.LeafRadiusVar,
+			Key = "Leaf radius var",
+			Label = "Leaf radius var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafRadiusVar),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafGrowthTime,
+			Key = "Leaf growth time",
+			Label = "Leaf growth time",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafGrowthTime),
+		},
+		new()
+		{
+			Id = ConfigIds.LeafGrowthTimeVar,
+			Key = "Leaf growth time var",
+			Label = "Leaf growth time var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafGrowthTimeVar),
+		},
+		new()
+		{
 			Id = ConfigIds.PetioleLength,
 			Key = "Petiole length",
 			Label = "Petiole length",
@@ -266,11 +351,27 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.PetioleLengthVar,
+			Key = "Petiole length var",
+			Label = "Petiole length var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleLengthVar),
+		},
+		new()
+		{
 			Id = ConfigIds.PetioleRadius,
 			Key = "Petiole radius",
 			Label = "Petiole radius",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleRadius),
+		},
+		new()
+		{
+			Id = ConfigIds.PetioleRadiusVar,
+			Key = "Petiole radius var",
+			Label = "Petiole radius var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.PetioleRadiusVar),
 		},
 		new()
 		{
@@ -310,9 +411,9 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.DominanceFactors,
 			Key = "Dominance factors",
 			Label = "Dominance factors",
-			Usage = "Per-level growth multiplier indexed by dominance level (legacy uninitialized DominanceFactors field default).",
+			Usage = "Per-level growth multiplier indexed by dominance level (legacy SpeciesSettings.DominanceFactor table).",
 			Type = "number[]",
-			Value = BehaviorGraphJson.NumberArray(BuildUninitializedDominanceFactors(DefaultTickConstants.DominanceFactor)),
+			Value = BehaviorGraphJson.NumberArray(BuildUninitializedDominanceFactors()),
 		},
 		new()
 		{
@@ -322,6 +423,24 @@ public static class DefaultSpeciesGraphBuilder
 			Usage = "Each meristem node generates this amount of auxins (given in unspecified units).",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.AuxinsProduction),
+		},
+		new()
+		{
+			Id = ConfigIds.AuxinsReach,
+			Key = "Auxins reach",
+			Label = "Auxins reach",
+			Usage = "Auxines propagate this far within the plant with a linear falloff.",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.AuxinsReach),
+		},
+		new()
+		{
+			Id = ConfigIds.RootsDensity,
+			Key = "Roots density",
+			Label = "Roots density",
+			Usage = "Density of the roots system (affects branching probability). Valued 0 to 1 (with one being the most dense).",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.RootsDensity),
 		},
 		new()
 		{
@@ -397,6 +516,14 @@ public static class DefaultSpeciesGraphBuilder
 		},
 		new()
 		{
+			Id = ConfigIds.LeafPitchVar,
+			Key = "Leaf pitch var",
+			Label = "Leaf pitch var",
+			Type = "number",
+			Value = BehaviorGraphJson.Number(DefaultTickConstants.LeafPitchVar),
+		},
+		new()
+		{
 			Id = ConfigIds.AuxinsThreshold,
 			Key = "Auxins threshold",
 			Label = "Auxins threshold",
@@ -448,6 +575,7 @@ public static class DefaultSpeciesGraphBuilder
 			Id = ConfigIds.TwigsBendingApical,
 			Key = "Twig bending apical",
 			Label = "Twig bending apical",
+			Usage = "Post-Init apical bend subtractor in RandomOrientation (level×dominance − apical). Raw Default preset is 0.02.",
 			Type = "number",
 			Value = BehaviorGraphJson.Number(DefaultTickConstants.TwigsBendingApical),
 		},
@@ -976,23 +1104,28 @@ public static class DefaultSpeciesGraphBuilder
 
 		var spawnMono = b.Add("spawn-mono", "Spawn Meristem", 2440, 200);
 		b.Connect(monoTrig, "out", spawnMono, "trigger");
+		b.WireTwigOrientationConfig(spawnMono, 2440, 320, "mono");
 
 		var leavesMono = b.Add("leaves-mono", "Create Leaves", 2680, 200);
 		b.Connect(spawnMono, "seq", leavesMono, "trigger");
 		b.Connect(spawnMono, "childId", leavesMono, "meristemId");
+		b.WireLeafLayoutConfig(leavesMono, 2680, 320, "mono");
 
 		var spawnDicho = b.Add("spawn-dicho", "Spawn Dichotomous Meristems", 2680, 280);
 		b.Connect(dichoTrig, "out", spawnDicho, "trigger");
+		b.WireTwigOrientationConfig(spawnDicho, 2680, 400, "dicho");
 
 		var leavesDicho1 = b.Add("leaves-d1", "Create Leaves", 2920, 280);
 		b.Connect(spawnDicho, "seq", leavesDicho1, "trigger");
 		b.Connect(spawnDicho, "childId1", leavesDicho1, "meristemId");
 		b.Connect(spawnDicho, "lateralPitch", leavesDicho1, "lateralAngle");
+		b.WireLeafLayoutConfig(leavesDicho1, 2920, 400, "d1");
 
 		var leavesDicho2 = b.Add("leaves-d2", "Create Leaves", 3160, 280);
 		b.Connect(leavesDicho1, "seq", leavesDicho2, "trigger");
 		b.Connect(spawnDicho, "childId2", leavesDicho2, "meristemId");
 		b.Connect(spawnDicho, "lateralPitch", leavesDicho2, "lateralAngle");
+		b.WireLeafLayoutConfig(leavesDicho2, 3160, 400, "d2");
 
 		return b.FinishWithActive(and3, "out").Build();
 	}
@@ -1124,7 +1257,10 @@ public static class DefaultSpeciesGraphBuilder
 		return b.FinishWithActive(starved, "out").Build();
 	}
 
-	/// <summary>TickDefault line 730 â€” unconditional auxins update.</summary>
+	/// <summary>
+	/// TickDefault / Bergania.Tick auxins assignment. Legacy skips this when energy &lt;= 0
+	/// (the depletion branch returns before the assignment).
+	/// </summary>
 	public static global::ExportedGraph BuildAuxinsUpdateSubgraph()
 	{
 		var b = SubgraphBuilder.Create("aux");
@@ -1133,6 +1269,13 @@ public static class DefaultSpeciesGraphBuilder
 		var auxinsProd = b.AddConfig("auxins", ConfigIds.AuxinsProduction, false, 280, 0,
 			"Auxins production for meristem/stem agents");
 		var c0 = b.AddNum("c0", 0f, 280, 40);
+
+		var energyGt0 = b.Add("energy-gt0", "Greater Than", 280, 80);
+		b.Connect(state, "energy", energyGt0, "a");
+		b.Connect(c0, "num", energyGt0, "b");
+		var active = b.Add("alive-or-riz", "Or", 520, 80);
+		b.Connect(energyGt0, "out", active, "a");
+		b.Connect(state, "isRizome", active, "b");
 
 		var meristemOrWas = b.Add("mer-or-was", "Or", 520, 20);
 		b.Connect(organ, "meristem", meristemOrWas, "a");
@@ -1146,6 +1289,6 @@ public static class DefaultSpeciesGraphBuilder
 		var setAuxins = b.Add("set-auxins", "Set Auxins", 1000, 40);
 		b.Connect(auxinsVal, "out", setAuxins, "value");
 
-		return b.GateAlwaysTrue().Build();
+		return b.FinishWithActive(active, "out").Build();
 	}
 }

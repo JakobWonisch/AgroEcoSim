@@ -128,7 +128,7 @@ namespace Agro
 
                             agent.Energy = agent.EnergyStorageCapacity();
                             if (species.LateralsPerNode > 0)
-                                agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, agentID);
+                                agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, agentID, MorphologyParams.LeafLayout(species));
                         } else agent.trySpawn = false;
                     }
                     if (phase.Equals(SeasonalPhase.ResetPending)) { 
@@ -331,8 +331,8 @@ namespace Agro
                                                     agent.Water_g *= 0.8f;
                                                     if (species.LateralsPerNode > 0)
                                                     {
-                                                        agent.CreateLeaves(agent, plant, lateralPitch, meristem1);
-                                                        agent.CreateLeaves(agent, plant, lateralPitch, meristem2);
+                                                        agent.CreateLeaves(agent, plant, lateralPitch, meristem1, MorphologyParams.LeafLayout(species));
+                                                        agent.CreateLeaves(agent, plant, lateralPitch, meristem2, MorphologyParams.LeafLayout(species));
                                                     }
                                                 }
                                             }
@@ -344,7 +344,7 @@ namespace Agro
                                                 agent.Water_g *= 0.9f;
 
                                                 if (species.LateralsPerNode > 0)
-                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristem);
+                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristem, MorphologyParams.LeafLayout(species));
                                             }
                                         }
                                         break;
@@ -370,7 +370,7 @@ namespace Agro
 
                                                 if (species.LateralsPerNode > 0)
                                                 {
-                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristemVeg);
+                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristemVeg, MorphologyParams.LeafLayout(species));
                                                 }
                                             }
                                             else
@@ -381,7 +381,7 @@ namespace Agro
                                                 agent.Water_g *= 0.9f;
 
                                                 if (species.LateralsPerNode > 0)
-                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristem);
+                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristem, MorphologyParams.LeafLayout(species));
                                             }
                                         }
                                         break;
@@ -395,7 +395,7 @@ namespace Agro
                                                 agent.Water_g *= 0.92f;
 
                                                 if (species.LateralsPerNode > 0)
-                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristem);
+                                                    agent.CreateLeaves(agent, plant, lateralPitch, meristem, MorphologyParams.LeafLayout(species));
                                             }
                                             break;
                                         }

@@ -184,8 +184,8 @@
 			var deltaRad = Add("delta-r", "Multiply", 1440, 480);
 			Connect(m3, "out", deltaRad, "a");
 			Connect(simId, "hoursPerTick", deltaRad, "b");
-			var capped = WireCapRadiusDeltaToParent(stateId, formId, deltaRad, "stem");
-			capped = WireMultiplyByConfig(capped, growthFactorConfigId, "stem-gf");
+			var scaled = WireMultiplyByConfig(deltaRad, growthFactorConfigId, "stem-gf");
+			var capped = WireCapRadiusDeltaToParent(stateId, formId, scaled, "stem", uncapRhizomeParent: true);
 			capped = WireGateDeltaWhenRadiusBelowMax(stateId, maxRadiusConfigId, capped, "stem-max-r");
 			return capped;
 		}
@@ -254,7 +254,8 @@
 		public (string deltaLen, string deltaRad, string sizeLimitL, string sizeLimitR) WireLeafPetioleGrowthDeltas(
 			string stateId, string formId,
 			string configLengthId, string configRadiusId,
-			bool capRadiusToParent)
+			bool capRadiusToParent,
+			bool uncapRhizomeParent = false)
 		{
 			var configLen = AddConfig("cfg-len", configLengthId, false, 240, 400,
 				"Species size limit (length)");
@@ -298,13 +299,10 @@
 
 			if (capRadiusToParent)
 			{
-				var parentCap = Add("parent-cap", "Subtract", 1680, 440);
-				Connect(formId, "parentBaseRadius", parentCap, "a");
-				Connect(stateId, "radius", parentCap, "b");
-
+				var (capNode, capOutput) = WireParentRadiusCapMax(stateId, formId, "pet", uncapRhizomeParent, 1680, 440);
 				var capped = Add("delta-r-cap", "Clamp Max", 1920, 440);
 				Connect(deltaRad, "out", capped, "value");
-				Connect(parentCap, "out", capped, "max");
+				Connect(capNode, capOutput, capped, "max");
 				deltaRad = capped;
 			}
 
@@ -344,7 +342,8 @@
 			string simId,
 			string? growthFactorConfigId = null,
 			string? maxRadiusConfigId = null,
-			bool gateLengthByLengthVar = false)
+			bool gateLengthByLengthVar = false,
+			bool uncapRhizomeParent = false)
 		{
 			var cfgLen = AddConfig("mer-len", DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthLength, false, 240, 480);
 			var cfgRad = AddConfig("mer-rad", DefaultSpeciesGraphBuilder.ConfigIds.MeristemGrowthRadius, false, 240, 520);
@@ -354,39 +353,36 @@
 			var waterReserve = WireMinOne(formId, "waterBalance", "water-res");
 			var prodRatio = WireProdRatio(stateId, formId);
 
-			string WireAxisDelta(string cfgNodeId, float y, string suffix)
-			{
-				var m1 = Add($"m1-{suffix}", "Multiply", 720, y);
-				Connect(cfgNodeId, "num", m1, "a");
-				Connect(dominance, "out", m1, "b");
+			// Legacy: new Vector2(len, rad) * (dominance * energyReserve * waterReserve * hoursPerTick * prodRatio [* growthFactor]).
+			// The scalar product is formed first so float rounding matches.
+			var s1 = Add("mer-s1", "Multiply", 720, 500);
+			Connect(dominance, "out", s1, "a");
+			Connect(energyReserve, "out", s1, "b");
 
-				var m2 = Add($"m2-{suffix}", "Multiply", 960, y);
-				Connect(m1, "out", m2, "a");
-				Connect(energyReserve, "out", m2, "b");
+			var s2 = Add("mer-s2", "Multiply", 960, 500);
+			Connect(s1, "out", s2, "a");
+			Connect(waterReserve, "out", s2, "b");
 
-				var m3 = Add($"m3-{suffix}", "Multiply", 1200, y);
-				Connect(m2, "out", m3, "a");
-				Connect(waterReserve, "out", m3, "b");
+			var s3 = Add("mer-s3", "Multiply", 1200, 500);
+			Connect(s2, "out", s3, "a");
+			Connect(simId, "hoursPerTick", s3, "b");
 
-				var m4 = Add($"m4-{suffix}", "Multiply", 1440, y);
-				Connect(m3, "out", m4, "a");
-				Connect(simId, "hoursPerTick", m4, "b");
-
-				var delta = Add($"delta-{suffix}", "Multiply", 1680, y);
-				Connect(m4, "out", delta, "a");
-				Connect(prodRatio, "out", delta, "b");
-				return delta;
-			}
-
-			var deltaLen = WireAxisDelta(cfgLen, 480, "len");
-			var deltaRadRaw = WireAxisDelta(cfgRad, 520, "rad");
-			var deltaRad = WireCapRadiusDeltaToParent(stateId, formId, deltaRadRaw, "mer");
+			var scale = Add("mer-s4", "Multiply", 1440, 500);
+			Connect(s3, "out", scale, "a");
+			Connect(prodRatio, "out", scale, "b");
 
 			if (growthFactorConfigId is not null)
-			{
-				deltaLen = WireMultiplyByConfig(deltaLen, growthFactorConfigId, "mer-gf-len");
-				deltaRad = WireMultiplyByConfig(deltaRad, growthFactorConfigId, "mer-gf-rad");
-			}
+				scale = WireMultiplyByConfig(scale, growthFactorConfigId, "mer-gf");
+
+			var deltaLen = Add("delta-len", "Multiply", 1680, 480);
+			Connect(cfgLen, "num", deltaLen, "a");
+			Connect(scale, "out", deltaLen, "b");
+
+			var deltaRadRaw = Add("delta-rad", "Multiply", 1680, 520);
+			Connect(cfgRad, "num", deltaRadRaw, "a");
+			Connect(scale, "out", deltaRadRaw, "b");
+
+			var deltaRad = WireCapRadiusDeltaToParent(stateId, formId, deltaRadRaw, "mer", uncapRhizomeParent);
 
 			if (maxRadiusConfigId is not null)
 				deltaRad = WireGateDeltaWhenRadiusBelowMax(stateId, maxRadiusConfigId, deltaRad, "mer-max-r");
@@ -472,17 +468,33 @@
 			return gated;
 		}
 
-		/// <summary>TickDefault: growth.Y = min(growth.Y, parentRadius - radius).</summary>
-		public string WireCapRadiusDeltaToParent(string stateId, string formId, string deltaRadId, string suffix)
+		/// <summary>
+		/// TickDefault: growth.Y = min(growth.Y, parentRadius - radius).
+		/// With <paramref name="uncapRhizomeParent"/> (Bergania.Tick) a rhizome parent counts as float.MaxValue.
+		/// </summary>
+		public string WireCapRadiusDeltaToParent(string stateId, string formId, string deltaRadId, string suffix, bool uncapRhizomeParent = false)
 		{
-			var parentCap = Add($"parent-cap-{suffix}", "Subtract", 1680, 520);
-			Connect(formId, "parentBaseRadius", parentCap, "a");
-			Connect(stateId, "radius", parentCap, "b");
-
 			var capped = Add($"delta-r-cap-{suffix}", "Clamp Max", 1920, 520);
 			Connect(deltaRadId, "out", capped, "value");
-			Connect(parentCap, "out", capped, "max");
+			var (capNode, capOutput) = WireParentRadiusCapMax(stateId, formId, suffix, uncapRhizomeParent, 1680, 520);
+			Connect(capNode, capOutput, capped, "max");
 			return capped;
+		}
+
+		(string node, string output) WireParentRadiusCapMax(string stateId, string formId, string suffix, bool uncapRhizomeParent, float x, float y)
+		{
+			var parentCap = Add($"parent-cap-{suffix}", "Subtract", x, y);
+			Connect(formId, "parentBaseRadius", parentCap, "a");
+			Connect(stateId, "radius", parentCap, "b");
+			if (!uncapRhizomeParent)
+				return (parentCap, "out");
+
+			var noCap = AddNum($"no-cap-{suffix}", float.MaxValue, x, y + 40);
+			var select = Add($"parent-cap-riz-{suffix}", "If / Else", x + 120, y);
+			Connect(formId, "parentIsRhizome", select, "condition");
+			Connect(noCap, "num", select, "trueValue");
+			Connect(parentCap, "out", select, "falseValue");
+			return (select, "out");
 		}
 
 		/// <summary>NextFloatAccum(p, hoursPerTick) â€” returns RNG node id (out socket).</summary>
@@ -585,7 +597,7 @@
 
 			var becomeTrig = Add("become-trig", "Or", 1960, 400);
 			Connect(organId, "bud", becomeTrig, "a");
-			Connect(death, "seq", becomeTrig, "b");
+			Connect(petiolePath, "out", becomeTrig, "b");
 
 			var become = Add("become-mer", "Become Meristem", 2200, 400);
 			Connect(becomeTrig, "out", become, "trigger");
@@ -618,5 +630,47 @@
 
 			var createLeaves = Add("create-leaves", "Create Leaves", 3400, 400);
 			Connect(setLen, "seq", createLeaves, "trigger");
+			WireLeafLayoutConfig(createLeaves, 3400, 480, "auxin");
+		}
+
+		public void WireLeafLayoutConfig(string targetId, float x, float y, string suffix = "")
+		{
+			var s = string.IsNullOrEmpty(suffix) ? "" : $"-{suffix}";
+			var laterals = AddConfig($"cfg-laterals{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralsPerNode, false, x, y);
+			Connect(laterals, "num", targetId, "lateralsPerNode");
+			var rollVar = AddConfig($"cfg-roll-var{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralRollVar, false, x, y + 40);
+			Connect(rollVar, "num", targetId, "lateralRollVar");
+			var pitchVar = AddConfig($"cfg-pitch-var{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralPitchVar, false, x, y + 80);
+			Connect(pitchVar, "num", targetId, "lateralPitchVar");
+			var pitch = AddConfig($"cfg-pitch{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralPitch, false, x, y + 120);
+			Connect(pitch, "num", targetId, "lateralPitch");
+			var leafPitch = AddConfig($"cfg-leaf-pitch{s}", DefaultSpeciesGraphBuilder.ConfigIds.LeafPitch, false, x, y + 160);
+			Connect(leafPitch, "num", targetId, "leafPitch");
+		}
+
+		public void WireTwigOrientationConfig(string targetId, float x, float y, string suffix = "")
+		{
+			var s = string.IsNullOrEmpty(suffix) ? "" : $"-{suffix}";
+			var lateralRoll = AddConfig($"cfg-lateral-roll{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, false, x, y);
+			Connect(lateralRoll, "num", targetId, "lateralRoll");
+			var bending = AddConfig($"cfg-twig-bend{s}", DefaultSpeciesGraphBuilder.ConfigIds.TwigsBending, false, x, y + 40);
+			Connect(bending, "num", targetId, "twigsBending");
+			var bendingLevel = AddConfig($"cfg-twig-level{s}", DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingLevel, false, x, y + 80);
+			Connect(bendingLevel, "num", targetId, "twigsBendingLevel");
+			var bendingApical = AddConfig($"cfg-twig-apical{s}", DefaultSpeciesGraphBuilder.ConfigIds.TwigsBendingApical, false, x, y + 120);
+			Connect(bendingApical, "num", targetId, "twigsBendingApical");
+			var gravitaxis = AddConfig($"cfg-shoot-grav{s}", DefaultSpeciesGraphBuilder.ConfigIds.ShootsGravitaxis, false, x, y + 160);
+			Connect(gravitaxis, "num", targetId, "shootsGravitaxis");
+		}
+
+		public void WireRhizomeSpawnConfig(string targetId, float x, float y, string suffix = "")
+		{
+			var s = string.IsNullOrEmpty(suffix) ? "" : $"-{suffix}";
+			var length = AddConfig($"cfg-riz-len{s}", DefaultSpeciesGraphBuilder.ConfigIds.RizomeLength, false, x, y);
+			Connect(length, "num", targetId, "rizomeLength");
+			var radius = AddConfig($"cfg-riz-rad{s}", DefaultSpeciesGraphBuilder.ConfigIds.RizomeRadius, false, x, y + 40);
+			Connect(radius, "num", targetId, "rizomeRadius");
+			var lateralRoll = AddConfig($"cfg-riz-roll{s}", DefaultSpeciesGraphBuilder.ConfigIds.LateralRoll, false, x, y + 80);
+			Connect(lateralRoll, "num", targetId, "lateralRoll");
 		}
 	}

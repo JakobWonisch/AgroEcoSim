@@ -111,7 +111,7 @@ namespace Agro
 
                             agent.Energy = Math.Max(agent.Energy, 0.25f * agent.EnergyStorageCapacity());
                             if (species.LateralsPerNode > 0)
-                                agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, agentID);
+                                agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, agentID, MorphologyParams.LeafLayout(species));
                         }
                         agent.trySpawn = false; // decide only once per spring per bud
                     }
@@ -275,7 +275,7 @@ namespace Agro
                                             { Water_g = 0.08f * agent.Water_g, DominanceLevel = agent.DominanceLevel });
                                             agent.Energy *= 0.92f;
                                             agent.Water_g *= 0.92f;
-                                            if (species.LateralsPerNode > 0) agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, mer);
+                                            if (species.LateralsPerNode > 0) agent.CreateLeaves(agent, plant, agent.LateralAngle + species.LateralRoll, mer, MorphologyParams.LeafLayout(species));
                                         }
                                     }
                                     break;

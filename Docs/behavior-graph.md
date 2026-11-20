@@ -113,7 +113,7 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
   - `Multiply Energy` / `Multiply Water` — input `factor`.
   - `Set trySpawn` — input `value` (bool).
   - `Accumulate Production` — input `amount`; adds to `CurrentDayProductionInv`.
-  - `Make Bud` / `Create Leaves` — input `trigger` (bool); `Create Leaves` optional `meristemId`; output `seq` on `Create Leaves`.
+  - `Make Bud` / `Create Leaves` — input `trigger` (bool); `Create Leaves` optional `meristemId` and `keepParentResources` (bool: take leaf energy from the parent copy left by a `Spawn Meristem` with the same flag); output `seq` on `Create Leaves`.
   - `Death` / `Death Parent` / `Death Children` — input `trigger`; `Death Children` output `seq`.
   - `Become Meristem` / `Become Stem` / `Become Flower Stem` / `Become Flower Meristem` — input `trigger`; output `seq` on meristem/stem transforms.
   - `Set Lateral Angle` — inputs `trigger`, `value`; output `seq`.
@@ -122,6 +122,12 @@ Categories and labels (from the context menu in `BehaviorEditor.tsx` and `nodeFa
   - `Turn Upwards` — input `trigger`; output `seq`.
   - `Set Was Meristem` — input `value` (bool); sets tick-scratch `wasMeristemThisTick` on the agent.
   - `Spawn Meristem`, `Spawn Bud`, `Spawn Stem`, … — input `trigger`; `Spawn Meristem` outputs `childId` and `seq`.
+    `Spawn Meristem` / `Spawn Flower Meristem` take optional bools (unconnected = false) that reproduce `Bergania.Tick`:
+    `keepParentResources` spawns from a copy of the parent so its energy/water stay unchanged, and
+    `resourcesFromProduction` seeds the child's resources invariant with the parent's production invariant.
+  - `Bend Ancestor Petioles` — inputs `trigger`, `petiolMoveDown`, `petiolMoveDownMax` (both ×π); output `seq`. Legacy `bendPetiol`:
+    walks from the agent's parent up to the rhizome and rotates every petiole child and its first child by orientation messages.
+    It renormalizes those orientations even when `petiolMoveDown` is 0.
 - boolean
   - `And`, `Or`, `Xor` — inputs `a, b: Boolean`; output `out: Boolean`.
   - `Not` — input `a: Boolean`; output `out: Boolean`.
@@ -205,10 +211,13 @@ public Dictionary<string, List<SpeciesGraphUploadEntry>>? SpeciesGraphs { get; i
 
 [Agro/PlantSpeciesProfile.cs](../Agro/PlantSpeciesProfile.cs) `Resolve(speciesName, settings)`:
 
-1. Resolves morphology via `SpeciesMorphology.Resolve`.
-2. If `settings.SpeciesGraphs` contains a key for this species (case-insensitive fallback if no exact match), iterates each `SpeciesGraphUploadEntry`, compiles `Graph` when non-empty, and collects successful `CompiledBehaviorGraph` instances in list order.
-3. Logs to `Console.Error` for missing keys, empty entries, or per-graph compile errors.
-4. Returns `PlantSpeciesProfile { Morphology, BehaviorGraphs }`.
+1. Parses `SpeciesConfiguration` into a config dictionary via `BehaviorConfigurationCatalog.ParseSpeciesConfiguration`.
+2. Builds morphology with `SpeciesSettingsFromConfiguration.Build(speciesName, config)` — clones the named predefined template, applies config entries, then `PlantFormation2` calls `Init(hoursPerTick)`. Legacy Tick* runs use `SpeciesMorphology.Resolve` instead (no config overlay).
+3. If `settings.SpeciesGraphs` contains a key for this species (case-insensitive fallback if no exact match), iterates each `SpeciesGraphUploadEntry`, compiles `Graph` when non-empty, and collects successful `CompiledBehaviorGraph` instances in list order.
+4. Logs to `Console.Error` for missing keys, empty entries, or per-graph compile errors.
+5. Returns `PlantSpeciesProfile { Morphology, BehaviorGraphs, BehaviorConfiguration }`.
+
+Graph effect nodes (Create Leaves, spawn meristem/rhizome, crown pitch) read morphology from wired inputs; unwired sockets fall back to the matching config id via `MorphologyGraphInputs`. Tick math uses `ResolveConfigNumber` against the same configuration dictionary (no `Plant.Parameters` fallback).
 
 [Agro/Initialize.cs](../Agro/Initialize.cs) passes `profile.BehaviorGraphs` into `PlantFormation2`. The same compiled list is shared for all plants of that species (immutable at runtime).
 
@@ -233,10 +242,11 @@ The output type is `CompiledBehaviorGraph` with `NodesInOrder`, `ActiveGateTopoI
 [Agro/BehaviorGraph/GraphTickInterpreter.cs](../Agro/BehaviorGraph/GraphTickInterpreter.cs) `Execute(ref agent, formation, agentId, timestep, graph)`:
 
 - Allocates a fresh `outs` dictionary for **this** graph (no state carried to the next graph in the list).
-- **Phase 1:** Walks `NodesInOrder` in order, evaluating only nodes whose topo index is set in `ActiveSubtreeMask`.
-- Reads `FirstBool(gateNode.Inputs, "isActive", outs)` for the compiled `Active` node. If false, returns without running the rest.
-- **Phase 2:** Walks `NodesInOrder` again, evaluating nodes **not** in `ActiveSubtreeMask` (the rest of the graph, including `Growth` and any `Active` node if present in that phase).
-- Effect nodes apply agent/formation mutations when evaluated in phase 2. `Boolean Output` / `Number Output` / `Active` remain no-ops.
+- **Phase 1 (active subtree):** Walks `NodesInOrder`, evaluating non-deferred nodes upstream of the `Active` gate's `isActive` input.
+- Reads `FirstBool(gateNode.Inputs, "isActive", outs)`. If false, returns without running the rest.
+- **Phase 2 (active deferred RNG):** Evaluates `RandomFloatVarInput` / `RandomAccumChanceInput` in the active subtree.
+- **Effect subtree passes** (downstream of `Active`, when the gate is true): pure compute → deferred RNG → pure compute refresh → effect nodes → meristem spawns (Create Leaves / Spawn Meristem last for ordering).
+- Effect nodes apply agent/formation mutations in the effect passes. `Boolean Output` / `Number Output` / `Active` remain no-ops.
 - Input nodes write read-only values into `outs` (editor preview returns zeros/false; server uses live agent/formation).
 - Spawn/death/bud/leaves nodes require a valid `formation` and `agentId`; simple field deltas work without formation.
 
